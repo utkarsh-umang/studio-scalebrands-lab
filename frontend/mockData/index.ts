@@ -4,3 +4,23 @@ export {
   type MockUserRecord,
   type UserRole,
 } from './users'
+export {
+  MOCK_CLIENT_CLIP_BATCH_INDEX,
+  MOCK_CLIENT_DASHBOARD,
+  MOCK_CLIENT_FINAL_REVIEW_INDEX,
+  MOCK_CLIENT_IDEA_BATCH_INDEX,
+  MOCK_CLIENT_TEXT_BATCH_INDEX,
+  MOCK_CLIP_BATCHES,
+  MOCK_FINAL_REVIEWS,
+  MOCK_IDEA_BATCHES,
+  MOCK_TEXT_BATCHES,
+  type ClientAttentionKind,
+  type ClientBatchRow,
+  type ClientDashboardMock,
+  type ClipBatchDetail,
+  type FinalReviewListRow,
+  type FinalReviewMock,
+  type IdeaBatchDetail,
+  type ScheduledVideoRow,
+  type TextBatchDetail,
+} from './clientDashboard'

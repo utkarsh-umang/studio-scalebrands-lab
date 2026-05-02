@@ -1,13 +1,23 @@
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { ScrollToTop } from '@/components/ScrollToTop'
 import { AdminDashboard } from '@/pages/dashboards/AdminDashboard'
-import { ClientDashboard } from '@/pages/dashboards/ClientDashboard'
 import { EditorDashboard } from '@/pages/dashboards/EditorDashboard'
 import { SmmDashboard } from '@/pages/dashboards/SmmDashboard'
+import { ClientBatchDetail } from '@/pages/client/ClientBatchDetail'
+import { ClientBatchesList } from '@/pages/client/ClientBatchesList'
+import { ClientFinalReviewDetail } from '@/pages/client/ClientFinalReviewDetail'
+import { ClientFinalReviewList } from '@/pages/client/ClientFinalReviewList'
+import { ClientIdeaDetail } from '@/pages/client/ClientIdeaDetail'
+import { ClientIdeasList } from '@/pages/client/ClientIdeasList'
+import { ClientLayout } from '@/pages/client/ClientLayout'
+import { ClientOurWork } from '@/pages/client/ClientOurWork'
+import { ClientOverview } from '@/pages/client/ClientOverview'
+import { ClientThumbnailDetail } from '@/pages/client/ClientThumbnailDetail'
+import { ClientThumbnailsList } from '@/pages/client/ClientThumbnailsList'
 import { Home } from '@/pages/Home'
 import { LoginPage } from '@/pages/LoginPage'
 import { RootRedirect } from '@/pages/RootRedirect'
-import { Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes } from 'react-router-dom'
 
 function App() {
   return (
@@ -21,10 +31,31 @@ function App() {
           path="/client"
           element={
             <ProtectedRoute portal="client">
-              <ClientDashboard />
+              <ClientLayout />
             </ProtectedRoute>
           }
-        />
+        >
+          <Route
+            index
+            element={<Navigate to="overview" replace />}
+          />
+          <Route path="overview" element={<ClientOverview />} />
+          <Route path="batches" element={<ClientBatchesList />} />
+          <Route path="batches/:batchId" element={<ClientBatchDetail />} />
+          <Route path="ideas" element={<ClientIdeasList />} />
+          <Route path="ideas/:batchId" element={<ClientIdeaDetail />} />
+          <Route path="thumbnails" element={<ClientThumbnailsList />} />
+          <Route
+            path="thumbnails/:batchId"
+            element={<ClientThumbnailDetail />}
+          />
+          <Route path="final-review" element={<ClientFinalReviewList />} />
+          <Route
+            path="final-review/:batchId"
+            element={<ClientFinalReviewDetail />}
+          />
+          <Route path="our-work" element={<ClientOurWork />} />
+        </Route>
         <Route
           path="/editor"
           element={
