@@ -4,7 +4,10 @@ import { AdminClients } from '@/pages/admin/AdminClients'
 import { AdminDeadlines } from '@/pages/admin/AdminDeadlines'
 import { AdminLayout } from '@/pages/admin/AdminLayout'
 import { AdminOverview } from '@/pages/admin/AdminOverview'
-import { EditorDashboard } from '@/pages/dashboards/EditorDashboard'
+import { EditorLayout } from '@/pages/editor/EditorLayout'
+import { EditorOverview } from '@/pages/editor/EditorOverview'
+import { EditorTaskDetail } from '@/pages/editor/EditorTaskDetail'
+import { EditorTasksList } from '@/pages/editor/EditorTasksList'
 import { SmmDashboard } from '@/pages/dashboards/SmmDashboard'
 import { ClientBatchDetail } from '@/pages/client/ClientBatchDetail'
 import { ClientBatchesList } from '@/pages/client/ClientBatchesList'
@@ -63,10 +66,16 @@ function App() {
           path="/editor"
           element={
             <ProtectedRoute portal="editor">
-              <EditorDashboard />
+              <EditorLayout />
             </ProtectedRoute>
           }
-        />
+        >
+          <Route index element={<Navigate to="overview" replace />} />
+          <Route path="overview" element={<EditorOverview />} />
+          <Route path="tasks" element={<EditorTasksList />} />
+          <Route path="qa" element={<EditorTasksList />} />
+          <Route path="tasks/:taskId" element={<EditorTaskDetail />} />
+        </Route>
         <Route
           path="/smm"
           element={

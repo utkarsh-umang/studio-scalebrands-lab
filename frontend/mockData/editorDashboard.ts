@@ -71,27 +71,6 @@ function toSummary(d: EditorTaskDetail): EditorTaskSummary {
   }
 }
 
-/** Derived from `MOCK_EDITOR_TASKS` for overview + lists */
-export function getMockEditorDashboard(): EditorDashboardMock {
-  const tasks = Object.values(MOCK_EDITOR_TASKS)
-  const needsAttention = tasks
-    .filter((t) => t.status === 'qa_flagged')
-    .map(toSummary)
-    .sort((a, b) => (a.deadline && b.deadline ? a.deadline.localeCompare(b.deadline) : 0))
-  const inProgress = tasks
-    .filter((t) => t.status !== 'qa_flagged')
-    .map(toSummary)
-    .sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1))
-  const editing = tasks.filter((t) => t.status === 'editing').length
-  const withSmmQa = tasks.filter((t) => t.status === 'smm_qa').length
-  const qaInbox = tasks.filter((t) => t.status === 'qa_flagged').length
-  return {
-    counts: { editing, withSmmQa, qaInbox },
-    needsAttention,
-    inProgress,
-  }
-}
-
 const PREVIEW =
   'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm'
 
@@ -188,6 +167,27 @@ export const MOCK_EDITOR_TASKS: Record<string, EditorTaskDetail> = {
     thumbnailAlt: 'Redis terminal',
     qaFlags: [],
   },
+}
+
+/** Derived from `MOCK_EDITOR_TASKS` for overview + lists */
+export function getMockEditorDashboard(): EditorDashboardMock {
+  const tasks = Object.values(MOCK_EDITOR_TASKS)
+  const needsAttention = tasks
+    .filter((t) => t.status === 'qa_flagged')
+    .map(toSummary)
+    .sort((a, b) => (a.deadline && b.deadline ? a.deadline.localeCompare(b.deadline) : 0))
+  const inProgress = tasks
+    .filter((t) => t.status !== 'qa_flagged')
+    .map(toSummary)
+    .sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1))
+  const editing = tasks.filter((t) => t.status === 'editing').length
+  const withSmmQa = tasks.filter((t) => t.status === 'smm_qa').length
+  const qaInbox = tasks.filter((t) => t.status === 'qa_flagged').length
+  return {
+    counts: { editing, withSmmQa, qaInbox },
+    needsAttention,
+    inProgress,
+  }
 }
 
 /** Flat list for task index pages */
