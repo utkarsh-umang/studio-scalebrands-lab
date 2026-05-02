@@ -1,6 +1,6 @@
-# Local dev infrastructure — Postgres, MongoDB, Redis
-# Run: task dev:infra
-# Uses .env for credentials (must match backend config)
+# Local dev: infra only → task dev:infra (postgres, mongo, redis)
+# Full stack in Docker → docker compose up --build  (adds backend + frontend)
+# Uses root .env for credentials; backend overrides hostnames for Docker network.
 
 services:
   postgres:
@@ -34,7 +34,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "${REDIS_PUBLISH_PORT:-16379}:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -42,6 +42,46 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  backend:
+    build:
+      context: ./backend-app
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: postgres
+      # Compose Postgres listens on 5432 inside the network (.env may use another port for host-only access)
+      POSTGRES_PORT: "5432"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      MONGO_LOCAL_URI: mongodb://mongo:27017
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend-app:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      # Browser calls API on the host-mapped port (must match api.ts default / .env)
+      VITE_API_BASE_URL: http://127.0.0.1:8000
+    depends_on:
+      - backend
 
 volumes:
   postgres_data:

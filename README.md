@@ -27,12 +27,29 @@ Monorepo: FastAPI backend + React TypeScript frontend. All commands run from the
    ```
    Dev server: http://localhost:5173. Add `http://localhost:5173` to `CORS_ORIGINS` in `.env` for local dev.
 
+### Full stack in Docker (local dev)
+
+Runs databases, FastAPI (with migrations + reload), and Vite with bind mounts for hot reload.
+
+```bash
+task dev:docker          # foreground logs
+# or
+task dev:docker:detach   # background
+```
+
+- API: http://localhost:8000 — UI: http://localhost:5173  
+- Infra only (no app containers): `task dev:infra`  
+- **Redis on the host** is exposed on **16379** by default (not 6379), so another process can keep using 6379. If the API runs on the host with compose Redis, set `REDIS_PORT=16379` in `.env` (see `.env.example`). Optional: set `REDIS_PUBLISH_PORT` to change the host mapping.
+- **Postgres:** if `.env` sets `POSTGRES_PORT` to a non-default host port (e.g. 5438), the backend **container** still uses port **5432** to reach the `postgres` service (overridden in `docker-compose.yml`).
+
 ## Task commands (run from root)
 
 | Task | Description |
 |------|-------------|
 | `task dev:infra` | Start Postgres, MongoDB, Redis (Docker) |
-| `task dev:down` | Stop Docker infra |
+| `task dev:docker` | Full stack in Docker (infra + backend + frontend) |
+| `task dev:docker:detach` | Same, detached |
+| `task dev:down` | Stop Docker compose (infra + app containers) |
 | `task env:create` | Create `.env` from `.env.example` |
 | `task backend:install` | Install Python deps (Poetry) |
 | `task backend:up` | Migrate + start uvicorn |
@@ -60,5 +77,5 @@ Monorepo: FastAPI backend + React TypeScript frontend. All commands run from the
 ## Local dev flow
 
 - **Infra:** Docker (Postgres, MongoDB, Redis) — `task dev:infra`
-- **App:** uvicorn on host (hot reload) — `task backend:up`
-- **Prod:** Everything containerized (app + infra)
+- **App on host:** uvicorn — `task backend:up`; Vite — `task frontend:run`
+- **App in Docker:** `task dev:docker` (compose binds source for reload)
