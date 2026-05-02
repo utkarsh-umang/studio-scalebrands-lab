@@ -1,45 +1,67 @@
 @import 'tailwindcss';
 
+/**
+ * Global CSS variables — defaults match `src/theme/light.ts`.
+ * ThemeProvider syncs these at runtime so JS and CSS stay aligned.
+ */
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  --background: #ffffff;
+  --foreground: #05090e;
+  --primary: #1f57f5;
+  --primary-foreground: #ffffff;
+  --secondary: #2baff2;
+  --secondary-foreground: #05090e;
+  --accent: #00ddff;
+  --accent-foreground: #05090e;
+  --muted: rgba(5, 9, 14, 0.08);
+  --muted-foreground: rgba(5, 9, 14, 0.62);
+  --border: rgba(5, 9, 14, 0.12);
+  --surface: #f8fafc;
+  --code-bg: rgba(5, 9, 14, 0.06);
+  --ring: #1f57f5;
+  --success: #15803d;
+  --destructive: #b91c1c;
+  --destructive-foreground: #ffffff;
 
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
   --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
+  --shadow:
+    rgba(5, 9, 14, 0.08) 0 10px 15px -3px,
+    rgba(5, 9, 14, 0.05) 0 4px 6px -2px;
 
   font: 18px/145% var(--sans);
   letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
+  color-scheme: light;
+  color: var(--foreground);
+  background: var(--background);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-  }
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-surface: var(--surface);
+  --color-code-bg: var(--code-bg);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --font-sans: var(--sans);
+  --font-mono: var(--mono);
 }
 
 #root {
