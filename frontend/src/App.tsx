@@ -1,6 +1,9 @@
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { ScrollToTop } from '@/components/ScrollToTop'
-import { AdminDashboard } from '@/pages/dashboards/AdminDashboard'
+import { AdminClients } from '@/pages/admin/AdminClients'
+import { AdminDeadlines } from '@/pages/admin/AdminDeadlines'
+import { AdminLayout } from '@/pages/admin/AdminLayout'
+import { AdminOverview } from '@/pages/admin/AdminOverview'
 import { EditorDashboard } from '@/pages/dashboards/EditorDashboard'
 import { SmmDashboard } from '@/pages/dashboards/SmmDashboard'
 import { ClientBatchDetail } from '@/pages/client/ClientBatchDetail'
@@ -76,10 +79,15 @@ function App() {
           path="/admin"
           element={
             <ProtectedRoute portal="admin">
-              <AdminDashboard />
+              <AdminLayout />
             </ProtectedRoute>
           }
-        />
+        >
+          <Route index element={<Navigate to="overview" replace />} />
+          <Route path="overview" element={<AdminOverview />} />
+          <Route path="clients" element={<AdminClients />} />
+          <Route path="deadlines" element={<AdminDeadlines />} />
+        </Route>
       </Routes>
     </>
   )
