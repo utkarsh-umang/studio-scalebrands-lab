@@ -40,11 +40,11 @@ export type ClientFinalReviewDetail = {
 }
 
 const CLIP_REVIEWS_BY_BATCH: Record<string, ClientClipReviewDetail> = {
-  'b-204': {
-    batchId: 'b-204',
-    videoId: 'v-1',
+  'b-yet': {
+    batchId: 'b-yet',
+    videoId: 'v-clip-gate',
     clipsFolderUrl: 'https://drive.google.com/drive/folders/example-q2-clips',
-    sourceMediaUrl: 'https://www.youtube.com/watch?v=example-techwithtim-podcast',
+    sourceMediaUrl: 'https://www.youtube.com/watch?v=example-techwithtim-may-podcast',
     clips: [
       {
         id: 'c1',
@@ -76,27 +76,21 @@ const CLIP_REVIEWS_BY_BATCH: Record<string, ClientClipReviewDetail> = {
 
 const IDEA_REVIEWS: Record<string, ClientIdeaReviewDetail> = {}
 
-const TEXT_REVIEWS: Record<string, ClientTextReviewDetail> = {
-  'v-6': {
-    videoId: 'v-6',
-    thumbnailText: 'Spring launch — first look',
-    videoTitle: 'What Changed in Our Spring Release (60s)',
-  },
-}
+const TEXT_REVIEWS: Record<string, ClientTextReviewDetail> = {}
 
 const SAMPLE_VIDEO_SRC =
   'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm'
 
 const FINAL_REVIEWS: Record<string, ClientFinalReviewDetail> = {
-  'v-4': {
-    videoId: 'v-4',
+  'v-of-1': {
+    videoId: 'v-of-1',
     videoSrc: SAMPLE_VIDEO_SRC,
-    thumbnailAlt: 'Q&A short — final cut preview',
+    thumbnailAlt: 'Spring set — beat 1 preview',
   },
-  'v-9': {
-    videoId: 'v-9',
+  'v-of-2': {
+    videoId: 'v-of-2',
     videoSrc: SAMPLE_VIDEO_SRC,
-    thumbnailAlt: 'Testimonial short preview',
+    thumbnailAlt: 'Spring set — beat 2 preview',
   },
 }
 

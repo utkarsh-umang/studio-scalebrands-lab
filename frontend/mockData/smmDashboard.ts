@@ -34,62 +34,55 @@ export type SmmDashboardMock = {
 export const MOCK_SMM_DASHBOARD: SmmDashboardMock = {
   needsAttention: [
     {
-      id: 'b-204',
-      title: 'Q2 product clips',
+      id: 'b-yet',
+      title: 'June podcast — yet to start',
       clientName: 'TechWithTim',
-      stageLabel: 'Clip identification',
+      stageLabel: 'Find clips + clips Drive link',
       attention: 'clip_identification',
-      updatedAt: '2026-04-28',
-      deadline: '2026-05-01',
+      updatedAt: '2026-05-15',
+      deadline: '2026-05-18',
     },
     {
-      id: 'qa-211',
-      title: 'Launch week — hero cut',
-      clientName: 'Northwind Media',
+      id: 'b-smm-qa',
+      title: 'Q2 cuts — SMM video QA',
+      clientName: 'TechWithTim',
       stageLabel: 'SMM QA',
       attention: 'smm_qa',
-      updatedAt: '2026-04-30',
+      updatedAt: '2026-05-14',
     },
     {
-      id: 'b-215',
-      title: 'Customer montage — May',
+      id: 'b-titles',
+      title: 'Product drop — editor titles in Drive',
       clientName: 'TechWithTim',
-      stageLabel: 'Scheduling',
+      stageLabel: 'Titles prep',
       attention: 'scheduling',
-      updatedAt: '2026-05-01',
+      updatedAt: '2026-05-14',
     },
   ],
   withClient: [
     {
-      id: 'b-207',
-      title: 'Summer campaign — hooks',
-      clientName: 'Northwind Media',
-      stageLabel: 'Ideas review (client)',
-      updatedAt: '2026-04-29',
+      id: 'b-obs-final',
+      title: 'Spring set — client on final video QA',
+      clientName: 'TechWithTim',
+      stageLabel: 'Final video review',
+      updatedAt: '2026-05-14',
     },
     {
-      id: 'b-209',
-      title: 'Redis deep dive clip',
+      id: 'b-obs-thumb',
+      title: 'Campaign B — thumbnail approval window',
       clientName: 'TechWithTim',
-      stageLabel: 'Titles review (client)',
-      updatedAt: '2026-04-26',
+      stageLabel: 'Thumbnail review',
+      updatedAt: '2026-05-14',
     },
   ],
   withEditor: [
     {
-      id: 'b-201',
-      title: 'Spring launch teasers',
+      id: 'b-obs-edit',
+      title: 'B-roll pack — with editor (clips approved)',
       clientName: 'TechWithTim',
-      stageLabel: 'Editing',
-      updatedAt: '2026-04-29',
-      deadline: '2026-05-03',
-    },
-    {
-      id: 'b-208',
-      title: 'Podcast highlights — ep. 42',
-      clientName: 'Northwind Media',
-      stageLabel: 'Resolving QA flags',
-      updatedAt: '2026-04-27',
+      stageLabel: 'Videos in progress',
+      updatedAt: '2026-05-14',
+      deadline: '2026-05-16',
     },
   ],
 }
@@ -117,22 +110,22 @@ export type SmmClipBatchDetail = {
 
 export const MOCK_SMM_CLIP_BATCH_INDEX: SmmClipBatchListRow[] = [
   {
-    id: 'b-204',
-    title: 'Q2 product clips',
+    id: 'b-yet',
+    title: 'June podcast — yet to start',
     clientName: 'TechWithTim',
-    subtitle: 'Raw footage link received · identify clips to send',
-    updatedAt: '2026-04-28',
+    subtitle: 'Raw footage link received · identify clips + add Drive folder',
+    updatedAt: '2026-05-15',
   },
 ]
 
 export const MOCK_SMM_CLIP_BATCHES: Record<string, SmmClipBatchDetail> = {
-  'b-204': {
-    id: 'b-204',
-    title: 'Q2 product clips',
+  'b-yet': {
+    id: 'b-yet',
+    title: 'June podcast — yet to start',
     clientName: 'TechWithTim',
-    footageUrl: 'https://example.com/footage',
-    footageLabel: 'Product walkthrough — Apr 28 upload',
-    updatedAt: '2026-04-28',
+    footageUrl: 'https://www.youtube.com/watch?v=example-techwithtim-may-podcast',
+    footageLabel: 'Engineering podcast — May upload',
+    updatedAt: '2026-05-15',
     clips: [
       {
         id: 'c1',
@@ -258,42 +251,42 @@ export type SmmQaDetail = {
 
 export const MOCK_SMM_QA_INDEX: SmmQaListRow[] = [
   {
-    taskId: 'qa-211',
-    batchTitle: 'Launch week — hero cut',
-    clientName: 'Northwind Media',
-    subtitle: 'Editor submitted deliverable · your review',
-    updatedAt: '2026-04-30',
+    taskId: 'v-sq-1',
+    batchTitle: 'Q2 cuts — SMM video QA',
+    clientName: 'TechWithTim',
+    subtitle: 'Deliverable 1 · editor submitted to Drive',
+    updatedAt: '2026-05-14',
   },
   {
-    taskId: 'qa-198',
-    batchTitle: 'Founder story — batch 2',
+    taskId: 'v-sq-2',
+    batchTitle: 'Q2 cuts — SMM video QA',
     clientName: 'TechWithTim',
-    subtitle: 'Re-submitted after QA fixes',
-    updatedAt: '2026-04-29',
+    subtitle: 'Deliverable 2 · editor submitted to Drive',
+    updatedAt: '2026-05-14',
   },
 ]
 
 export const MOCK_SMM_QA_TASKS: Record<string, SmmQaDetail> = {
-  'qa-211': {
-    taskId: 'qa-211',
-    batchTitle: 'Launch week — hero cut',
-    clientName: 'Northwind Media',
-    updatedAt: '2026-04-30',
+  'v-sq-1': {
+    taskId: 'v-sq-1',
+    batchTitle: 'Q2 cuts — SMM video QA',
+    clientName: 'TechWithTim',
+    updatedAt: '2026-05-14',
     videoSrc:
       'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm',
-    thumbnailAlt: 'Hero cut thumbnail',
+    thumbnailAlt: 'API week — deliverable 1',
     existingFlags: [],
   },
-  'qa-198': {
-    taskId: 'qa-198',
-    batchTitle: 'Founder story — batch 2',
+  'v-sq-2': {
+    taskId: 'v-sq-2',
+    batchTitle: 'Q2 cuts — SMM video QA',
     clientName: 'TechWithTim',
-    updatedAt: '2026-04-29',
+    updatedAt: '2026-05-14',
     videoSrc:
       'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm',
-    thumbnailAlt: 'Founder story thumbnail',
+    thumbnailAlt: 'API week — deliverable 2',
     existingFlags: [
-      { id: 'f1', atSeconds: 12, note: 'Logo bump feels 0.5s late' },
+      { id: 'f1', atSeconds: 8, note: 'Tighten hook — first caption at 0:02' },
     ],
   },
 }
@@ -317,24 +310,6 @@ export type SmmScheduleDetail = {
   suggestedPlatform: string
 }
 
-export const MOCK_SMM_SCHEDULE_INDEX: SmmScheduleListRow[] = [
-  {
-    batchId: 'b-215',
-    title: 'Customer montage — May',
-    clientName: 'TechWithTim',
-    subtitle: 'Client approved final · set go-live + deduct credits',
-    updatedAt: '2026-05-01',
-    creditCost: 1,
-  },
-]
+export const MOCK_SMM_SCHEDULE_INDEX: SmmScheduleListRow[] = []
 
-export const MOCK_SMM_SCHEDULE_DETAILS: Record<string, SmmScheduleDetail> = {
-  'b-215': {
-    batchId: 'b-215',
-    title: 'Customer montage — May',
-    clientName: 'TechWithTim',
-    updatedAt: '2026-05-01',
-    creditCost: 1,
-    suggestedPlatform: 'YouTube Shorts',
-  },
-}
+export const MOCK_SMM_SCHEDULE_DETAILS: Record<string, SmmScheduleDetail> = {}

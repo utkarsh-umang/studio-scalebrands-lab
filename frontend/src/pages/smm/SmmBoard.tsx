@@ -2,21 +2,19 @@ import { useMemo, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useMockAuth } from '@/auth'
 import { SmmAttentionStrip } from '@/components/smm/SmmAttentionStrip'
+import { SmmBatchBoard } from '@/components/smm/SmmBatchBoard'
+import { SmmBatchDetailModal } from '@/components/smm/SmmBatchDetailModal'
 import { SmmBatchFolderRow } from '@/components/smm/SmmBatchFolderRow'
-import { SmmFindClipsModal } from '@/components/smm/SmmFindClipsModal'
-import { SmmScheduleBatchModal } from '@/components/smm/SmmScheduleBatchModal'
-import { SmmVideoKanban } from '@/components/smm/SmmVideoKanban'
-import { SmmVideoQaModal } from '@/components/smm/SmmVideoQaModal'
 import {
+  batchAppearsOnSmmPipelineBoard,
   listSmmBatchAttention,
-  toSmmVideoCard,
 } from '@/lib/smmBoard'
 import { resolveSmmStaffId } from '@/lib/smmSession'
 import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
 
 export function SmmBoard() {
   const { user } = useMockAuth()
-  const { clients, batches, videos, getVideosForBatch } = useAdminWorkspace()
+  const { clients, batches, videos } = useAdminWorkspace()
 
   const smmStaffId = resolveSmmStaffId(user)
 
@@ -43,42 +41,25 @@ export function SmmBoard() {
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
   }, [batches, clientIds])
 
+  const pipelineBatches = useMemo(() => {
+    const vids = videos.filter((v) => clientIds.has(v.clientId))
+    return smmBatches.filter((b) => batchAppearsOnSmmPipelineBoard(b, vids))
+  }, [smmBatches, videos, clientIds])
+
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null)
-  const [findClipsBatchId, setFindClipsBatchId] = useState<string | null>(null)
-  const [scheduleBatchId, setScheduleBatchId] = useState<string | null>(null)
-  const [qaVideoId, setQaVideoId] = useState<string | null>(null)
+  const [detailBatchId, setDetailBatchId] = useState<string | null>(null)
 
-  const effectiveBatchId = selectedBatchId ?? smmBatches[0]?.id ?? null
-  const selectedBatch =
-    smmBatches.find((b) => b.id === effectiveBatchId) ?? smmBatches[0]
-
-  const batchVideos = useMemo(() => {
-    if (!selectedBatch) return []
-    return getVideosForBatch(selectedBatch.id).map(toSmmVideoCard)
-  }, [selectedBatch, getVideosForBatch])
+  const effectiveBatchId = selectedBatchId ?? pipelineBatches[0]?.id ?? null
 
   const attention = useMemo(
     () => listSmmBatchAttention(smmBatches, videos, clientNameById),
     [smmBatches, videos, clientNameById],
   )
 
-  const findClipsBatch = findClipsBatchId
-    ? smmBatches.find((b) => b.id === findClipsBatchId)
-    : undefined
-  const scheduleBatch = scheduleBatchId
-    ? smmBatches.find((b) => b.id === scheduleBatchId)
-    : undefined
-
-  const qaCard = useMemo(() => {
-    if (!qaVideoId) return null
-    const ticket = videos.find((v) => v.id === qaVideoId)
-    return ticket ? toSmmVideoCard(ticket) : null
-  }, [qaVideoId, videos])
-
-  const qaBatch = useMemo(() => {
-    if (!qaCard) return selectedBatch
-    return smmBatches.find((b) => b.id === qaCard.batchId) ?? selectedBatch
-  }, [qaCard, smmBatches, selectedBatch])
+  const detailBatch = useMemo(() => {
+    if (!detailBatchId) return null
+    return smmBatches.find((b) => b.id === detailBatchId) ?? null
+  }, [detailBatchId, smmBatches])
 
   if (!user || user.role !== 'employee' || user.employeeKind !== 'smm') {
     return <Navigate to="/login" replace />
@@ -99,8 +80,7 @@ export function SmmBoard() {
           Your board
         </h1>
         <p className="text-muted-foreground text-xs">
-          {assignedClients.length} client
-          {assignedClients.length === 1 ? '' : 's'} · raw footage path
+          One card per batch · open a batch for deliverables on the right
         </p>
       </div>
 
@@ -108,84 +88,59 @@ export function SmmBoard() {
         items={attention}
         onOpen={(item) => {
           setSelectedBatchId(item.batchId)
-          if (item.kind === 'find_clips') setFindClipsBatchId(item.batchId)
-          if (item.kind === 'schedule') setScheduleBatchId(item.batchId)
-          if (item.kind === 'video_qa' && item.videoId) {
-            setQaVideoId(item.videoId)
-          }
+          setDetailBatchId(item.batchId)
         }}
       />
 
       <SmmBatchFolderRow
-        batches={smmBatches}
+        batches={pipelineBatches}
         videos={videos.filter((v) => clientIds.has(v.clientId))}
         selectedBatchId={effectiveBatchId}
-        onSelect={setSelectedBatchId}
+        onSelect={(id) => {
+          setSelectedBatchId(id)
+          setDetailBatchId(id)
+        }}
       />
 
-      {selectedBatch ? (
-        <section className="space-y-2">
-          <p className="text-muted-foreground text-[10px] font-semibold uppercase tracking-[0.12em]">
-            {selectedBatch.title} —{' '}
-            {clientNameById.get(selectedBatch.clientId) ?? 'Client'}
-          </p>
-          <SmmVideoKanban
-            batch={selectedBatch}
-            clientName={clientNameById.get(selectedBatch.clientId) ?? 'Client'}
-            videos={batchVideos}
-            onOpenFindClips={() => {
-              setFindClipsBatchId(selectedBatch.id)
-            }}
-            onOpenSchedule={() => {
-              setScheduleBatchId(selectedBatch.id)
-            }}
-            onOpenVideoQa={(videoId) => {
-              setQaVideoId(videoId)
-            }}
-          />
-        </section>
-      ) : (
+      {smmBatches.length === 0 ? (
         <p className="text-muted-foreground text-sm">
           No active batches on your accounts yet.
         </p>
+      ) : pipelineBatches.length === 0 ? (
+        <p className="text-muted-foreground text-sm">
+          Nothing in the three-column pipeline. If a batch is fully posted, close it from{' '}
+          <strong className="text-foreground">Completed</strong> in the sidebar.
+        </p>
+      ) : (
+        <section className="space-y-2">
+          <p className="text-muted-foreground text-[10px] font-semibold uppercase tracking-[0.12em]">
+            Pipeline
+          </p>
+          <SmmBatchBoard
+            batches={pipelineBatches}
+            videos={videos.filter((v) => clientIds.has(v.clientId))}
+            clientNameById={clientNameById}
+            onOpenBatch={(batchId) => {
+              setSelectedBatchId(batchId)
+              setDetailBatchId(batchId)
+            }}
+          />
+        </section>
       )}
 
-      {findClipsBatch && (
-        <SmmFindClipsModal
-          batch={findClipsBatch}
-          clientName={clientNameById.get(findClipsBatch.clientId) ?? 'Client'}
-          open={findClipsBatchId === findClipsBatch.id}
-          onClose={() => {
-            setFindClipsBatchId(null)
-          }}
-        />
-      )}
-
-      {scheduleBatch && (
-        <SmmScheduleBatchModal
-          batch={scheduleBatch}
-          clientName={clientNameById.get(scheduleBatch.clientId) ?? 'Client'}
-          videos={getVideosForBatch(scheduleBatch.id)}
-          open={scheduleBatchId === scheduleBatch.id}
-          onClose={() => {
-            setScheduleBatchId(null)
-          }}
-        />
-      )}
-
-      {qaCard && qaBatch && (
-        <SmmVideoQaModal
-          key={qaCard.id}
-          batch={qaBatch}
-          batchTickets={getVideosForBatch(qaBatch.id)}
-          clientName={clientNameById.get(qaBatch.clientId) ?? 'Client'}
-          initialCard={qaCard}
-          open={qaVideoId === qaCard.id}
-          onClose={() => {
-            setQaVideoId(null)
-          }}
-        />
-      )}
+      <SmmBatchDetailModal
+        batch={detailBatch}
+        clientName={
+          detailBatch
+            ? clientNameById.get(detailBatch.clientId) ?? 'Client'
+            : ''
+        }
+        allVideos={videos}
+        open={detailBatchId !== null && detailBatch !== null}
+        onClose={() => {
+          setDetailBatchId(null)
+        }}
+      />
     </>
   )
 }

@@ -13,6 +13,7 @@ import { Home } from '@/pages/Home'
 import { LoginPage } from '@/pages/LoginPage'
 import { RootRedirect } from '@/pages/RootRedirect'
 import { SmmBoard } from '@/pages/smm/SmmBoard'
+import { SmmCompleted } from '@/pages/smm/SmmCompleted'
 import { SmmLayout } from '@/pages/smm/SmmLayout'
 import { Navigate, Route, Routes } from 'react-router-dom'
 
@@ -71,6 +72,7 @@ function App() {
         >
           <Route index element={<Navigate to="board" replace />} />
           <Route path="board" element={<SmmBoard />} />
+          <Route path="completed" element={<SmmCompleted />} />
           <Route path="overview" element={<Navigate to="/smm/board" replace />} />
           <Route path="clips" element={<Navigate to="/smm/board" replace />} />
           <Route path="clips/:batchId" element={<Navigate to="/smm/board" replace />} />

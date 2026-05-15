@@ -1,10 +1,13 @@
-import { LayoutGrid, LogOut, User } from 'lucide-react'
+import { CheckCircle2, LayoutGrid, LogOut, User } from 'lucide-react'
 import { NavLink, Outlet } from 'react-router-dom'
 import logo from '@/assets/logo.png'
 import { useMockAuth } from '@/auth'
 import { useTheme } from '@/theme'
 
-const NAV = [{ to: '/smm/board', label: 'Board', Icon: LayoutGrid, end: true }] as const
+const NAV = [
+  { to: '/smm/board', label: 'Board', Icon: LayoutGrid, end: true },
+  { to: '/smm/completed', label: 'Completed', Icon: CheckCircle2, end: true },
+] as const
 
 export function SmmLayout() {
   const { theme } = useTheme()

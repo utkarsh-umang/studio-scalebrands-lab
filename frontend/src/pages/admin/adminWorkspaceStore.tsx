@@ -2,7 +2,6 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -61,42 +60,6 @@ function deriveGuidelinesSource(
   return 'internal'
 }
 
-function applyBatchCompletions(
-  batches: AdminBatchFolder[],
-  videos: AdminVideoTicket[],
-  clients: AdminClientProfile[],
-): { batches: AdminBatchFolder[]; clients: AdminClientProfile[] } {
-  let nextBatches = batches
-  let nextClients = clients
-
-  for (const batch of batches) {
-    if (batch.status !== 'active' || batch.creditsDebited) continue
-    const batchVideos = videos.filter((v) => v.batchId === batch.id)
-    if (batchVideos.length === 0) continue
-    if (!batchVideos.every((v) => v.owner === 'done')) continue
-
-    const now = new Date().toISOString().slice(0, 10)
-    nextBatches = nextBatches.map((b) =>
-      b.id === batch.id
-        ? {
-            ...b,
-            status: 'completed' as const,
-            completedAt: now,
-            updatedAt: now,
-            creditsDebited: true,
-          }
-        : b,
-    )
-    nextClients = nextClients.map((c) =>
-      c.id === batch.clientId
-        ? { ...c, credits: Math.max(0, c.credits - batch.creditCost) }
-        : c,
-    )
-  }
-
-  return { batches: nextBatches, clients: nextClients }
-}
-
 type AdminWorkspaceContextValue = {
   clients: AdminClientProfile[]
   batches: AdminBatchFolder[]
@@ -134,6 +97,8 @@ type AdminWorkspaceContextValue = {
   submitSmmClipsFolder: (batchId: string, clipsFolderUrl: string) => void
   submitSmmQaReview: (videoId: string, input: SubmitSmmQaInput) => void
   scheduleBatch: (batchId: string, input: ScheduleBatchInput) => void
+  /** Moves `scheduling` → done if needed, then closes batch + debits credits when every deliverable is done. */
+  smmFinalizeBatchPublish: (batchId: string) => void
   submitEditorVideosDrive: (batchId: string, driveUrl: string) => void
   submitEditorThumbnailsForReview: (batchId: string) => void
   submitEditorVideoTitle: (videoId: string, title: string) => void
@@ -188,22 +153,6 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
   const [videos, setVideos] = useState<AdminVideoTicket[]>(() => [
     ...MOCK_ADMIN_VIDEO_TICKETS,
   ])
-
-  useEffect(() => {
-    const { batches: nextBatches, clients: nextClients } = applyBatchCompletions(
-      batches,
-      videos,
-      clients,
-    )
-    if (JSON.stringify(nextBatches) !== JSON.stringify(batches)) {
-      setBatches(nextBatches)
-    }
-    if (JSON.stringify(nextClients) !== JSON.stringify(clients)) {
-      setClients(nextClients)
-    }
-    // Finalize batches when video pipeline changes; batches/clients from this render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally videos-only
-  }, [videos])
 
   const getClient = useCallback(
     (id: string) => clients.find((c) => c.id === id),
@@ -784,6 +733,74 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
     )
   }, [])
 
+  const smmFinalizeBatchPublish = useCallback(
+    (batchId: string) => {
+      const batchSnapshot = batches.find((b) => b.id === batchId)
+      if (
+        !batchSnapshot ||
+        batchSnapshot.status !== 'active' ||
+        batchSnapshot.creditsDebited
+      )
+        return
+
+      setVideos((prevVideos) => {
+        const nextVideos = prevVideos.map((v) => {
+          if (v.batchId !== batchId) return v
+          if (v.owner === 'scheduling') {
+            return {
+              ...v,
+              owner: 'done' as const,
+              stageLabel: 'Scheduled',
+              deadlineRole: null,
+            }
+          }
+          return v
+        })
+
+        const bv = nextVideos.filter((v) => v.batchId === batchId)
+        const allDone =
+          bv.length > 0 && bv.every((v) => v.owner === 'done')
+
+        if (allDone) {
+          const now = new Date().toISOString().slice(0, 10)
+          const goLiveAt = new Date().toISOString()
+          setBatches((prev) =>
+            prev.map((b) => {
+              if (b.id !== batchId) return b
+              return {
+                ...b,
+                status: 'completed' as const,
+                completedAt: now,
+                updatedAt: now,
+                creditsDebited: true,
+                batchSchedule:
+                  b.batchSchedule ?? {
+                    platform: 'Social channels',
+                    goLiveAt,
+                    completedAt: now,
+                    videoPublishLinks: {},
+                  },
+              }
+            }),
+          )
+          setClients((prev) =>
+            prev.map((c) =>
+              c.id === batchSnapshot.clientId
+                ? {
+                    ...c,
+                    credits: Math.max(0, c.credits - batchSnapshot.creditCost),
+                  }
+                : c,
+            ),
+          )
+        }
+
+        return nextVideos
+      })
+    },
+    [batches],
+  )
+
   const applyClientVideoDecision = useCallback(
     (
       videoId: string,
@@ -885,6 +902,7 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
       submitSmmClipsFolder,
       submitSmmQaReview,
       scheduleBatch,
+      smmFinalizeBatchPublish,
       submitEditorVideosDrive,
       submitEditorThumbnailsForReview,
       submitEditorVideoTitle,
@@ -913,6 +931,7 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
       submitSmmClipsFolder,
       submitSmmQaReview,
       scheduleBatch,
+      smmFinalizeBatchPublish,
       submitEditorVideosDrive,
       submitEditorThumbnailsForReview,
       submitEditorVideoTitle,

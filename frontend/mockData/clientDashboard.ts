@@ -47,32 +47,25 @@ export const MOCK_CLIENT_DASHBOARD: ClientDashboardMock = {
   creditsRemaining: 42,
   needsAttention: [
     {
-      id: 'b-204',
-      title: 'Q2 product clips',
-      stageLabel: 'Clip approval',
-      attention: 'clip_review',
-      updatedAt: '2026-04-28',
-    },
-    {
-      id: 'b-198',
-      title: 'Founder story — batch 2',
+      id: 'b-obs-final',
+      title: 'Spring set — client on final video QA',
       stageLabel: 'Final video review',
       attention: 'final_video_review',
-      updatedAt: '2026-04-30',
+      updatedAt: '2026-05-14',
+    },
+    {
+      id: 'b-obs-thumb',
+      title: 'Campaign B — thumbnail approval window',
+      stageLabel: 'Thumbnail review',
+      updatedAt: '2026-05-14',
     },
   ],
   inProgress: [
     {
-      id: 'b-201',
-      title: 'Spring launch teasers',
-      stageLabel: 'Editing',
-      updatedAt: '2026-04-29',
-    },
-    {
-      id: 'b-196',
-      title: 'Weekly Shorts — April',
-      stageLabel: 'SMM QA',
-      updatedAt: '2026-04-27',
+      id: 'b-yet',
+      title: 'June podcast — yet to start',
+      stageLabel: 'We are cutting clips',
+      updatedAt: '2026-05-15',
     },
   ],
   scheduled: [
@@ -113,20 +106,20 @@ export type ClipBatchDetail = {
 
 export const MOCK_CLIENT_CLIP_BATCH_INDEX: ClipBatchListRow[] = [
   {
-    id: 'b-204',
-    title: 'Q2 product clips',
-    subtitle: 'Raw footage received · clip ideas ready',
-    updatedAt: '2026-04-28',
+    id: 'b-yet',
+    title: 'June podcast — yet to start',
+    subtitle: 'Raw footage received · clip ideas in progress',
+    updatedAt: '2026-05-15',
   },
 ]
 
 export const MOCK_CLIP_BATCHES: Record<string, ClipBatchDetail> = {
-  'b-204': {
-    id: 'b-204',
-    title: 'Q2 product clips',
+  'b-yet': {
+    id: 'b-yet',
+    title: 'June podcast — yet to start',
     footageUrl: 'https://example.com/footage',
-    footageLabel: 'Product walkthrough — Apr 28 upload',
-    updatedAt: '2026-04-28',
+    footageLabel: 'Engineering podcast — May upload',
+    updatedAt: '2026-05-15',
     clips: [
       {
         id: 'c1',
@@ -224,17 +217,17 @@ export type FinalReviewListRow = {
 
 export const MOCK_CLIENT_FINAL_REVIEW_INDEX: FinalReviewListRow[] = [
   {
-    batchId: 'b-198',
-    title: 'Founder story — batch 2',
+    batchId: 'b-obs-final',
+    title: 'Spring set — client on final video QA',
     subtitle: 'Deliverable ready · YouTube Shorts',
-    updatedAt: '2026-04-30',
+    updatedAt: '2026-05-14',
   },
 ]
 
 export const MOCK_FINAL_REVIEWS: Record<string, FinalReviewMock> = {
-  'b-198': {
-    batchId: 'b-198',
-    batchTitle: 'Founder story — batch 2',
+  'b-obs-final': {
+    batchId: 'b-obs-final',
+    batchTitle: 'Spring set — client on final video QA',
     videoSrc:
       'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm',
     thumbnailAlt: 'Video thumbnail preview',

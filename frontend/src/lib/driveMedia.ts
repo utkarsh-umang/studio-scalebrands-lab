@@ -12,8 +12,18 @@ export function parseDriveFolderId(url: string): string | null {
   return m?.[1] ?? null
 }
 
+/** Dev-only: share one synced manifest across demo batch ids */
+const MANIFEST_ALIASES: Record<string, string> = {
+  'b-smm-qa': 'b-204',
+  'b-titles': 'b-204',
+  'b-obs-final': 'b-204',
+  'b-obs-thumb': 'b-204',
+  'b-obs-edit': 'b-204',
+}
+
 export function getManifestForBatch(batchId: string): BatchDriveManifest | undefined {
-  return DRIVE_MANIFESTS[batchId]
+  const key = MANIFEST_ALIASES[batchId] ?? batchId
+  return DRIVE_MANIFESTS[key]
 }
 
 /**
@@ -27,7 +37,8 @@ export async function reloadDriveManifestForBatch(
     /* @vite-ignore */
     `../../mockData/driveManifests.ts?t=${Date.now()}`
   )
-  return mod.DRIVE_MANIFESTS[batchId]
+  const key = MANIFEST_ALIASES[batchId] ?? batchId
+  return mod.DRIVE_MANIFESTS[key]
 }
 
 export function getMediaEntry(

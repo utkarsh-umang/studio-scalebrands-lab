@@ -55,13 +55,11 @@ export function SmmAttentionStrip({ items, onOpen }: Props) {
                     ? 'Find clips'
                     : item.kind === 'video_qa'
                       ? 'Video QA'
-                      : 'Schedule batch'}
+                      : 'Mark published'}
                 </span>
                 <span className="text-muted-foreground block truncate text-[10px]">
                   {item.clientName} ·{' '}
-                  {item.kind === 'video_qa' && item.videoTitle
-                    ? item.videoTitle
-                    : item.batchTitle}
+                  {item.batchTitle}
                 </span>
               </span>
             </button>
