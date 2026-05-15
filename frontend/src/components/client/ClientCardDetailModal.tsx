@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { Check } from 'lucide-react'
 import {
-  getClientClipReview,
   getClientFinalReview,
   getClientIdeaReview,
   getClientTextReview,
   SAMPLE_VIDEO_SRC,
 } from '@mockData/index'
+import { ThumbnailReviewPanel } from '@/components/drive/ThumbnailReviewPanel'
 import type { ClientVideoCard } from '@/lib/clientBoard'
 import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
 import { useTheme } from '@/theme'
@@ -28,34 +28,36 @@ export function ClientCardDetailModal({
   onClose,
 }: Props) {
   const { theme } = useTheme()
-  const { applyClientVideoDecision, approveBatchClips, rejectBatchClips } =
+  const { batches, applyClientVideoDecision, approveBatchClips, rejectBatchClips } =
     useAdminWorkspace()
+  const batch = batches.find((b) => b.id === batchId)
   const [rejectReason, setRejectReason] = useState('')
 
   if (!card) return null
 
   const isReview = card.clientColumn === 'in_review' && card.reviewKind
 
-  function finish(action: 'approve' | 'reject') {
+  function finish(
+    action: 'approve' | 'reject',
+    opts?: { rejectNote?: string; feedback?: import('@/components/VideoDeliverableReviewPanel').VideoReviewFeedback },
+  ) {
     if (!card) return
-    if (action === 'reject' && !rejectReason.trim() && card.reviewKind !== 'clip') {
-      return
+    if (action === 'reject' && !opts?.feedback && !opts?.rejectNote?.trim() && card.reviewKind !== 'clip') {
+      if (!rejectReason.trim()) return
     }
-    applyClientVideoDecision(card.id, action)
+    applyClientVideoDecision(card.id, action, {
+      rejectNote: opts?.rejectNote ?? rejectReason,
+      feedback: opts?.feedback,
+    })
     onClose()
   }
-
-  const clipDetail =
-    card.reviewKind === 'clip'
-      ? getClientClipReview(card.id, batchId)
-      : undefined
   const ideaDetail = card.reviewKind === 'idea' ? getClientIdeaReview(card.id) : undefined
   const textDetail = card.reviewKind === 'text' ? getClientTextReview(card.id) : undefined
   const finalDetail =
     card.reviewKind === 'final' ? getClientFinalReview(card.id) : undefined
   const isFinalReview = card.reviewKind === 'final'
 
-  if (clipDetail) {
+  if (card.reviewKind === 'clip' && batch?.clipsFolderUrl) {
     return (
       <ModalShell
         title="Clip approval"
@@ -64,7 +66,8 @@ export function ClientCardDetailModal({
         wide
       >
         <ClientClipReviewPanel
-          detail={clipDetail}
+          batchId={batchId}
+          clipsFolderUrl={batch.clipsFolderUrl}
           onApprove={() => {
             approveBatchClips(batchId, card.id)
             onClose()
@@ -139,21 +142,18 @@ export function ClientCardDetailModal({
     )
   }
 
-  if (card.reviewKind === 'thumbnail') {
+  if (card.reviewKind === 'thumbnail' && batch?.editorDeliverablesDriveUrl) {
     return (
-      <ModalShell title="Thumbnail review" subtitle={card.title} onClose={onClose}>
-        <p className="text-muted-foreground mb-4 text-sm leading-relaxed">
-          Review the thumbnail image for this short in the deliverables folder.
-          Approve when it matches your brand, or reject with feedback for the editor.
-        </p>
-        <ReviewActions
-          rejectReason={rejectReason}
-          onRejectReason={setRejectReason}
+      <ModalShell title="Thumbnail review" subtitle={card.title} onClose={onClose} wide>
+        <ThumbnailReviewPanel
+          batchId={batchId}
+          deliverablesFolderUrl={batch.editorDeliverablesDriveUrl}
+          ticket={card}
           onApprove={() => {
             finish('approve')
           }}
-          onReject={() => {
-            finish('reject')
+          onReject={(note) => {
+            finish('reject', { rejectNote: note })
           }}
         />
       </ModalShell>
@@ -176,11 +176,13 @@ export function ClientCardDetailModal({
             thumbnailAlt: finalDetail?.thumbnailAlt ?? card.title,
           }}
           theme={theme}
+          ticket={card}
+          deliverablesFolderUrl={batch?.editorDeliverablesDriveUrl}
           onApprove={() => {
             finish('approve')
           }}
-          onReject={() => {
-            finish('reject')
+          onReject={(feedback) => {
+            finish('reject', { feedback })
           }}
         />
       </ModalShell>

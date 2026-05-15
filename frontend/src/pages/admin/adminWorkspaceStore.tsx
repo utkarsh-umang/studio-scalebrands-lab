@@ -26,6 +26,12 @@ import {
   nextStateAfterClientAction,
   type ClientReviewKind,
 } from '@/lib/clientBoard'
+import { getManifestForBatch } from '@/lib/driveMedia'
+import type { VideoReviewFeedback } from '@/components/VideoDeliverableReviewPanel'
+import {
+  appendClipRejectNote,
+  buildQaCommentsFromFeedback,
+} from '@/lib/qaComments'
 
 type CreateBatchInput = {
   clientId: string
@@ -123,6 +129,7 @@ type AdminWorkspaceContextValue = {
   applyClientVideoDecision: (
     videoId: string,
     action: 'approve' | 'reject',
+    opts?: { rejectNote?: string; feedback?: VideoReviewFeedback },
   ) => void
   submitSmmClipsFolder: (batchId: string, clipsFolderUrl: string) => void
   submitSmmQaReview: (videoId: string, input: SubmitSmmQaInput) => void
@@ -440,10 +447,18 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
   const approveBatchClips = useCallback(
     (batchId: string, clipReviewVideoId: string) => {
       const now = new Date().toISOString().slice(0, 10)
+      const manifest = getManifestForBatch(batchId)
+      const clipCount = manifest?.clips.length ?? 0
+
       setBatches((prev) =>
         prev.map((b) =>
           b.id === batchId
-            ? { ...b, clipReviewPhase: 'approved' as const, updatedAt: now }
+            ? {
+                ...b,
+                clipReviewPhase: 'approved' as const,
+                updatedAt: now,
+                ...(clipCount > 0 ? { videoCount: clipCount } : {}),
+              }
             : b,
         ),
       )
@@ -479,7 +494,7 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
   )
 
   const rejectBatchClips = useCallback(
-    (batchId: string, clipReviewVideoId: string, _note: string) => {
+    (batchId: string, clipReviewVideoId: string, note: string) => {
       const now = new Date().toISOString().slice(0, 10)
       setBatches((prev) =>
         prev.map((b) =>
@@ -496,6 +511,7 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
             owner: 'smm' as const,
             stageLabel: 'Clip identification',
             deadlineRole: 'smm' as const,
+            qaCommentHistory: appendClipRejectNote(v, note),
           }
         }),
       )
@@ -576,15 +592,28 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
       setVideos((prev) =>
         prev.map((v) => {
           if (v.id !== videoId) return v
+          const videoVersion = v.assetVersions?.video ?? 1
           if (hasFeedback) {
+            const newComments = buildQaCommentsFromFeedback(
+              {
+                markers: input.timestampFlags.map((f) => ({
+                  at: f.atSeconds,
+                  text: f.note,
+                })),
+                generalNote: input.generalNote,
+              },
+              { slot: 'video', assetVersion: videoVersion, authorRole: 'smm' },
+            )
             return {
               ...v,
               owner: 'editor' as const,
               editorPhase: 'videos' as const,
               stageLabel: 'QA flagged',
               deadlineRole: 'editor' as const,
+              lastRevisionRequestedBy: 'smm' as const,
               qaFlags: flags,
               qaGeneralNote: input.generalNote.trim() || undefined,
+              qaCommentHistory: [...(v.qaCommentHistory ?? []), ...newComments],
             }
           }
           return {
@@ -695,14 +724,13 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
     setVideos((prev) =>
       prev.map((v) => {
         if (v.id !== videoId) return v
+        const backToClient = v.lastRevisionRequestedBy === 'client'
         return {
           ...v,
-          owner: 'smm' as const,
+          owner: backToClient ? ('client' as const) : ('smm' as const),
           editorPhase: 'videos' as const,
-          stageLabel: 'SMM QA',
-          deadlineRole: 'smm' as const,
-          qaFlags: undefined,
-          qaGeneralNote: undefined,
+          stageLabel: backToClient ? 'Final video review' : 'SMM QA',
+          deadlineRole: backToClient ? null : ('smm' as const),
         }
       }),
     )
@@ -754,7 +782,11 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const applyClientVideoDecision = useCallback(
-    (videoId: string, action: 'approve' | 'reject') => {
+    (
+      videoId: string,
+      action: 'approve' | 'reject',
+      opts?: { rejectNote?: string; feedback?: VideoReviewFeedback },
+    ) => {
       const now = new Date().toISOString().slice(0, 10)
       setVideos((prev) =>
         prev.map((v) => {
@@ -762,6 +794,34 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
           const next = nextStateAfterClientAction(v, action)
           const kind = reviewKindFromStage(v.stageLabel)
           let editorPhase = v.editorPhase
+          let qaCommentHistory = v.qaCommentHistory
+
+          if (action === 'reject') {
+            const slot = kind === 'thumbnail' ? 'thumbnail' : 'video'
+            const version = v.assetVersions?.[slot] ?? 1
+            if (opts?.feedback) {
+              const added = buildQaCommentsFromFeedback(opts.feedback, {
+                slot,
+                assetVersion: version,
+                authorRole: 'client',
+              })
+              qaCommentHistory = [...(qaCommentHistory ?? []), ...added]
+            } else if (opts?.rejectNote?.trim()) {
+              qaCommentHistory = [
+                ...(qaCommentHistory ?? []),
+                {
+                  id: `qc-${Date.now()}`,
+                  slot,
+                  assetVersion: version,
+                  kind: 'general' as const,
+                  authorRole: 'client' as const,
+                  body: opts.rejectNote.trim(),
+                  createdAt: new Date().toISOString(),
+                  deprecated: false,
+                },
+              ]
+            }
+          }
 
           if (action === 'approve') {
             if (kind === 'final' && v.editorPhase === 'videos') {
@@ -772,17 +832,17 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
             }
           }
 
-          if (action === 'approve' && next.owner === 'scheduling') {
-            return {
-              ...v,
-              ...next,
-              editorPhase,
-              owner: 'done' as const,
-              stageLabel: 'Scheduled',
-              deadlineRole: null,
-            }
+          const patch = {
+            ...v,
+            ...next,
+            editorPhase,
+            qaCommentHistory,
+            ...(action === 'reject'
+              ? { lastRevisionRequestedBy: 'client' as const }
+              : {}),
           }
-          return { ...v, ...next, editorPhase }
+
+          return patch
         }),
       )
       setBatches((prev) =>

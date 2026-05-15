@@ -50,6 +50,12 @@ export {
   type PipelineOwnerKind,
 } from './adminDashboard'
 export {
+  DRIVE_MANIFESTS,
+  type BatchDriveManifest,
+  type DriveMediaEntry,
+  type DriveUnmappedEntry,
+} from './driveManifests'
+export {
   ADMIN_KANBAN_COLUMNS,
   MOCK_ADMIN_BATCH_FOLDERS,
   MOCK_ADMIN_CLIENT_PROFILES,
@@ -70,6 +76,9 @@ export {
   type BrandGuidelinesSource,
   type EditorWorkflowPhase,
   type StaffMember,
+  type QaComment,
+  type QaCommentKind,
+  type QaMediaSlot,
   type VideoPipelineOwner,
 } from './adminWorkspace'
 export {

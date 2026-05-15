@@ -79,3 +79,15 @@ task dev:docker:detach   # background
 - **Infra:** Docker (Postgres, MongoDB, Redis) — `task dev:infra`
 - **App on host:** uvicorn — `task backend:up`; Vite — `task frontend:run`
 - **App in Docker:** `task dev:docker` (compose binds source for reload)
+
+## Google Drive manifests (prototype)
+
+In-app clip / video / thumbnail review uses numbered files from shared Drive folders. A **service account** lists folders locally and writes `frontend/mockData/driveManifests.ts`.
+
+1. Enable **Google Drive API** in GCP; create a service account and download JSON to `backend-app/secrets/` (gitignored).
+2. Share each batch’s **clips** and **deliverables** folders with the service account email (Viewer).
+3. In `.env`, set `GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON=backend-app/secrets/your-key.json` (or rely on a single `.json` in that folder).
+4. From repo root: `npm install` then `npm run drive:sync-manifests` whenever Drive files change.
+5. Refresh the frontend dev server.
+
+**Folder layout:** clips folder = flat `1.mov`, `2.mov`, …; deliverables folder = `Video/` and `Thumbnail/` subfolders with the same numbering.

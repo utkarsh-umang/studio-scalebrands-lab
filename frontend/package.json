@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "generate-client": "curl -sf ${OPENAPI_URL:-http://127.0.0.1:8000/openapi.json} -o openapi.json && openapi --input ./openapi.json --output ./src/client --client axios"
+    "generate-client": "curl -sf ${OPENAPI_URL:-http://127.0.0.1:8000/openapi.json} -o openapi.json && openapi --input ./openapi.json --output ./src/client --client axios",
+    "drive:sync-manifests": "cd .. && npm run drive:sync-manifests"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.2.1",

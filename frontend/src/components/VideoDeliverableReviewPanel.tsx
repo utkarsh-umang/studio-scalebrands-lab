@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { Check, X } from 'lucide-react'
+import { DriveVideoPreview } from '@/components/drive/DriveVideoPreview'
 import type { AppTheme } from '@/theme/types'
 
 export type VideoReviewMarker = { at: number; text: string }
@@ -10,7 +11,11 @@ export type VideoReviewFeedback = {
 }
 
 export type VideoDeliverableReviewPanelProps = {
-  videoSrc: string
+  /** Direct video URL (fallback when no Drive file) */
+  videoSrc?: string
+  /** Google Drive file id — renders preview iframe */
+  driveFileId?: string
+  fileName?: string
   introText: string
   theme: AppTheme
   commentsHeading?: string
@@ -27,6 +32,8 @@ export type VideoDeliverableReviewPanelProps = {
 
 export function VideoDeliverableReviewPanel({
   videoSrc,
+  driveFileId,
+  fileName,
   introText,
   theme,
   commentsHeading = 'Your comments',
@@ -92,14 +99,22 @@ export function VideoDeliverableReviewPanel({
               className="bg-muted/40 border-border overflow-hidden rounded-xl border"
               style={{ boxShadow: `0 12px 40px -12px ${primary}22` }}
             >
-              <video
-                ref={videoRef}
-                className="aspect-video w-full max-h-[min(42vh,420px)] bg-black object-contain"
-                controls
-                playsInline
-                preload="metadata"
-                src={videoSrc}
-              />
+              {driveFileId ? (
+                <DriveVideoPreview driveFileId={driveFileId} fileName={fileName} />
+              ) : videoSrc ? (
+                <video
+                  ref={videoRef}
+                  className="aspect-video w-full max-h-[min(42vh,420px)] bg-black object-contain"
+                  controls
+                  playsInline
+                  preload="metadata"
+                  src={videoSrc}
+                />
+              ) : (
+                <p className="text-muted-foreground p-8 text-center text-sm">
+                  No video source configured.
+                </p>
+              )}
             </div>
 
             {hasComments && (

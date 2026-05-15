@@ -58,6 +58,22 @@ export type VideoQaTimestampFlag = {
   note: string
 }
 
+export type QaMediaSlot = 'clip' | 'video' | 'thumbnail'
+
+export type QaCommentKind = 'timestamp' | 'general' | 'clip_note'
+
+export type QaComment = {
+  id: string
+  slot: QaMediaSlot
+  assetVersion: number
+  kind: QaCommentKind
+  authorRole: 'smm' | 'client' | 'editor'
+  atSeconds?: number
+  body: string
+  createdAt: string
+  deprecated: boolean
+}
+
 /** Recorded when SMM marks a batch complete after scheduling all videos */
 export type BatchScheduleRecord = {
   platform: string
@@ -122,6 +138,14 @@ export type AdminVideoTicket = {
   editorPhase?: EditorWorkflowPhase
   /** Title the editor sends to SMM after the QA cycle */
   editorPublishTitle?: string
+  /** 1…n — aligns with numbered Drive files in clips / videos / thumbnails folders */
+  deliverableIndex?: number
+  /** Per-slot version — bumps when Drive sync detects file change */
+  assetVersions?: Partial<Record<QaMediaSlot, number>>
+  /** Who last requested a revision (controls resubmit routing) */
+  lastRevisionRequestedBy?: 'smm' | 'client'
+  /** Full QA thread; older entries marked deprecated on re-upload */
+  qaCommentHistory?: QaComment[]
 }
 
 export type StaffMember = {
@@ -208,18 +232,19 @@ export const MOCK_ADMIN_BATCH_FOLDERS: AdminBatchFolder[] = [
     batchNumber: 4,
     title: 'Q2 product clips',
     status: 'active',
-    videoCount: 5,
+    videoCount: 20,
     createdAt: '2026-04-18',
     updatedAt: '2026-04-28',
     footageUrl: 'https://www.youtube.com/watch?v=example-techwithtim-podcast',
     intakePath: 'source_media',
     sourceMediaUrl: 'https://www.youtube.com/watch?v=example-techwithtim-podcast',
-    clipsFolderUrl: 'https://drive.google.com/drive/folders/example-q2-clips',
+    clipsFolderUrl:
+      'https://drive.google.com/drive/folders/13Dw03A1s7tLQOBm8jj5XmwzxR94AK1ut',
     clipReviewPhase: 'awaiting_client',
     creditCost: 6,
     creditsDebited: false,
     editorDeliverablesDriveUrl:
-      'https://drive.google.com/drive/folders/example-q2-deliverables',
+      'https://drive.google.com/drive/folders/1lnwiGh3b-UQ5PYwPvWmvpRxOcRpSjFkV',
   },
   {
     id: 'b-198',
@@ -350,6 +375,7 @@ export const MOCK_ADMIN_VIDEO_TICKETS: AdminVideoTicket[] = [
     id: 'v-2',
     batchId: 'b-204',
     clientId: 'c-1',
+    deliverableIndex: 2,
     title: 'Clip 2 — Debugging tip',
     owner: 'smm',
     stageLabel: 'Clip identification',
@@ -360,6 +386,7 @@ export const MOCK_ADMIN_VIDEO_TICKETS: AdminVideoTicket[] = [
     id: 'v-3',
     batchId: 'b-204',
     clientId: 'c-1',
+    deliverableIndex: 3,
     title: 'Clip 3 — Tool comparison',
     owner: 'smm',
     stageLabel: 'SMM QA',
@@ -371,6 +398,7 @@ export const MOCK_ADMIN_VIDEO_TICKETS: AdminVideoTicket[] = [
     id: 'v-4',
     batchId: 'b-204',
     clientId: 'c-1',
+    deliverableIndex: 4,
     title: 'Clip 4 — Q&A short',
     owner: 'client',
     stageLabel: 'Final video review',
@@ -381,6 +409,7 @@ export const MOCK_ADMIN_VIDEO_TICKETS: AdminVideoTicket[] = [
     id: 'v-5',
     batchId: 'b-204',
     clientId: 'c-1',
+    deliverableIndex: 5,
     title: 'Clip 5 — Outro CTA',
     owner: 'scheduling',
     stageLabel: 'Scheduling',

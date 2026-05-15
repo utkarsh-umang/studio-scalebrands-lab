@@ -34,3 +34,6 @@ openapi.json
 *.njsproj
 *.sln
 *.sw?
+
+**/secrets/
+*.json
