@@ -1,26 +1,10 @@
-import {
-  CalendarClock,
-  Film,
-  Layers,
-  LogOut,
-  ScanEye,
-  Tag,
-  User,
-  Zap,
-} from 'lucide-react'
+import { LayoutGrid, LogOut, User } from 'lucide-react'
 import { NavLink, Outlet } from 'react-router-dom'
 import logo from '@/assets/logo.png'
 import { useMockAuth } from '@/auth'
 import { useTheme } from '@/theme'
 
-const NAV = [
-  { to: '/smm/overview', label: 'Overview', Icon: Layers },
-  { to: '/smm/clips', label: 'Find clips', Icon: Film },
-  { to: '/smm/ideas', label: 'Batch ideas', Icon: Zap },
-  { to: '/smm/titles', label: 'Titles & copy', Icon: Tag },
-  { to: '/smm/qa', label: 'Video QA', Icon: ScanEye },
-  { to: '/smm/scheduling', label: 'Scheduling', Icon: CalendarClock },
-] as const
+const NAV = [{ to: '/smm/board', label: 'Board', Icon: LayoutGrid, end: true }] as const
 
 export function SmmLayout() {
   const { theme } = useTheme()
@@ -68,11 +52,11 @@ export function SmmLayout() {
         </div>
 
         <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-hidden px-2 pb-2">
-          {NAV.map(({ to, label, Icon }) => (
+          {NAV.map((item) => (
             <NavLink
-              key={to}
-              to={to}
-              end={to === '/smm/overview'}
+              key={item.to}
+              to={item.to}
+              end={'end' in item ? item.end : false}
               className={({ isActive }) =>
                 [
                   'flex items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium transition-colors',
@@ -91,8 +75,8 @@ export function SmmLayout() {
                   : { border: '1px solid transparent' }
               }
             >
-              <Icon className="size-3.5 shrink-0 opacity-90" aria-hidden />
-              {label}
+              <item.Icon className="size-3.5 shrink-0 opacity-90" aria-hidden />
+              {item.label}
             </NavLink>
           ))}
         </nav>

@@ -5,7 +5,7 @@ export function homePathForUser(user: AuthUser): string {
   if (user.role === 'client') return '/client/board'
   if (user.role === 'admin') return '/admin'
   if (user.role === 'employee') {
-    return user.employeeKind === 'editor' ? '/editor' : '/smm/overview'
+    return user.employeeKind === 'editor' ? '/editor' : '/smm/board'
   }
   return '/login'
 }

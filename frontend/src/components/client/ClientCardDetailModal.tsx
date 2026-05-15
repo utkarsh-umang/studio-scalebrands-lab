@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, X } from 'lucide-react'
+import { Check } from 'lucide-react'
 import {
   getClientClipReview,
   getClientFinalReview,
@@ -10,6 +10,7 @@ import {
 import type { ClientVideoCard } from '@/lib/clientBoard'
 import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
 import { useTheme } from '@/theme'
+import { StudioModalShell } from '@/components/StudioModalShell'
 import { ClientClipReviewPanel } from './ClientClipReviewPanel'
 import { ClientFinalReviewPanel } from './ClientFinalReviewPanel'
 
@@ -204,46 +205,16 @@ function ModalShell({
 }) {
   void wide
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4"
-      role="dialog"
-      aria-modal
-      aria-labelledby="client-card-modal-title"
+    <StudioModalShell
+      title={title}
+      subtitle={subtitle}
+      onClose={onClose}
+      titleId="client-card-modal-title"
     >
-      <button
-        type="button"
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        aria-label="Close"
-        onClick={onClose}
-      />
-      <div
-        className={[
-          'border-border bg-background relative flex h-[min(92vh,960px)] w-[min(96vw,1280px)] flex-col overflow-hidden rounded-2xl border shadow-2xl',
-        ].join(' ')}
-        style={{ boxShadow: '0 0 0 1px rgba(255, 255, 255, 0.55) inset' }}
-      >
-        <div className="border-border flex shrink-0 items-start justify-between gap-3 border-b px-5 py-4">
-          <div className="min-w-0 pr-2">
-            <h2 id="client-card-modal-title" className="text-foreground font-semibold">
-              {title}
-            </h2>
-            <p className="text-muted-foreground truncate text-xs">{subtitle}</p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-muted-foreground hover:text-foreground shrink-0 rounded-lg p-1"
-            aria-label="Close"
-          >
-            <X className="size-5" aria-hidden />
-          </button>
-        </div>
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-6 py-5">
-          <div className="flex min-h-0 flex-1 flex-col">{children}</div>
-        </div>
-      </div>
-    </div>
+      {children}
+    </StudioModalShell>
   )
+
 }
 
 function ReviewActions({

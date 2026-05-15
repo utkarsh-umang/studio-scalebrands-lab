@@ -51,6 +51,21 @@ export type BatchFootageFile = {
   url?: string
 }
 
+/** SMM QA — timestamp note on the edited video */
+export type VideoQaTimestampFlag = {
+  id: string
+  atSeconds: number
+  note: string
+}
+
+/** Recorded when SMM marks a batch complete after scheduling all videos */
+export type BatchScheduleRecord = {
+  platform: string
+  goLiveAt: string
+  completedAt: string
+  videoPublishLinks: Record<string, string | undefined>
+}
+
 export type AdminBatchFolder = {
   id: string
   clientId: string
@@ -62,6 +77,8 @@ export type AdminBatchFolder = {
   createdAt: string
   updatedAt: string
   completedAt?: string
+  /** Set when SMM confirms all videos in the batch are scheduled */
+  batchSchedule?: BatchScheduleRecord
   /** @deprecated use sourceMediaUrl — kept for admin create-batch modal */
   footageUrl?: string
   footageFiles?: BatchFootageFile[]
@@ -90,6 +107,9 @@ export type AdminVideoTicket = {
   /** Who gets the deadline when set — matches current owner if SMM or Editor */
   deadlineRole: 'smm' | 'editor' | null
   deadlineAt: string | null
+  /** SMM QA flags returned to the editor */
+  qaFlags?: VideoQaTimestampFlag[]
+  qaGeneralNote?: string
 }
 
 export type StaffMember = {
@@ -249,6 +269,12 @@ export const MOCK_ADMIN_BATCH_FOLDERS: AdminBatchFolder[] = [
     videoCount: 0,
     createdAt: '2026-05-01',
     updatedAt: '2026-05-01',
+    intakePath: 'source_media',
+    sourceMediaUrl:
+      'https://www.youtube.com/watch?v=example-techwithtim-may-podcast',
+    footageUrl:
+      'https://www.youtube.com/watch?v=example-techwithtim-may-podcast',
+    clipReviewPhase: 'smm_identifying',
     creditCost: 5,
     creditsDebited: false,
   },
@@ -363,6 +389,16 @@ export const MOCK_ADMIN_VIDEO_TICKETS: AdminVideoTicket[] = [
     stageLabel: 'Editing in progress',
     deadlineRole: 'editor',
     deadlineAt: '2026-05-06T18:00:00.000Z',
+  },
+  {
+    id: 'v-10',
+    batchId: 'b-201',
+    clientId: 'c-2',
+    title: 'Teaser C — hero hook',
+    owner: 'smm',
+    stageLabel: 'SMM QA',
+    deadlineRole: 'smm',
+    deadlineAt: '2026-05-07T14:00:00.000Z',
   },
   {
     id: 'v-8',

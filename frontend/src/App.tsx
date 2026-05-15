@@ -14,18 +14,8 @@ import { ClientLayout } from '@/pages/client/ClientLayout'
 import { Home } from '@/pages/Home'
 import { LoginPage } from '@/pages/LoginPage'
 import { RootRedirect } from '@/pages/RootRedirect'
-import { SmmClipBatchDetail } from '@/pages/smm/SmmClipBatchDetail'
-import { SmmClipsList } from '@/pages/smm/SmmClipsList'
-import { SmmIdeaDetail } from '@/pages/smm/SmmIdeaDetail'
-import { SmmIdeasList } from '@/pages/smm/SmmIdeasList'
+import { SmmBoard } from '@/pages/smm/SmmBoard'
 import { SmmLayout } from '@/pages/smm/SmmLayout'
-import { SmmOverview } from '@/pages/smm/SmmOverview'
-import { SmmQaDetail } from '@/pages/smm/SmmQaDetail'
-import { SmmQaList } from '@/pages/smm/SmmQaList'
-import { SmmScheduleDetail } from '@/pages/smm/SmmScheduleDetail'
-import { SmmSchedulingList } from '@/pages/smm/SmmSchedulingList'
-import { SmmTitleDetail } from '@/pages/smm/SmmTitleDetail'
-import { SmmTitlesList } from '@/pages/smm/SmmTitlesList'
 import { Navigate, Route, Routes } from 'react-router-dom'
 
 function App() {
@@ -80,20 +70,21 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Navigate to="overview" replace />} />
-          <Route path="overview" element={<SmmOverview />} />
-          <Route path="clips" element={<SmmClipsList />} />
-          <Route path="clips/:batchId" element={<SmmClipBatchDetail />} />
-          <Route path="ideas" element={<SmmIdeasList />} />
-          <Route path="ideas/:batchId" element={<SmmIdeaDetail />} />
-          <Route path="titles" element={<SmmTitlesList />} />
-          <Route path="titles/:batchId" element={<SmmTitleDetail />} />
-          <Route path="qa" element={<SmmQaList />} />
-          <Route path="qa/:taskId" element={<SmmQaDetail />} />
-          <Route path="scheduling" element={<SmmSchedulingList />} />
+          <Route index element={<Navigate to="board" replace />} />
+          <Route path="board" element={<SmmBoard />} />
+          <Route path="overview" element={<Navigate to="/smm/board" replace />} />
+          <Route path="clips" element={<Navigate to="/smm/board" replace />} />
+          <Route path="clips/:batchId" element={<Navigate to="/smm/board" replace />} />
+          <Route path="ideas" element={<Navigate to="/smm/board" replace />} />
+          <Route path="ideas/:batchId" element={<Navigate to="/smm/board" replace />} />
+          <Route path="titles" element={<Navigate to="/smm/board" replace />} />
+          <Route path="titles/:batchId" element={<Navigate to="/smm/board" replace />} />
+          <Route path="qa" element={<Navigate to="/smm/board" replace />} />
+          <Route path="qa/:taskId" element={<Navigate to="/smm/board" replace />} />
+          <Route path="scheduling" element={<Navigate to="/smm/board" replace />} />
           <Route
             path="scheduling/:batchId"
-            element={<SmmScheduleDetail />}
+            element={<Navigate to="/smm/board" replace />}
           />
         </Route>
         <Route

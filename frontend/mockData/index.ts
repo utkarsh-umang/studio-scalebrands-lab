@@ -59,6 +59,8 @@ export {
   guidelinesSourceLabel,
   type AdminBatchFolder,
   type AdminBatchFolderStatus,
+  type BatchScheduleRecord,
+  type VideoQaTimestampFlag,
   type BatchClipReviewPhase,
   type BatchFootageFile,
   type BatchIntakePath,
