@@ -1,18 +1,13 @@
 import { useMemo, useState } from 'react'
 import { SAMPLE_VIDEO_SRC } from '@mockData/index'
 import type { AdminBatchFolder, AdminVideoTicket } from '@mockData/index'
-import { DriveOrStreamVideo } from '@/components/drive/DriveOrStreamVideo'
+import { DeliverableVideoThumbnailTitleBlock } from '@/components/drive/DeliverableVideoThumbnailTitleBlock'
 import { QaCommentThread } from '@/components/drive/QaCommentThread'
 import { VideoDeliverableReviewPanel } from '@/components/VideoDeliverableReviewPanel'
 import type { DeliverableSidebarRow } from '@/lib/deliverableSidebar'
 import { buildDeliverableSidebarRows } from '@/lib/deliverableSidebar'
 import type { BatchDriveManifest } from '@/lib/driveMedia'
-import { deliverableIndexForTicket } from '@/lib/driveMedia'
-import {
-  qaPortraitChromeClass,
-  qaPortraitPlayerBoxClass,
-  qaPortraitVideoInnerClass,
-} from '@/lib/qaVideoPortrait'
+import { deliverableIndexForTicket, getMediaEntry } from '@/lib/driveMedia'
 import { generalFromComments, markersFromComments, flagsToQaComments } from '@/lib/qaComments'
 import type { SmmVideoCard } from '@/lib/smmBoard'
 import { videoNeedsSmmQa } from '@/lib/smmBoard'
@@ -86,6 +81,9 @@ export function SmmVideoQaWorkspace({
 
   const driveFileId = selectedRow?.entry?.driveFileId
   const fileName = selectedRow?.entry?.name
+  const thumbEntry = selectedRow
+    ? getMediaEntry(batch.id, 'thumbnails', selectedRow.index)
+    : undefined
 
   const asideColumn = (
     <aside
@@ -173,28 +171,15 @@ export function SmmVideoQaWorkspace({
           {history.length > 0 && (
             <QaCommentThread comments={history} heading="Earlier feedback" />
           )}
-          {driveFileId ? (
-            <DriveOrStreamVideo
-              driveFileId={driveFileId}
-              fileName={fileName}
-              layout="portrait"
-            />
-          ) : (
-            <div
-              className={qaPortraitChromeClass}
-              style={{ boxShadow: `0 12px 40px -12px ${theme.colors.primary}22` }}
-            >
-              <div className={qaPortraitPlayerBoxClass} dir="ltr">
-                <video
-                  className={qaPortraitVideoInnerClass}
-                  controls
-                  playsInline
-                  preload="metadata"
-                  src={SAMPLE_VIDEO_SRC}
-                />
-              </div>
-            </div>
-          )}
+          <DeliverableVideoThumbnailTitleBlock
+            theme={theme}
+            videoDriveFileId={driveFileId}
+            fallbackVideoSrc={driveFileId ? undefined : SAMPLE_VIDEO_SRC}
+            videoFileName={fileName}
+            thumbnailDriveFileId={thumbEntry?.driveFileId}
+            thumbnailFileName={thumbEntry?.name}
+            displayVideoTitle={qaTicket?.title}
+          />
         </div>
       ) : (
         <div
@@ -220,6 +205,10 @@ export function SmmVideoQaWorkspace({
             rejectLabel="Send back to editor"
             disableApproveWhenHasComments
             requireCommentsOnReject
+            showThumbnailCompanion
+            pairedThumbnailDriveFileId={thumbEntry?.driveFileId}
+            pairedThumbnailFileName={thumbEntry?.name}
+            displayVideoTitle={qaTicket?.title}
             onApprove={() => {
               submitSmmQaReview(qaTicket!.id, {
                 timestampFlags: [],

@@ -9,14 +9,20 @@ type Props = {
   /** When omitted, reads latest from the bundled manifest map. */
   manifest?: BatchDriveManifest | undefined
   clipsFolderUrl: string
-  onApprove: () => void
-  onReject: (note: string) => void
+  /** Browse-only: clip list + preview, no approve/reject footer. */
+  readOnly?: boolean
+  /** Default matches client modal (list on the left); editor uses right. */
+  sidebarPosition?: 'left' | 'right'
+  onApprove?: () => void
+  onReject?: (note: string) => void
 }
 
 export function ClientClipReviewPanel({
   batchId,
   manifest: manifestProp,
   clipsFolderUrl,
+  readOnly = false,
+  sidebarPosition = 'left',
   onApprove,
   onReject,
 }: Props) {
@@ -64,7 +70,7 @@ export function ClientClipReviewPanel({
 
   function submitReject() {
     const header = `Clips needing replacement: ${sortedProblems.join(', ')}.`
-    onReject(`${header}\n\n${rejectNote.trim()}`)
+    onReject?.(`${header}\n\n${rejectNote.trim()}`)
   }
 
   return (
@@ -79,7 +85,12 @@ export function ClientClipReviewPanel({
         </ul>
       )}
 
-      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden md:flex-row md:gap-4">
+      <div
+        className={[
+          'flex min-h-0 flex-1 flex-col gap-3 overflow-hidden md:gap-4',
+          sidebarPosition === 'right' ? 'md:flex-row-reverse' : 'md:flex-row',
+        ].join(' ')}
+      >
         <aside className="border-border bg-muted/15 flex max-h-[min(28vh,220px)] shrink-0 flex-col rounded-xl border md:max-h-none md:w-56 md:bg-transparent">
           {rejectMode ? (
             <p className="text-muted-foreground border-border shrink-0 border-b px-3 py-2 text-[10px] font-semibold uppercase tracking-wide md:border-0 md:px-0 md:pb-2 md:pt-2">
@@ -166,74 +177,78 @@ export function ClientClipReviewPanel({
         </main>
       </div>
 
-      <footer className="border-border mt-4 shrink-0 space-y-3 border-t pt-4">
-        {!rejectMode ? (
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
-            <p className="text-muted-foreground flex-1 text-xs leading-relaxed sm:min-w-0">
-              Watch each clip from the list. Approve the full set when everything looks right, or
-              reject and tell us exactly which clip numbers need a new cut — our SMM will source
-              replacements for those slots only.
-            </p>
-            <div className="flex shrink-0 flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end">
-              <button
-                type="button"
-                onClick={() => {
-                  setRejectMode(true)
+      {readOnly ? null : (
+        <footer className="border-border mt-4 shrink-0 space-y-3 border-t pt-4">
+          {!rejectMode ? (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+              <p className="text-muted-foreground flex-1 text-xs leading-relaxed sm:min-w-0">
+                Watch each clip from the list. Approve the full set when everything looks right, or
+                reject and tell us exactly which clip numbers need a new cut — our SMM will source
+                replacements for those slots only.
+              </p>
+              <div className="flex shrink-0 flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRejectMode(true)
+                  }}
+                  className="border-border text-destructive hover:bg-destructive/5 inline-flex items-center justify-center gap-1.5 rounded-xl border px-5 py-2.5 text-sm font-semibold sm:min-w-[140px]"
+                >
+                  <X className="size-4" aria-hidden />
+                  Reject clips…
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onApprove?.()
+                  }}
+                  disabled={clips.length === 0}
+                  className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[var(--success)] px-6 py-2.5 text-sm font-semibold text-white disabled:opacity-50 sm:min-w-[180px]"
+                >
+                  <Check className="size-4" aria-hidden />
+                  Approve all clips
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <label
+                htmlFor="clip-reject-detail"
+                className="text-muted-foreground block text-[10px] font-semibold uppercase tracking-wide"
+              >
+                What should change for each clip you marked?
+              </label>
+              <textarea
+                id="clip-reject-detail"
+                value={rejectNote}
+                onChange={(e) => {
+                  setRejectNote(e.target.value)
                 }}
-                className="border-border text-destructive hover:bg-destructive/5 inline-flex items-center justify-center gap-1.5 rounded-xl border px-5 py-2.5 text-sm font-semibold sm:min-w-[140px]"
-              >
-                <X className="size-4" aria-hidden />
-                Reject clips…
-              </button>
-              <button
-                type="button"
-                onClick={onApprove}
-                disabled={clips.length === 0}
-                className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[var(--success)] px-6 py-2.5 text-sm font-semibold text-white disabled:opacity-50 sm:min-w-[180px]"
-              >
-                <Check className="size-4" aria-hidden />
-                Approve all clips
-              </button>
+                rows={4}
+                placeholder='e.g. Clip 2 — wrong segment; Clip 5 — needs tighter hook before 0:08.'
+                className="border-border bg-background text-foreground w-full rounded-xl border px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+              />
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
+                <button
+                  type="button"
+                  onClick={resetRejectMode}
+                  className="border-border hover:bg-muted/40 rounded-xl border px-4 py-2 text-sm font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={!rejectValid}
+                  onClick={submitReject}
+                  className="bg-destructive inline-flex items-center justify-center gap-1.5 rounded-xl px-6 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+                >
+                  Send rejection to SMM
+                </button>
+              </div>
             </div>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <label
-              htmlFor="clip-reject-detail"
-              className="text-muted-foreground block text-[10px] font-semibold uppercase tracking-wide"
-            >
-              What should change for each clip you marked?
-            </label>
-            <textarea
-              id="clip-reject-detail"
-              value={rejectNote}
-              onChange={(e) => {
-                setRejectNote(e.target.value)
-              }}
-              rows={4}
-              placeholder='e.g. Clip 2 — wrong segment; Clip 5 — needs tighter hook before 0:08.'
-              className="border-border bg-background text-foreground w-full rounded-xl border px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
-            />
-            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
-              <button
-                type="button"
-                onClick={resetRejectMode}
-                className="border-border hover:bg-muted/40 rounded-xl border px-4 py-2 text-sm font-semibold"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={!rejectValid}
-                onClick={submitReject}
-                className="bg-destructive inline-flex items-center justify-center gap-1.5 rounded-xl px-6 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
-              >
-                Send rejection to SMM
-              </button>
-            </div>
-          </div>
-        )}
-      </footer>
+          )}
+        </footer>
+      )}
     </div>
   )
 }

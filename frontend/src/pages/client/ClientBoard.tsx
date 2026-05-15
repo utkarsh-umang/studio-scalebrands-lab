@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMockAuth } from '@/auth'
 import { ClientAttentionStrip } from '@/components/client/ClientAttentionStrip'
 import { ClientBatchFolderRow } from '@/components/client/ClientBatchFolderRow'
@@ -14,7 +14,7 @@ import {
 } from '@/lib/clientBoard'
 import { resolveClientProfileId } from '@/lib/clientSession'
 import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useSearchParams } from 'react-router-dom'
 
 export function ClientBoard() {
   const { user } = useMockAuth()
@@ -31,8 +31,25 @@ export function ClientBoard() {
     return getBatchesForClient(clientProfileId).filter((b) => b.status === 'active')
   }, [clientProfileId, getBatchesForClient])
 
+  const [searchParams, setSearchParams] = useSearchParams()
+
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null)
   const [openVideoId, setOpenVideoId] = useState<string | null>(null)
+
+  useEffect(() => {
+    const openId = searchParams.get('openVideo')
+    if (!openId || !clientProfileId) return
+    const clientBatchIds = new Set(
+      batches.filter((b) => b.clientId === clientProfileId).map((b) => b.id),
+    )
+    const target = videos.find((v) => v.id === openId && clientBatchIds.has(v.batchId))
+    if (!target) return
+    setSelectedBatchId(target.batchId)
+    setOpenVideoId(openId)
+    const next = new URLSearchParams(searchParams)
+    next.delete('openVideo')
+    setSearchParams(next, { replace: true })
+  }, [clientProfileId, batches, videos, searchParams, setSearchParams])
 
   const effectiveBatchId =
     selectedBatchId ?? clientBatches[0]?.id ?? null

@@ -1,10 +1,13 @@
-import { LayoutGrid, LogOut, Scissors } from 'lucide-react'
+import { CheckCircle2, LayoutGrid, LogOut, Scissors } from 'lucide-react'
 import { NavLink, Outlet } from 'react-router-dom'
 import logo from '@/assets/logo.png'
 import { useMockAuth } from '@/auth'
 import { useTheme } from '@/theme'
 
-const NAV = [{ to: '/editor/board', label: 'Board', Icon: LayoutGrid, end: true }] as const
+const NAV = [
+  { to: '/editor/board', label: 'Board', Icon: LayoutGrid, end: true },
+  { to: '/editor/completed', label: 'Completed', Icon: CheckCircle2 },
+] as const
 
 export function EditorLayout() {
   const { theme } = useTheme()

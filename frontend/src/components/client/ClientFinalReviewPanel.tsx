@@ -30,6 +30,7 @@ export function ClientFinalReviewPanel({
 }: ClientFinalReviewPanelProps) {
   const index = ticket ? deliverableIndexForTicket(ticket) : 1
   const entry = getMediaEntry(mock.batchId, 'videos', index)
+  const thumbEntry = ticket ? getMediaEntry(mock.batchId, 'thumbnails', index) : undefined
   const folderUrl = deliverablesFolderUrl ?? ''
 
   if (!folderUrl) {
@@ -53,6 +54,10 @@ export function ClientFinalReviewPanel({
       theme={theme}
       onApprove={onApprove}
       onReject={onReject}
+      showThumbnailCompanion
+      pairedThumbnailDriveFileId={thumbEntry?.driveFileId}
+      pairedThumbnailFileName={thumbEntry?.name}
+      displayVideoTitle={ticket?.title}
     />
   )
 }

@@ -8,6 +8,7 @@ export type ClientAttentionKind =
   | 'idea_review'
   | 'text_review'
   | 'final_video_review'
+  | 'thumbnail_review'
 
 export type ClientBatchRow = {
   id: string
@@ -15,6 +16,8 @@ export type ClientBatchRow = {
   /** Pipeline stage shown to the client */
   stageLabel: string
   attention?: ClientAttentionKind
+  /** When set, Overview deep-links to Board with this video modal open */
+  openVideoId?: string
   /** ISO date string */
   updatedAt: string
 }
@@ -57,6 +60,8 @@ export const MOCK_CLIENT_DASHBOARD: ClientDashboardMock = {
       id: 'b-obs-thumb',
       title: 'Campaign B — thumbnail approval window',
       stageLabel: 'Thumbnail review',
+      attention: 'thumbnail_review',
+      openVideoId: 'v-ot-1',
       updatedAt: '2026-05-14',
     },
   ],

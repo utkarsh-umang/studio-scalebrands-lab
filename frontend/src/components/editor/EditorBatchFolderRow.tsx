@@ -1,20 +1,20 @@
 import { Folder, FolderOpen } from 'lucide-react'
 import type { AdminBatchFolder, AdminVideoTicket } from '@mockData/index'
-import { batchSubtitle } from '@/lib/editorBoard'
+import { editorBatchPhaseLabel } from '@/lib/editorBoard'
 import { useTheme } from '@/theme'
 
 type Props = {
   batches: AdminBatchFolder[]
   videos: AdminVideoTicket[]
-  selectedBatchId: string | null
-  onSelect: (batchId: string) => void
+  openBatchId: string | null
+  onOpenBatch: (batchId: string) => void
 }
 
 export function EditorBatchFolderRow({
   batches,
   videos,
-  selectedBatchId,
-  onSelect,
+  openBatchId,
+  onOpenBatch,
 }: Props) {
   const { theme } = useTheme()
   const primary = theme.colors.primary
@@ -22,7 +22,7 @@ export function EditorBatchFolderRow({
   if (batches.length === 0) {
     return (
       <p className="text-muted-foreground text-sm">
-        No active batches assigned to you yet.
+        No active batches assigned to you right now.
       </p>
     )
   }
@@ -30,11 +30,11 @@ export function EditorBatchFolderRow({
   return (
     <section className="space-y-2">
       <p className="text-muted-foreground text-[10px] font-semibold uppercase tracking-[0.12em]">
-        Batch folders
+        Batches in progress
       </p>
       <div className="flex gap-3 overflow-x-auto pb-1">
         {batches.map((batch) => {
-          const selected = batch.id === selectedBatchId
+          const selected = batch.id === openBatchId
           const Icon = selected ? FolderOpen : Folder
           const batchVideos = videos.filter((v) => v.batchId === batch.id)
           return (
@@ -42,10 +42,10 @@ export function EditorBatchFolderRow({
               key={batch.id}
               type="button"
               onClick={() => {
-                onSelect(batch.id)
+                onOpenBatch(batch.id)
               }}
               className={[
-                'flex w-[200px] shrink-0 flex-col rounded-xl border p-3 text-left transition-all',
+                'flex w-[220px] shrink-0 flex-col rounded-xl border p-3 text-left transition-all',
                 selected
                   ? 'border-primary/50 bg-background shadow-sm'
                   : 'border-border bg-background/80 hover:border-primary/25',
@@ -69,8 +69,8 @@ export function EditorBatchFolderRow({
               <span className="text-muted-foreground mt-2 text-[10px]">
                 Batch {batch.batchNumber}
               </span>
-              <span className="text-muted-foreground mt-0.5 text-[10px]">
-                {batchSubtitle(batch, batchVideos)}
+              <span className="text-muted-foreground mt-0.5 text-[11px] leading-snug">
+                {editorBatchPhaseLabel(batch, batchVideos)}
               </span>
             </button>
           )

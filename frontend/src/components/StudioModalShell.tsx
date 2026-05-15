@@ -27,7 +27,7 @@ export function StudioModalShell({
 }: Props) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4"
+      className="fixed inset-0 z-50"
       role="dialog"
       aria-modal
       aria-labelledby={titleId}
@@ -38,10 +38,11 @@ export function StudioModalShell({
         aria-label="Close"
         onClick={onClose}
       />
-      <div
-        className="border-border bg-background relative flex h-[min(92vh,960px)] w-[min(96vw,1280px)] flex-col overflow-hidden rounded-2xl border shadow-2xl"
-        style={{ boxShadow: '0 0 0 1px rgba(255, 255, 255, 0.55) inset' }}
-      >
+      <div className="pointer-events-none fixed inset-0 flex items-start justify-center overflow-y-auto overscroll-contain p-3 py-10 sm:items-center sm:p-4 sm:py-10">
+        <div
+          className="border-border bg-background pointer-events-auto relative z-[1] flex max-h-[min(92vh,960px)] min-h-0 w-[min(96vw,1280px)] shrink-0 flex-col overflow-hidden rounded-2xl border shadow-2xl"
+          style={{ boxShadow: '0 0 0 1px rgba(255, 255, 255, 0.55) inset' }}
+        >
         <div className="border-border flex shrink-0 items-start justify-between gap-3 border-b px-5 py-4">
           <div className="min-w-0 flex-1 pr-2">
             <h2 id={titleId} className="text-foreground font-semibold">
@@ -66,13 +67,16 @@ export function StudioModalShell({
             </button>
           </div>
         </div>
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-6 pb-6 pt-5">
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-6 pb-6 pt-5">
+          <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-y-contain">
+            {children}
+          </div>
           {footer ? (
             <div className="border-border mt-4 shrink-0 border-t pt-4">{footer}</div>
           ) : null}
         </div>
       </div>
     </div>
+  </div>
   )
 }

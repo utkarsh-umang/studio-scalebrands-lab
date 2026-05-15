@@ -6,9 +6,9 @@ import { QaCommentThread } from '@/components/drive/QaCommentThread'
 import { StudioModalShell } from '@/components/StudioModalShell'
 import type { VideoReviewFeedback } from '@/components/VideoDeliverableReviewPanel'
 import { VideoDeliverableReviewPanel } from '@/components/VideoDeliverableReviewPanel'
-import { videoNeedsClientFinalReview } from '@/lib/clientBoard'
+import { videoNeedsClientThumbnailReview } from '@/lib/clientBoard'
 import type { DeliverableSidebarRow } from '@/lib/deliverableSidebar'
-import { buildClientFinalReviewSidebarRows } from '@/lib/deliverableSidebar'
+import { buildClientThumbnailReviewSidebarRows } from '@/lib/deliverableSidebar'
 import {
   deliverableIndexForTicket,
   formatSyncedAt,
@@ -16,19 +16,17 @@ import {
   getMediaEntry,
   reloadDriveManifestForBatch,
 } from '@/lib/driveMedia'
-import { flagsToQaComments, generalFromComments, markersFromComments } from '@/lib/qaComments'
+import { activeCommentsForSlot, generalFromComments } from '@/lib/qaComments'
 import type { AppTheme } from '@/theme/types'
 
-function clientFinalRowStatus(row: DeliverableSidebarRow): string {
+function clientThumbRowStatus(row: DeliverableSidebarRow): string {
   if (!row.ticket) return 'New on Drive — no ticket yet'
   const t = row.ticket
-  if (videoNeedsClientFinalReview(t)) return 'Needs your review'
+  if (videoNeedsClientThumbnailReview(t)) return 'Needs your review'
   const stage = t.stageLabel.toLowerCase()
-  if (t.owner === 'editor' && stage.includes('qa flagged')) return 'Editor addressing feedback'
-  if (t.owner === 'smm' && stage.includes('qa')) return 'Scale Brands QA'
-  if (stage.includes('thumbnail')) return 'Thumbnail review'
+  if (t.owner === 'editor' && stage.includes('thumbnail')) return 'With editor'
+  if (t.owner === 'client' && stage.includes('final')) return 'Final video'
   if (t.owner === 'editor') return 'With editor'
-  if (t.owner === 'done' || stage.includes('scheduling')) return 'Scheduling / done'
   return t.stageLabel
 }
 
@@ -44,7 +42,7 @@ type Props = {
   onReject: (videoId: string, feedback: VideoReviewFeedback) => void
 }
 
-export function ClientFinalVideoReviewModal({
+export function ClientThumbnailReviewModal({
   batch,
   batchTitle,
   batchTickets,
@@ -65,7 +63,7 @@ export function ClientFinalVideoReviewModal({
   const manifestVideos = manifest?.videos
 
   const rows = useMemo(
-    () => buildClientFinalReviewSidebarRows(batch.id, manifestVideos, batchTickets),
+    () => buildClientThumbnailReviewSidebarRows(batch.id, manifestVideos, batchTickets),
     [batch.id, manifestVideos, batchTickets],
   )
 
@@ -135,18 +133,12 @@ export function ClientFinalVideoReviewModal({
     ) : null
 
   const qaTicket = selectedRow?.ticket
-  const canAct = qaTicket ? videoNeedsClientFinalReview(qaTicket) : false
+  const canAct = qaTicket ? videoNeedsClientThumbnailReview(qaTicket) : false
 
-  const history = qaTicket ? flagsToQaComments(qaTicket, 'video') : []
-  const qaCommentHistory = qaTicket?.qaCommentHistory ?? []
-  const initialMarkers =
-    qaCommentHistory.length > 0
-      ? markersFromComments(qaCommentHistory)
-      : (qaTicket?.qaFlags?.map((f) => ({ at: f.atSeconds, text: f.note })) ?? [])
-  const initialGeneral =
-    qaCommentHistory.length > 0
-      ? generalFromComments(qaCommentHistory)
-      : (qaTicket?.qaGeneralNote ?? '')
+  const history =
+    qaTicket != null ? activeCommentsForSlot(qaTicket.qaCommentHistory, 'thumbnail') : []
+
+  const initialGeneral = generalFromComments(history)
 
   const driveFileId = selectedRow?.entry?.driveFileId
   const fileName = selectedRow?.entry?.name
@@ -156,9 +148,9 @@ export function ClientFinalVideoReviewModal({
 
   return (
     <StudioModalShell
-      title="Final video review"
+      title="Thumbnail review"
       subtitle={batchTitle}
-      titleId="client-final-video-modal-title"
+      titleId="client-thumb-qa-modal-title"
       headerAside={headerAside}
       headerMeta={headerMeta}
       onClose={onClose}
@@ -170,9 +162,9 @@ export function ClientFinalVideoReviewModal({
       ) : rows.length === 0 ? (
         <div className="space-y-3">
           <p className="text-muted-foreground text-sm leading-relaxed">
-            Nothing is in your final video review queue right now. New releases will appear here after
-            internal QA — try <strong className="text-foreground">Sync from Drive</strong> if you expect
-            new files.
+            Nothing is in your thumbnail review queue right now. When the editor marks thumbnails
+            ready, they will show up here — try{' '}
+            <strong className="text-foreground">Sync from Drive</strong> if you expect new files.
           </p>
           <button
             type="button"
@@ -195,13 +187,86 @@ export function ClientFinalVideoReviewModal({
             <p className="text-destructive mb-3 shrink-0 text-xs">{syncMessage}</p>
           ) : null}
 
+          <p className="text-muted-foreground mb-3 shrink-0 text-center text-sm leading-relaxed">
+            Compare the finished video with its thumbnail. Add notes if you want changes, or approve
+            when the thumbnail matches your brand.
+          </p>
+
           <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden md:flex-row md:gap-4">
+            <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden pr-1">
+              {!selectedRow ? (
+                <p className="text-muted-foreground text-sm">Select a video.</p>
+              ) : !canAct ? (
+                <div className="min-h-0 flex-1 space-y-4 overflow-y-auto">
+                  <div
+                    className="rounded-xl border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-xs leading-relaxed text-amber-950"
+                    role="status"
+                  >
+                    {qaTicket
+                      ? 'This deliverable is not waiting on your thumbnail approval right now. You can still preview it.'
+                      : 'No Studio ticket for this numbered video yet — preview only.'}
+                  </div>
+                  {history.length > 0 && (
+                    <QaCommentThread comments={history} heading="Earlier feedback" />
+                  )}
+                  <DeliverableVideoThumbnailTitleBlock
+                    theme={theme}
+                    videoDriveFileId={driveFileId}
+                    fallbackVideoSrc={driveFileId ? undefined : fallbackVideoSrc}
+                    videoFileName={fileName}
+                    thumbnailDriveFileId={thumbEntry?.driveFileId}
+                    thumbnailFileName={thumbEntry?.name}
+                    displayVideoTitle={qaTicket?.title}
+                  />
+                </div>
+              ) : (
+                <div
+                  key={qaTicket!.id}
+                  className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-hidden"
+                >
+                  {history.length > 0 ? (
+                    <div className="max-h-[min(28vh,220px)] shrink-0 overflow-y-auto">
+                      <QaCommentThread comments={history} heading="Earlier feedback" />
+                    </div>
+                  ) : null}
+                  <VideoDeliverableReviewPanel
+                    className="min-h-0 min-w-0"
+                    driveFileId={driveFileId}
+                    videoSrc={driveFileId ? undefined : fallbackVideoSrc}
+                    fileName={fileName}
+                    introText=""
+                    theme={theme}
+                    commentsHeading="Your feedback"
+                    initialMarkers={[]}
+                    initialGeneralNote={initialGeneral}
+                    approveLabel="Approve thumbnail"
+                    rejectLabel="Request changes"
+                    requireCommentsOnReject
+                    feedbackMode="thumbnail"
+                    showThumbnailCompanion
+                    pairedThumbnailDriveFileId={thumbEntry?.driveFileId}
+                    pairedThumbnailFileName={thumbEntry?.name}
+                    displayVideoTitle={qaTicket?.title}
+                    onApprove={() => {
+                      onApprove(qaTicket!.id)
+                    }}
+                    onReject={(feedback) => {
+                      onReject(qaTicket!.id, feedback)
+                    }}
+                  />
+                </div>
+              )}
+            </main>
+
             <aside className="border-border bg-muted/15 flex max-h-[min(32vh,260px)] shrink-0 flex-col rounded-xl border pt-2 md:max-h-none md:w-56 md:bg-transparent md:pt-0">
+              <p className="text-muted-foreground shrink-0 px-2 pb-2 text-[10px] font-semibold uppercase tracking-wide md:px-0">
+                Videos in this batch
+              </p>
               <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto p-2 md:px-0 md:pb-0">
                 {rows.map((row) => {
                   const active = row.index === selectedRow?.index
-                  const status = clientFinalRowStatus(row)
-                  const needsYou = row.ticket ? videoNeedsClientFinalReview(row.ticket) : false
+                  const status = clientThumbRowStatus(row)
+                  const needsYou = row.ticket ? videoNeedsClientThumbnailReview(row.ticket) : false
                   return (
                     <li key={row.index}>
                       <button
@@ -242,68 +307,6 @@ export function ClientFinalVideoReviewModal({
                 })}
               </ul>
             </aside>
-
-            <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden pr-1">
-              {!selectedRow ? (
-                <p className="text-muted-foreground text-sm">Select a video.</p>
-              ) : !canAct ? (
-                <div className="min-h-0 flex-1 space-y-4 overflow-y-auto">
-                  <div
-                    className="rounded-xl border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-xs leading-relaxed text-amber-950"
-                    role="status"
-                  >
-                    {qaTicket
-                      ? 'This deliverable is not waiting on your video approval right now. You can still preview it.'
-                      : 'No Studio ticket for this numbered video yet — preview only.'}
-                  </div>
-                  {history.length > 0 && (
-                    <QaCommentThread comments={history} heading="Earlier feedback" />
-                  )}
-                  <DeliverableVideoThumbnailTitleBlock
-                    theme={theme}
-                    videoDriveFileId={driveFileId}
-                    fallbackVideoSrc={driveFileId ? undefined : fallbackVideoSrc}
-                    videoFileName={fileName}
-                    thumbnailDriveFileId={thumbEntry?.driveFileId}
-                    thumbnailFileName={thumbEntry?.name}
-                    displayVideoTitle={qaTicket?.title}
-                  />
-                </div>
-              ) : (
-                <div
-                  key={qaTicket!.id}
-                  className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-hidden"
-                >
-                  {history.length > 0 ? (
-                    <div className="max-h-[min(28vh,220px)] shrink-0 overflow-y-auto">
-                      <QaCommentThread comments={history} heading="Earlier feedback" />
-                    </div>
-                  ) : null}
-                  <VideoDeliverableReviewPanel
-                    className="min-h-0 min-w-0"
-                    driveFileId={driveFileId}
-                    videoSrc={driveFileId ? undefined : fallbackVideoSrc}
-                    fileName={fileName}
-                    introText=""
-                    theme={theme}
-                    commentsHeading="Your feedback"
-                    initialMarkers={initialMarkers}
-                    initialGeneralNote={initialGeneral}
-                    rejectLabel="Request changes"
-                    showThumbnailCompanion
-                    pairedThumbnailDriveFileId={thumbEntry?.driveFileId}
-                    pairedThumbnailFileName={thumbEntry?.name}
-                    displayVideoTitle={qaTicket?.title}
-                    onApprove={() => {
-                      onApprove(qaTicket!.id)
-                    }}
-                    onReject={(feedback) => {
-                      onReject(qaTicket!.id, feedback)
-                    }}
-                  />
-                </div>
-              )}
-            </main>
           </div>
         </div>
       )}

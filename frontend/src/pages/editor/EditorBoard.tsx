@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react'
 import { Navigate } from 'react-router-dom'
+import { LayoutPanelTop } from 'lucide-react'
 import { useMockAuth } from '@/auth'
 import { EditorAttentionStrip } from '@/components/editor/EditorAttentionStrip'
 import { EditorBatchFolderRow } from '@/components/editor/EditorBatchFolderRow'
+import { EditorBatchWorkspaceModal } from '@/components/editor/EditorBatchWorkspaceModal'
 import { EditorQaFixModal } from '@/components/editor/EditorQaFixModal'
 import { EditorThumbnailsModal } from '@/components/editor/EditorThumbnailsModal'
 import { EditorVideoKanban } from '@/components/editor/EditorVideoKanban'
@@ -15,8 +17,8 @@ import {
   listEditorAttention,
   toEditorVideoCard,
   videoEditorQaReturn,
-  videoNeedsEditorTitleSubmit,
   videoNeedsEditorThumbnailsSubmit,
+  videoNeedsEditorTitleSubmit,
 } from '@/lib/editorBoard'
 import { resolveEditorStaffId } from '@/lib/editorSession'
 import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
@@ -51,6 +53,7 @@ export function EditorBoard() {
   }, [batches, clientIds])
 
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null)
+  const [workspaceModalBatchId, setWorkspaceModalBatchId] = useState<string | null>(null)
   const [shareVideosBatchId, setShareVideosBatchId] = useState<string | null>(null)
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null)
 
@@ -79,6 +82,10 @@ export function EditorBoard() {
     ? editorBatches.find((b) => b.id === shareVideosBatchId)
     : undefined
 
+  const workspaceBatch = workspaceModalBatchId
+    ? editorBatches.find((b) => b.id === workspaceModalBatchId)
+    : undefined
+
   if (!user || user.role !== 'employee' || user.employeeKind !== 'editor') {
     return <Navigate to="/login" replace />
   }
@@ -99,7 +106,7 @@ export function EditorBoard() {
         </h1>
         <p className="text-muted-foreground text-xs">
           {assignedClients.length} client
-          {assignedClients.length === 1 ? '' : 's'} · deliverables workflow
+          {assignedClients.length === 1 ? '' : 's'} · active batches only
         </p>
       </div>
 
@@ -119,20 +126,42 @@ export function EditorBoard() {
       <EditorBatchFolderRow
         batches={editorBatches}
         videos={videos.filter((v) => clientIds.has(v.clientId))}
-        selectedBatchId={effectiveBatchId}
-        onSelect={setSelectedBatchId}
+        openBatchId={effectiveBatchId}
+        onOpenBatch={(batchId) => {
+          setSelectedBatchId(batchId)
+        }}
       />
 
       {selectedBatch ? (
-        <section className="space-y-2">
-          <p className="text-muted-foreground text-[10px] font-semibold uppercase tracking-[0.12em]">
-            {selectedBatch.title} —{' '}
-            {clientNameById.get(selectedBatch.clientId) ?? 'Client'}
-          </p>
+        <section className="mt-6 space-y-3">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div className="min-w-0 space-y-0.5">
+              <p className="text-muted-foreground text-[10px] font-semibold uppercase tracking-[0.12em]">
+                Deliverables board
+              </p>
+              <p className="text-foreground text-sm font-semibold leading-snug">
+                {selectedBatch.title}
+                <span className="text-muted-foreground font-normal">
+                  {' '}
+                  · {clientNameById.get(selectedBatch.clientId) ?? 'Client'}
+                </span>
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setWorkspaceModalBatchId(selectedBatch.id)
+              }}
+              className="border-border bg-muted/30 hover:border-primary/35 text-foreground inline-flex shrink-0 items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors"
+            >
+              <LayoutPanelTop className="size-3.5 opacity-70" aria-hidden />
+              Batch workspace
+            </button>
+          </div>
           {batchAwaitingClips(selectedBatch) ? (
             <p className="text-muted-foreground border-border rounded-xl border border-dashed px-4 py-8 text-center text-sm">
-              Clips are still with the client or SMM. You will see deliverables
-              columns here once clips are approved.
+              Clips are still with the client or SMM. You will see deliverables columns here once
+              clips are approved.
             </p>
           ) : batchReadyForEditorWork(selectedBatch) ? (
             <EditorVideoKanban
@@ -142,21 +171,19 @@ export function EditorBoard() {
               onOpenShareVideos={() => {
                 setShareVideosBatchId(selectedBatch.id)
               }}
-              onOpenVideo={setActiveVideoId}
+              onOpenVideo={(videoId) => {
+                setActiveVideoId(videoId)
+              }}
             />
           ) : (
-            <p className="text-muted-foreground text-sm">
-              This batch is not ready for deliverables yet.
-            </p>
+            <p className="text-muted-foreground text-sm">This batch is not ready for deliverables yet.</p>
           )}
         </section>
       ) : (
-        <p className="text-muted-foreground text-sm">
-          No active batches assigned to you yet.
-        </p>
+        <p className="text-muted-foreground mt-6 text-sm">No active batches assigned to you yet.</p>
       )}
 
-      {shareVideosBatch && (
+      {shareVideosBatch ? (
         <EditorVideosDriveModal
           batch={shareVideosBatch}
           clientName={clientNameById.get(shareVideosBatch.clientId) ?? 'Client'}
@@ -165,9 +192,21 @@ export function EditorBoard() {
             setShareVideosBatchId(null)
           }}
         />
-      )}
+      ) : null}
 
-      {activeCard && selectedBatch && videoEditorQaReturn(activeCard) && (
+      {workspaceBatch ? (
+        <EditorBatchWorkspaceModal
+          key={workspaceBatch.id}
+          batch={workspaceBatch}
+          clientName={clientNameById.get(workspaceBatch.clientId) ?? 'Client'}
+          open={workspaceModalBatchId === workspaceBatch.id}
+          onClose={() => {
+            setWorkspaceModalBatchId(null)
+          }}
+        />
+      ) : null}
+
+      {activeCard && selectedBatch && videoEditorQaReturn(activeCard) ? (
         <EditorQaFixModal
           batch={selectedBatch}
           clientName={clientNameById.get(selectedBatch.clientId) ?? 'Client'}
@@ -177,23 +216,21 @@ export function EditorBoard() {
             setActiveVideoId(null)
           }}
         />
-      )}
+      ) : null}
 
-      {activeCard &&
-        selectedBatch &&
-        videoNeedsEditorThumbnailsSubmit(activeCard) && (
-          <EditorThumbnailsModal
-            batch={selectedBatch}
-            clientName={clientNameById.get(selectedBatch.clientId) ?? 'Client'}
-            videoTitle={activeCard.title}
-            open={activeVideoId === activeCard.id}
-            onClose={() => {
-              setActiveVideoId(null)
-            }}
-          />
-        )}
+      {activeCard && selectedBatch && videoNeedsEditorThumbnailsSubmit(activeCard) ? (
+        <EditorThumbnailsModal
+          batch={selectedBatch}
+          clientName={clientNameById.get(selectedBatch.clientId) ?? 'Client'}
+          videoTitle={activeCard.title}
+          open={activeVideoId === activeCard.id}
+          onClose={() => {
+            setActiveVideoId(null)
+          }}
+        />
+      ) : null}
 
-      {activeCard && selectedBatch && videoNeedsEditorTitleSubmit(activeCard) && (
+      {activeCard && selectedBatch && videoNeedsEditorTitleSubmit(activeCard) ? (
         <EditorVideoTitleModal
           batch={selectedBatch}
           clientName={clientNameById.get(selectedBatch.clientId) ?? 'Client'}
@@ -203,7 +240,7 @@ export function EditorBoard() {
             setActiveVideoId(null)
           }}
         />
-      )}
+      ) : null}
     </>
   )
 }

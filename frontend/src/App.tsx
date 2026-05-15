@@ -5,6 +5,7 @@ import { AdminClientDetail } from '@/pages/admin/AdminClientDetail'
 import { AdminLayout } from '@/pages/admin/AdminLayout'
 import { AdminWorkspace } from '@/pages/admin/AdminWorkspace'
 import { EditorBoard } from '@/pages/editor/EditorBoard'
+import { EditorCompleted } from '@/pages/editor/EditorCompleted'
 import { EditorLayout } from '@/pages/editor/EditorLayout'
 import { ClientAllWork } from '@/pages/client/ClientAllWork'
 import { ClientBoard } from '@/pages/client/ClientBoard'
@@ -57,6 +58,7 @@ function App() {
         >
           <Route index element={<Navigate to="board" replace />} />
           <Route path="board" element={<EditorBoard />} />
+          <Route path="completed" element={<EditorCompleted />} />
           <Route path="overview" element={<Navigate to="/editor/board" replace />} />
           <Route path="tasks" element={<Navigate to="/editor/board" replace />} />
           <Route path="qa" element={<Navigate to="/editor/board" replace />} />

@@ -1,6 +1,6 @@
 import type { AdminVideoTicket } from '@mockData/index'
 import type { DriveMediaEntry } from '@mockData/driveManifests'
-import { videoNeedsClientFinalReview } from '@/lib/clientBoard'
+import { videoNeedsClientFinalReview, videoNeedsClientThumbnailReview } from '@/lib/clientBoard'
 import { deliverableIndexForTicket } from '@/lib/driveMedia'
 
 /** One numbered slot in Video/ — manifest entry + optional Studio ticket */
@@ -46,6 +46,29 @@ export function buildClientFinalReviewSidebarRows(
 ): DeliverableSidebarRow[] {
   const eligible = tickets.filter(
     (t) => t.batchId === batchId && videoNeedsClientFinalReview(t),
+  )
+  const byIndex = new Map<number, AdminVideoTicket>()
+  for (const t of eligible) {
+    byIndex.set(deliverableIndexForTicket(t), t)
+  }
+
+  return [...byIndex.keys()]
+    .sort((a, b) => a - b)
+    .map((index) => ({
+      index,
+      entry: manifestVideos?.find((e) => e.index === index),
+      ticket: byIndex.get(index)!,
+    }))
+}
+
+/** Client thumbnail QA — same indexing as manifest videos; thumbnails read from Thumb slot. */
+export function buildClientThumbnailReviewSidebarRows(
+  batchId: string,
+  manifestVideos: DriveMediaEntry[] | undefined,
+  tickets: AdminVideoTicket[],
+): DeliverableSidebarRow[] {
+  const eligible = tickets.filter(
+    (t) => t.batchId === batchId && videoNeedsClientThumbnailReview(t),
   )
   const byIndex = new Map<number, AdminVideoTicket>()
   for (const t of eligible) {

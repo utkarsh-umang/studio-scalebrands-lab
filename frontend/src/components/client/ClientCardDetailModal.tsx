@@ -6,7 +6,6 @@ import {
   getClientTextReview,
   SAMPLE_VIDEO_SRC,
 } from '@mockData/index'
-import { ThumbnailReviewPanel } from '@/components/drive/ThumbnailReviewPanel'
 import type { ClientVideoCard } from '@/lib/clientBoard'
 import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
 import { useTheme } from '@/theme'
@@ -14,6 +13,7 @@ import { StudioModalShell } from '@/components/StudioModalShell'
 import { formatSyncedAt, getManifestForBatch, reloadDriveManifestForBatch } from '@/lib/driveMedia'
 import { ClientClipReviewPanel } from './ClientClipReviewPanel'
 import { ClientFinalVideoReviewModal } from './ClientFinalVideoReviewModal'
+import { ClientThumbnailReviewModal } from './ClientThumbnailReviewModal'
 
 type Props = {
   card: ClientVideoCard | null
@@ -204,21 +204,36 @@ export function ClientCardDetailModal({
     )
   }
 
-  if (card.reviewKind === 'thumbnail' && batch?.editorDeliverablesDriveUrl) {
+  if (card.reviewKind === 'thumbnail' && batch) {
+    if (!batch.editorDeliverablesDriveUrl) {
+      return (
+        <ModalShell title={card.title} subtitle={batchTitle} onClose={onClose}>
+          <p className="text-muted-foreground text-sm leading-relaxed">
+            The editor has not linked the batch deliverables folder on Drive yet. When they do, you can
+            review thumbnails here.
+          </p>
+        </ModalShell>
+      )
+    }
     return (
-      <ModalShell title="Thumbnail review" subtitle={card.title} onClose={onClose}>
-        <ThumbnailReviewPanel
-          batchId={batchId}
-          deliverablesFolderUrl={batch.editorDeliverablesDriveUrl}
-          ticket={card}
-          onApprove={() => {
-            finish('approve')
-          }}
-          onReject={(note) => {
-            finish('reject', { rejectNote: note })
-          }}
-        />
-      </ModalShell>
+      <ClientThumbnailReviewModal
+        key={card.id}
+        batch={batch}
+        batchTitle={batchTitle}
+        batchTickets={getVideosForBatch(batch.id)}
+        initialTicket={card}
+        fallbackVideoSrc={SAMPLE_VIDEO_SRC}
+        theme={theme}
+        onClose={onClose}
+        onApprove={(videoId) => {
+          applyClientVideoDecision(videoId, 'approve')
+          onClose()
+        }}
+        onReject={(videoId, feedback) => {
+          applyClientVideoDecision(videoId, 'reject', { feedback })
+          onClose()
+        }}
+      />
     )
   }
 

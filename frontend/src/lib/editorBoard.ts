@@ -255,3 +255,22 @@ export function batchSubtitle(
   if (thumbs > 0) return `${thumbs} in thumbnails`
   return `Updated ${batch.updatedAt.slice(0, 10)}`
 }
+
+/** Card hint for batch-centric editor board */
+export function editorBatchPhaseLabel(
+  batch: AdminBatchFolder,
+  videos: AdminVideoTicket[],
+): string {
+  const vs = videos.filter((v) => v.batchId === batch.id)
+  if (batch.status === 'completed') return 'Completed — see archive'
+  if (batchAwaitingClips(batch)) return 'Waiting on clips / client'
+  if (!batchReadyForEditorWork(batch)) return 'Not ready'
+  if (!batch.editorDeliverablesDriveUrl?.trim())
+    return 'Your turn — submit deliverables folder'
+  if (vs.some(videoEditorQaReturn)) return 'Your turn — video QA fixes'
+  if (vs.some(videoNeedsEditorThumbnailsSubmit)) return 'Your turn — thumbnails'
+  if (vs.some(videoNeedsEditorTitleSubmit)) return 'Your turn — publish titles'
+  if (vs.length > 0 && vs.every((v) => v.owner !== 'editor'))
+    return 'Waiting on SMM or client'
+  return 'In progress'
+}

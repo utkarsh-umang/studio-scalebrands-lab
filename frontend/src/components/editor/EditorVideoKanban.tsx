@@ -45,7 +45,7 @@ export function EditorVideoKanban({
   }
 
   return (
-    <div className="flex min-h-[420px] gap-3 overflow-x-auto pb-2">
+    <div className="flex min-h-[420px] w-full min-w-0 gap-3 pb-2 md:gap-4">
       {EDITOR_BOARD_COLUMNS.map((col) => {
         const columnCards = cardsInColumn(col.id)
         let count = columnCards.length
@@ -54,7 +54,7 @@ export function EditorVideoKanban({
         return (
           <div
             key={col.id}
-            className="bg-muted/20 border-border flex w-[min(100%,280px)] shrink-0 flex-col rounded-xl border"
+            className="bg-muted/20 border-border flex min-h-0 min-w-0 flex-1 flex-col rounded-xl border"
           >
             <div className="border-border border-b px-3 py-2.5">
               <div className="flex items-center justify-between gap-2">
@@ -69,7 +69,7 @@ export function EditorVideoKanban({
                 {col.hint}
               </p>
             </div>
-            <ul className="flex min-h-[200px] flex-1 flex-col gap-2 p-2">
+            <ul className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-2">
               {col.id === 'videos_created' && showShareVideos && (
                 <li>
                   <EditorShareVideosCard

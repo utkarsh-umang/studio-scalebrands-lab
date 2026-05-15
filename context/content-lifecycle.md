@@ -191,7 +191,7 @@ Config for which batches to sync: [`scripts/drive-manifest-config.ts`](../script
 | Clip approval | Client | `ClientClipReviewPanel` + `DriveFolderReviewShell` |
 | SMM video QA | SMM | `SmmVideoQaModal` + `DriveVideoReviewLayout` |
 | Client final video | Client | `ClientFinalReviewPanel` |
-| Client thumbnail | Client | `ThumbnailReviewPanel` |
+| Client thumbnail | Client | `ClientThumbnailReviewModal` |
 | Editor fix / resubmit | Editor | `EditorQaFixModal` + `QaCommentThread` |
 | Find clips / schedule | SMM | `SmmFindClipsModal`, `SmmScheduleBatchModal` |
 

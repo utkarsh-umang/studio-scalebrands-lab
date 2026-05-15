@@ -72,7 +72,7 @@ export function EditorThumbnailsModal({
             }}
             className="bg-primary text-primary-foreground rounded-xl px-4 py-2.5 text-sm font-semibold disabled:opacity-50"
           >
-            Send thumbnails to client
+            Send for client thumbnails review
           </button>
           <button
             type="button"

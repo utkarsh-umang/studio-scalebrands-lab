@@ -12,12 +12,18 @@ import { ClientPageHeader, formatDate } from './clientPageUtils'
 function actionHref(row: {
   id: string
   attention?: ClientAttentionKind
+  openVideoId?: string
 }): string {
   if (row.attention === 'clip_review') return `/client/batches/${row.id}`
   if (row.attention === 'idea_review') return `/client/ideas/${row.id}`
   if (row.attention === 'text_review') return `/client/thumbnails/${row.id}`
   if (row.attention === 'final_video_review')
     return `/client/final-review/${row.id}`
+  if (row.attention === 'thumbnail_review') {
+    return row.openVideoId
+      ? `/client/board?openVideo=${encodeURIComponent(row.openVideoId)}`
+      : '/client/board'
+  }
   return '/client/overview'
 }
 
@@ -26,6 +32,7 @@ const attentionCopy: Record<ClientAttentionKind, string> = {
   idea_review: 'Ideas review',
   text_review: 'Titles review',
   final_video_review: 'Final video review',
+  thumbnail_review: 'Thumbnail review',
 }
 
 export function ClientOverview() {

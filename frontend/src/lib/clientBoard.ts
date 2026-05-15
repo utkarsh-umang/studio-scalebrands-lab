@@ -86,6 +86,11 @@ export function videoNeedsClientFinalReview(video: AdminVideoTicket): boolean {
   return reviewKindFromStage(video.stageLabel) === 'final'
 }
 
+export function videoNeedsClientThumbnailReview(video: AdminVideoTicket): boolean {
+  if (video.owner !== 'client') return false
+  return reviewKindFromStage(video.stageLabel) === 'thumbnail'
+}
+
 export function batchNeedsClientIntake(batch: AdminBatchFolder): boolean {
   if (batch.status !== 'active') return false
   if (!batch.intakePath) return true
@@ -152,6 +157,7 @@ export function listClientAttention(
       const kind = reviewKindFromStage(v.stageLabel)
       if (!kind) return null
       if (kind === 'final' && !videoNeedsClientFinalReview(v)) return null
+      if (kind === 'thumbnail' && !videoNeedsClientThumbnailReview(v)) return null
       return {
         videoId: v.id,
         batchId: v.batchId,

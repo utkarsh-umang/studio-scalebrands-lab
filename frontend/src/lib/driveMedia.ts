@@ -19,6 +19,10 @@ const MANIFEST_ALIASES: Record<string, string> = {
   'b-obs-final': 'b-204',
   'b-obs-thumb': 'b-204',
   'b-obs-edit': 'b-204',
+  'b-ed-qa-smm': 'b-204',
+  'b-ed-qa-client': 'b-204',
+  'b-ed-thumbs': 'b-204',
+  'b-ed-titles': 'b-204',
 }
 
 export function getManifestForBatch(batchId: string): BatchDriveManifest | undefined {
@@ -84,6 +88,18 @@ export function listClipIndices(batchId: string): number[] {
   const manifest = getManifestForBatch(batchId)
   if (!manifest?.clips.length) return []
   return manifest.clips.map((c) => c.index)
+}
+
+/** True when manifest lists a thumbnail file for every index 1…videoCount */
+export function batchThumbnailsCompleteInManifest(
+  manifest: BatchDriveManifest | undefined,
+  videoCount: number,
+): boolean {
+  if (!manifest?.thumbnails?.length || videoCount < 1) return false
+  for (let i = 1; i <= videoCount; i++) {
+    if (!manifest.thumbnails.some((t) => t.index === i)) return false
+  }
+  return true
 }
 
 export function formatSyncedAt(iso: string): string {

@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { Check, X } from 'lucide-react'
+import { DeliverableVideoThumbnailTitleBlock } from '@/components/drive/DeliverableVideoThumbnailTitleBlock'
 import {
   DriveVideoPreview,
   type DriveVideoLayout,
@@ -38,6 +39,13 @@ export type VideoDeliverableReviewPanelProps = {
   disableApproveWhenHasComments?: boolean
   /** When true, reject/send-back is only enabled once comments exist */
   requireCommentsOnReject?: boolean
+  /** When true, show video and thumbnail in matching portrait frames plus optional title. */
+  showThumbnailCompanion?: boolean
+  pairedThumbnailDriveFileId?: string
+  pairedThumbnailFileName?: string
+  displayVideoTitle?: string
+  /** Thumbnail QA hides playhead/timecode tooling; feedback is general-only. */
+  feedbackMode?: 'video' | 'thumbnail'
   onApprove?: () => void
   onReject?: (feedback: VideoReviewFeedback) => void
 }
@@ -57,6 +65,11 @@ export function VideoDeliverableReviewPanel({
   rejectLabel = 'Request changes',
   disableApproveWhenHasComments = false,
   requireCommentsOnReject = false,
+  showThumbnailCompanion = false,
+  pairedThumbnailDriveFileId,
+  pairedThumbnailFileName,
+  displayVideoTitle,
+  feedbackMode = 'video',
   onApprove,
   onReject,
 }: VideoDeliverableReviewPanelProps) {
@@ -75,8 +88,10 @@ export function VideoDeliverableReviewPanel({
   const accent = theme.colors.accent
   const landscapeVideoClass =
     'aspect-video w-full max-h-[min(42vh,420px)] bg-black object-contain object-center'
+  const isThumbnailFeedback = feedbackMode === 'thumbnail'
 
   function addTimestampedComment() {
+    if (isThumbnailFeedback) return
     if (!atTimeNote.trim()) return
     let t: number | null = null
     if (usingDrivePreview) {
@@ -132,44 +147,58 @@ export function VideoDeliverableReviewPanel({
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         <div className="flex flex-col gap-6 pb-2 lg:flex-row lg:items-start">
           <div className="flex-1 space-y-4 lg:min-w-[min(100%,480px)]">
-            <div
-              className={qaPortraitChromeClass}
-              style={{ boxShadow: `0 12px 40px -12px ${primary}22` }}
-            >
-              {usingDrivePreview ? (
-                <DriveVideoPreview
-                  driveFileId={driveFileId!}
-                  fileName={fileName}
-                  layout={videoLayout}
-                />
-              ) : videoSrc ? (
-                videoLayout === 'portrait' ? (
-                  <div className={qaPortraitPlayerBoxClass} dir="ltr">
+            {showThumbnailCompanion ? (
+              <DeliverableVideoThumbnailTitleBlock
+                theme={theme}
+                videoLayout={videoLayout}
+                videoDriveFileId={usingDrivePreview ? driveFileId : undefined}
+                fallbackVideoSrc={usingDrivePreview ? undefined : videoSrc}
+                nativeVideoRef={usingDrivePreview ? undefined : videoRef}
+                videoFileName={fileName}
+                thumbnailDriveFileId={pairedThumbnailDriveFileId}
+                thumbnailFileName={pairedThumbnailFileName}
+                displayVideoTitle={displayVideoTitle}
+              />
+            ) : (
+              <div
+                className={qaPortraitChromeClass}
+                style={{ boxShadow: `0 12px 40px -12px ${primary}22` }}
+              >
+                {usingDrivePreview ? (
+                  <DriveVideoPreview
+                    driveFileId={driveFileId!}
+                    fileName={fileName}
+                    layout={videoLayout}
+                  />
+                ) : videoSrc ? (
+                  videoLayout === 'portrait' ? (
+                    <div className={qaPortraitPlayerBoxClass} dir="ltr">
+                      <video
+                        ref={videoRef}
+                        className={qaPortraitVideoInnerClass}
+                        controls
+                        playsInline
+                        preload="metadata"
+                        src={videoSrc}
+                      />
+                    </div>
+                  ) : (
                     <video
                       ref={videoRef}
-                      className={qaPortraitVideoInnerClass}
+                      className={landscapeVideoClass}
                       controls
                       playsInline
                       preload="metadata"
                       src={videoSrc}
                     />
-                  </div>
+                  )
                 ) : (
-                  <video
-                    ref={videoRef}
-                    className={landscapeVideoClass}
-                    controls
-                    playsInline
-                    preload="metadata"
-                    src={videoSrc}
-                  />
-                )
-              ) : (
-                <p className="text-muted-foreground p-8 text-center text-sm">
-                  No video source configured.
-                </p>
-              )}
-            </div>
+                  <p className="text-muted-foreground p-8 text-center text-sm">
+                    No video source configured.
+                  </p>
+                )}
+              </div>
+            )}
 
             {hasComments && (
               <div className="border-border bg-muted/20 max-h-[min(28vh,240px)] space-y-3 overflow-y-auto rounded-xl border p-4 text-left">
@@ -201,65 +230,72 @@ export function VideoDeliverableReviewPanel({
           </div>
 
           <aside className="border-border w-full shrink-0 space-y-4 lg:w-72 lg:border-l lg:pl-6">
-            <div>
-              {usingDrivePreview ? (
-                <div className="mb-3 space-y-1.5">
-                  <label
-                    htmlFor="drive-timecode"
-                    className="text-muted-foreground block text-[10px] font-semibold uppercase tracking-[0.12em]"
-                  >
-                    Timecode (Drive preview)
-                  </label>
-                  <input
-                    id="drive-timecode"
-                    type="text"
-                    inputMode="decimal"
-                    autoComplete="off"
-                    value={driveTimecode}
-                    onChange={(e) => {
-                      setDriveTimecode(e.target.value)
-                      setTimecodeError(null)
-                    }}
-                    placeholder="e.g. 0:12 or 1:05"
-                    className="border-border bg-background/90 text-foreground placeholder:text-muted-foreground/70 w-full rounded-xl border px-3 py-2 font-mono text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
-                  />
-                  <p className="text-muted-foreground text-[11px] leading-snug">
-                    The embedded player does not expose the playhead. Note the time from the
-                    preview (or open in Drive), then attach your comment to that moment.
-                  </p>
-                </div>
-              ) : null}
-              <label
-                htmlFor="ts-feedback"
-                className="text-muted-foreground mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.12em]"
-              >
-                {usingDrivePreview ? 'Feedback at that time' : 'Feedback at playhead'}
-              </label>
-              <textarea
-                id="ts-feedback"
-                value={atTimeNote}
-                onChange={(e) => {
-                  setAtTimeNote(e.target.value)
-                }}
-                rows={3}
-                placeholder={
-                  usingDrivePreview
-                    ? 'Describe what to fix at the timecode above…'
-                    : 'Pause the video where it matters, then describe the fix…'
-                }
-                className="border-border bg-background/90 text-foreground placeholder:text-muted-foreground/70 w-full resize-y rounded-xl border px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
-              />
-              {timecodeError ? (
-                <p className="text-destructive mt-1.5 text-xs">{timecodeError}</p>
-              ) : null}
-              <button
-                type="button"
-                onClick={addTimestampedComment}
-                className="bg-primary text-primary-foreground hover:brightness-[1.03] mt-2 inline-flex h-9 w-full items-center justify-center rounded-xl text-sm font-semibold"
-              >
-                {usingDrivePreview ? 'Add timed comment' : 'Add comment at current time'}
-              </button>
-            </div>
+            {!isThumbnailFeedback ? (
+              <div>
+                {usingDrivePreview ? (
+                  <div className="mb-3 space-y-1.5">
+                    <label
+                      htmlFor="drive-timecode"
+                      className="text-muted-foreground block text-[10px] font-semibold uppercase tracking-[0.12em]"
+                    >
+                      Timecode (Drive preview)
+                    </label>
+                    <input
+                      id="drive-timecode"
+                      type="text"
+                      inputMode="decimal"
+                      autoComplete="off"
+                      value={driveTimecode}
+                      onChange={(e) => {
+                        setDriveTimecode(e.target.value)
+                        setTimecodeError(null)
+                      }}
+                      placeholder="e.g. 0:12 or 1:05"
+                      className="border-border bg-background/90 text-foreground placeholder:text-muted-foreground/70 w-full rounded-xl border px-3 py-2 font-mono text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+                    />
+                    <p className="text-muted-foreground text-[11px] leading-snug">
+                      The embedded player does not expose the playhead. Note the time from the
+                      preview (or open in Drive), then attach your comment to that moment.
+                    </p>
+                  </div>
+                ) : null}
+                <label
+                  htmlFor="ts-feedback"
+                  className="text-muted-foreground mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.12em]"
+                >
+                  {usingDrivePreview ? 'Feedback at that time' : 'Feedback at playhead'}
+                </label>
+                <textarea
+                  id="ts-feedback"
+                  value={atTimeNote}
+                  onChange={(e) => {
+                    setAtTimeNote(e.target.value)
+                  }}
+                  rows={3}
+                  placeholder={
+                    usingDrivePreview
+                      ? 'Describe what to fix at the timecode above…'
+                      : 'Pause the video where it matters, then describe the fix…'
+                  }
+                  className="border-border bg-background/90 text-foreground placeholder:text-muted-foreground/70 w-full resize-y rounded-xl border px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+                />
+                {timecodeError ? (
+                  <p className="text-destructive mt-1.5 text-xs">{timecodeError}</p>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={addTimestampedComment}
+                  className="bg-primary text-primary-foreground hover:brightness-[1.03] mt-2 inline-flex h-9 w-full items-center justify-center rounded-xl text-sm font-semibold"
+                >
+                  {usingDrivePreview ? 'Add timed comment' : 'Add comment at current time'}
+                </button>
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-[11px] leading-relaxed">
+                Add notes only if you want the editor to change the thumbnail image. Leave the
+                fields empty and tap approve when it looks ready.
+              </p>
+            )}
 
             <div>
               <label
@@ -275,7 +311,11 @@ export function VideoDeliverableReviewPanel({
                   setGeneralNote(e.target.value)
                 }}
                 rows={4}
-                placeholder="Overall notes not tied to a single moment…"
+                placeholder={
+                  isThumbnailFeedback
+                    ? 'What should change on the thumbnail (colors, framing, copy, branding)…'
+                    : 'Overall notes not tied to a single moment…'
+                }
                 className="border-border bg-background/90 text-foreground placeholder:text-muted-foreground/70 w-full resize-y rounded-xl border px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
               />
               <button

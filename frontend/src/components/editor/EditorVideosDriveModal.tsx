@@ -80,7 +80,7 @@ export function EditorVideosDriveModal({
             }}
             className="bg-primary text-primary-foreground rounded-xl px-4 py-2.5 text-sm font-semibold disabled:opacity-50"
           >
-            Share link &amp; start QA
+            Submit videos
           </button>
           <button
             type="button"

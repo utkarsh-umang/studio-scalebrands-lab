@@ -677,12 +677,21 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
       prev.map((v) => {
         if (v.id !== videoId) return v
         const backToClient = v.lastRevisionRequestedBy === 'client'
+        const nextVideoVersion = (v.assetVersions?.video ?? 1) + 1
+        const qaCommentHistory = (v.qaCommentHistory ?? []).map((c) =>
+          c.slot === 'video' && !c.deprecated ? { ...c, deprecated: true as const } : c,
+        )
         return {
           ...v,
           owner: backToClient ? ('client' as const) : ('smm' as const),
           editorPhase: 'videos' as const,
           stageLabel: backToClient ? 'Final video review' : 'SMM QA',
           deadlineRole: backToClient ? null : ('smm' as const),
+          releasedToClientFinalVideoReview: backToClient,
+          qaFlags: undefined,
+          qaGeneralNote: undefined,
+          assetVersions: { ...v.assetVersions, video: nextVideoVersion },
+          qaCommentHistory,
         }
       }),
     )
