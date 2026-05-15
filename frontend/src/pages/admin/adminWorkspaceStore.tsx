@@ -16,11 +16,13 @@ import {
   type AdminBatchFolder,
   type AdminClientProfile,
   type AdminVideoTicket,
+  type BatchIntakePath,
   type BrandGuidelinesSource,
   type StaffMember,
   type VideoPipelineOwner,
 } from '@mockData/index'
 import type { ProvisionClientInput } from '@/components/admin/ProvisionClientModal'
+import { nextStateAfterClientAction } from '@/lib/clientBoard'
 
 type CreateBatchInput = {
   clientId: string
@@ -104,6 +106,21 @@ type AdminWorkspaceContextValue = {
   updateBrandGuidelines: (input: UpdateBrandGuidelinesInput) => void
   setVideoDeadline: (videoId: string, deadlineAt: string | null) => void
   setVideoOwner: (videoId: string, owner: VideoPipelineOwner) => void
+  submitBatchIntake: (
+    batchId: string,
+    path: BatchIntakePath,
+    url: string,
+  ) => void
+  approveBatchClips: (batchId: string, clipReviewVideoId: string) => void
+  rejectBatchClips: (
+    batchId: string,
+    clipReviewVideoId: string,
+    note: string,
+  ) => void
+  applyClientVideoDecision: (
+    videoId: string,
+    action: 'approve' | 'reject',
+  ) => void
 }
 
 const AdminWorkspaceContext = createContext<AdminWorkspaceContextValue | null>(
@@ -316,6 +333,162 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
     [],
   )
 
+  const assignBatchVideosToEditor = useCallback((batchId: string) => {
+    setVideos((prev) =>
+      prev.map((v) => {
+        if (v.batchId !== batchId) return v
+        if (v.stageLabel.toLowerCase().includes('clip review')) {
+          return {
+            ...v,
+            owner: 'editor' as const,
+            stageLabel: 'Editing in progress',
+            deadlineRole: 'editor' as const,
+          }
+        }
+        return {
+          ...v,
+          owner: 'editor' as const,
+          stageLabel:
+            v.stageLabel.toLowerCase().includes('editing') ||
+            v.stageLabel.toLowerCase().includes('clip identification')
+              ? 'Editing in progress'
+              : v.stageLabel,
+          deadlineRole: 'editor' as const,
+        }
+      }),
+    )
+  }, [])
+
+  const submitBatchIntake = useCallback(
+    (batchId: string, path: BatchIntakePath, url: string) => {
+      const now = new Date().toISOString().slice(0, 10)
+      const trimmed = url.trim()
+      if (!trimmed) return
+
+      setBatches((prev) =>
+        prev.map((b) => {
+          if (b.id !== batchId) return b
+          if (path === 'clips_ready') {
+            return {
+              ...b,
+              intakePath: path,
+              clipsFolderUrl: trimmed,
+              clipReviewPhase: 'approved',
+              updatedAt: now,
+            }
+          }
+          return {
+            ...b,
+            intakePath: path,
+            sourceMediaUrl: trimmed,
+            footageUrl: trimmed,
+            clipReviewPhase: 'smm_identifying',
+            updatedAt: now,
+          }
+        }),
+      )
+
+      if (path === 'clips_ready') {
+        assignBatchVideosToEditor(batchId)
+      }
+    },
+    [assignBatchVideosToEditor],
+  )
+
+  const approveBatchClips = useCallback(
+    (batchId: string, clipReviewVideoId: string) => {
+      const now = new Date().toISOString().slice(0, 10)
+      setBatches((prev) =>
+        prev.map((b) =>
+          b.id === batchId
+            ? { ...b, clipReviewPhase: 'approved' as const, updatedAt: now }
+            : b,
+        ),
+      )
+      setVideos((prev) =>
+        prev.map((v) => {
+          if (v.batchId !== batchId) return v
+          if (v.id === clipReviewVideoId) {
+            return {
+              ...v,
+              owner: 'editor' as const,
+              stageLabel: 'Editing in progress',
+              deadlineRole: 'editor' as const,
+            }
+          }
+          if (
+            v.stageLabel.toLowerCase().includes('clip identification') ||
+            v.stageLabel.toLowerCase().includes('clip review')
+          ) {
+            return {
+              ...v,
+              owner: 'editor' as const,
+              stageLabel: 'Editing in progress',
+              deadlineRole: 'editor' as const,
+            }
+          }
+          return v
+        }),
+      )
+    },
+    [],
+  )
+
+  const rejectBatchClips = useCallback(
+    (batchId: string, clipReviewVideoId: string, _note: string) => {
+      const now = new Date().toISOString().slice(0, 10)
+      setBatches((prev) =>
+        prev.map((b) =>
+          b.id === batchId
+            ? { ...b, clipReviewPhase: 'with_smm' as const, updatedAt: now }
+            : b,
+        ),
+      )
+      setVideos((prev) =>
+        prev.map((v) => {
+          if (v.id !== clipReviewVideoId) return v
+          return {
+            ...v,
+            owner: 'smm' as const,
+            stageLabel: 'Clip identification',
+            deadlineRole: 'smm' as const,
+          }
+        }),
+      )
+    },
+    [],
+  )
+
+  const applyClientVideoDecision = useCallback(
+    (videoId: string, action: 'approve' | 'reject') => {
+      const now = new Date().toISOString().slice(0, 10)
+      setVideos((prev) =>
+        prev.map((v) => {
+          if (v.id !== videoId) return v
+          const next = nextStateAfterClientAction(v, action)
+          if (action === 'approve' && next.owner === 'scheduling') {
+            return {
+              ...v,
+              ...next,
+              owner: 'done' as const,
+              stageLabel: 'Scheduled',
+              deadlineRole: null,
+            }
+          }
+          return { ...v, ...next }
+        }),
+      )
+      setBatches((prev) =>
+        prev.map((b) => {
+          const video = videos.find((v) => v.id === videoId)
+          if (!video || video.batchId !== b.id) return b
+          return { ...b, updatedAt: now }
+        }),
+      )
+    },
+    [videos],
+  )
+
   const value = useMemo(
     () => ({
       clients,
@@ -335,6 +508,10 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
       updateBrandGuidelines,
       setVideoDeadline,
       setVideoOwner,
+      submitBatchIntake,
+      approveBatchClips,
+      rejectBatchClips,
+      applyClientVideoDecision,
     }),
     [
       clients,
@@ -352,6 +529,10 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
       updateBrandGuidelines,
       setVideoDeadline,
       setVideoOwner,
+      submitBatchIntake,
+      approveBatchClips,
+      rejectBatchClips,
+      applyClientVideoDecision,
     ],
   )
 

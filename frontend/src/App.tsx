@@ -8,17 +8,9 @@ import { EditorLayout } from '@/pages/editor/EditorLayout'
 import { EditorOverview } from '@/pages/editor/EditorOverview'
 import { EditorTaskDetail } from '@/pages/editor/EditorTaskDetail'
 import { EditorTasksList } from '@/pages/editor/EditorTasksList'
-import { ClientBatchDetail } from '@/pages/client/ClientBatchDetail'
-import { ClientBatchesList } from '@/pages/client/ClientBatchesList'
-import { ClientFinalReviewDetail } from '@/pages/client/ClientFinalReviewDetail'
-import { ClientFinalReviewList } from '@/pages/client/ClientFinalReviewList'
-import { ClientIdeaDetail } from '@/pages/client/ClientIdeaDetail'
-import { ClientIdeasList } from '@/pages/client/ClientIdeasList'
+import { ClientAllWork } from '@/pages/client/ClientAllWork'
+import { ClientBoard } from '@/pages/client/ClientBoard'
 import { ClientLayout } from '@/pages/client/ClientLayout'
-import { ClientOurWork } from '@/pages/client/ClientOurWork'
-import { ClientOverview } from '@/pages/client/ClientOverview'
-import { ClientThumbnailDetail } from '@/pages/client/ClientThumbnailDetail'
-import { ClientThumbnailsList } from '@/pages/client/ClientThumbnailsList'
 import { Home } from '@/pages/Home'
 import { LoginPage } from '@/pages/LoginPage'
 import { RootRedirect } from '@/pages/RootRedirect'
@@ -52,26 +44,19 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route
-            index
-            element={<Navigate to="overview" replace />}
-          />
-          <Route path="overview" element={<ClientOverview />} />
-          <Route path="batches" element={<ClientBatchesList />} />
-          <Route path="batches/:batchId" element={<ClientBatchDetail />} />
-          <Route path="ideas" element={<ClientIdeasList />} />
-          <Route path="ideas/:batchId" element={<ClientIdeaDetail />} />
-          <Route path="thumbnails" element={<ClientThumbnailsList />} />
-          <Route
-            path="thumbnails/:batchId"
-            element={<ClientThumbnailDetail />}
-          />
-          <Route path="final-review" element={<ClientFinalReviewList />} />
-          <Route
-            path="final-review/:batchId"
-            element={<ClientFinalReviewDetail />}
-          />
-          <Route path="our-work" element={<ClientOurWork />} />
+          <Route index element={<Navigate to="board" replace />} />
+          <Route path="board" element={<ClientBoard />} />
+          <Route path="all" element={<ClientAllWork />} />
+          <Route path="overview" element={<Navigate to="/client/board" replace />} />
+          <Route path="batches" element={<Navigate to="/client/board" replace />} />
+          <Route path="batches/:batchId" element={<Navigate to="/client/board" replace />} />
+          <Route path="ideas" element={<Navigate to="/client/board" replace />} />
+          <Route path="ideas/:batchId" element={<Navigate to="/client/board" replace />} />
+          <Route path="thumbnails" element={<Navigate to="/client/board" replace />} />
+          <Route path="thumbnails/:batchId" element={<Navigate to="/client/board" replace />} />
+          <Route path="final-review" element={<Navigate to="/client/board" replace />} />
+          <Route path="final-review/:batchId" element={<Navigate to="/client/board" replace />} />
+          <Route path="our-work" element={<Navigate to="/client/all" replace />} />
         </Route>
         <Route
           path="/editor"

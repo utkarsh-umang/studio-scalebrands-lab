@@ -3,8 +3,6 @@ import { NavLink, Outlet } from 'react-router-dom'
 import logo from '@/assets/logo.png'
 import { useMockAuth } from '@/auth'
 import { useTheme } from '@/theme'
-import { AdminWorkspaceProvider } from '@/pages/admin/adminWorkspaceStore'
-
 const NAV = [
   { to: '/admin', label: 'Workspace', Icon: LayoutGrid, end: true },
 ] as const
@@ -18,8 +16,7 @@ export function AdminLayout() {
   const ink = theme.colors.foreground
 
   return (
-    <AdminWorkspaceProvider>
-      <div className="bg-background flex h-[100vh] max-h-[100vh] w-full flex-col overflow-hidden md:flex-row">
+    <div className="bg-background flex h-[100vh] max-h-[100vh] w-full flex-col overflow-hidden md:flex-row">
         <aside className="border-border bg-background/95 flex h-auto max-h-[100vh] w-full shrink-0 flex-col overflow-hidden border-b backdrop-blur md:h-[100vh] md:w-56 md:max-h-[100vh] md:border-b-0 md:border-r">
           <div className="border-border flex shrink-0 items-center gap-3 border-b px-4 py-4">
             <img
@@ -135,7 +132,6 @@ export function AdminLayout() {
             </div>
           </main>
         </div>
-      </div>
-    </AdminWorkspaceProvider>
+    </div>
   )
 }

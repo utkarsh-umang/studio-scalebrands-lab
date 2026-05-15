@@ -5,6 +5,19 @@ export {
   type UserRole,
 } from './users'
 export {
+  getClientClipReview,
+  getClientFinalReview,
+  getClientIdeaReview,
+  getClientTextReview,
+  SAMPLE_VIDEO_SRC,
+  type ClientClipCandidate,
+  type ClientClipReviewDetail,
+  type ClipRecommendation,
+  type ClientFinalReviewDetail,
+  type ClientIdeaReviewDetail,
+  type ClientTextReviewDetail,
+} from './clientCardDetails'
+export {
   MOCK_CLIENT_CLIP_BATCH_INDEX,
   MOCK_CLIENT_DASHBOARD,
   MOCK_CLIENT_FINAL_REVIEW_INDEX,
@@ -46,6 +59,9 @@ export {
   guidelinesSourceLabel,
   type AdminBatchFolder,
   type AdminBatchFolderStatus,
+  type BatchClipReviewPhase,
+  type BatchFootageFile,
+  type BatchIntakePath,
   type AdminClientAccountStatus,
   type AdminClientProfile,
   type AdminVideoTicket,

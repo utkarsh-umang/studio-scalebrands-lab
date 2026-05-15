@@ -15,6 +15,8 @@ export type MockUserRecord = {
   role: UserRole
   /** When role is `employee`, distinguishes Editor vs SMM */
   employeeKind?: EmployeeKind
+  /** Links client login to admin workspace client profile */
+  clientProfileId?: string
 }
 
 export const MOCK_USERS: MockUserRecord[] = [
@@ -24,6 +26,7 @@ export const MOCK_USERS: MockUserRecord[] = [
     password: 'demo1234',
     name: 'TechWithTim',
     role: 'client',
+    clientProfileId: 'c-1',
   },
   {
     id: 'u-editor-1',

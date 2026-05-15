@@ -1,25 +1,12 @@
-import {
-  CheckCircle,
-  Film,
-  Globe,
-  Layers,
-  LogOut,
-  Tag,
-  User,
-  Zap,
-} from 'lucide-react'
+import { LayoutGrid, Layers, LogOut, User } from 'lucide-react'
 import { NavLink, Outlet } from 'react-router-dom'
 import logo from '@/assets/logo.png'
 import { useMockAuth } from '@/auth'
 import { useTheme } from '@/theme'
 
 const NAV = [
-  { to: '/client/overview', label: 'Overview', Icon: Layers },
-  { to: '/client/batches', label: 'My batches', Icon: Film },
-  { to: '/client/ideas', label: 'Batch ideas', Icon: Zap },
-  { to: '/client/thumbnails', label: 'Thumbnails & titles', Icon: Tag },
-  { to: '/client/final-review', label: 'Final review', Icon: CheckCircle },
-  { to: '/client/our-work', label: 'Our work', Icon: Globe },
+  { to: '/client/board', label: 'Board', Icon: LayoutGrid, end: true },
+  { to: '/client/all', label: 'All work', Icon: Layers },
 ] as const
 
 export function ClientLayout() {
@@ -68,11 +55,11 @@ export function ClientLayout() {
         </div>
 
         <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-hidden px-2 pb-2">
-          {NAV.map(({ to, label, Icon }) => (
+          {NAV.map((item) => (
             <NavLink
-              key={to}
-              to={to}
-              end={to === '/client/overview'}
+              key={item.to}
+              to={item.to}
+              end={'end' in item ? item.end : false}
               className={({ isActive }) =>
                 [
                   'flex items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium transition-colors',
@@ -91,8 +78,8 @@ export function ClientLayout() {
                   : { border: '1px solid transparent' }
               }
             >
-              <Icon className="size-3.5 shrink-0 opacity-90" aria-hidden />
-              {label}
+              <item.Icon className="size-3.5 shrink-0 opacity-90" aria-hidden />
+              {item.label}
             </NavLink>
           ))}
         </nav>

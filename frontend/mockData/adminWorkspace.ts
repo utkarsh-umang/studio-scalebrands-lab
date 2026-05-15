@@ -31,6 +31,26 @@ export type AdminClientProfile = {
 
 export type AdminBatchFolderStatus = 'active' | 'completed'
 
+/** How the client kicks off the batch. */
+export type BatchIntakePath = 'source_media' | 'clips_ready'
+
+/**
+ * Clip identification lifecycle (source_media path only).
+ * clips_ready skips straight to editor after intake.
+ */
+export type BatchClipReviewPhase =
+  | 'smm_identifying'
+  | 'awaiting_client'
+  | 'with_smm'
+  | 'approved'
+
+export type BatchFootageFile = {
+  id: string
+  name: string
+  /** External URL when linked; local picks store name only in prototype */
+  url?: string
+}
+
 export type AdminBatchFolder = {
   id: string
   clientId: string
@@ -42,7 +62,15 @@ export type AdminBatchFolder = {
   createdAt: string
   updatedAt: string
   completedAt?: string
+  /** @deprecated use sourceMediaUrl — kept for admin create-batch modal */
   footageUrl?: string
+  footageFiles?: BatchFootageFile[]
+  intakePath?: BatchIntakePath
+  /** Podcast platform URL or Drive/Dropbox raw footage (source_media path). */
+  sourceMediaUrl?: string
+  /** SMM clip cuts folder shared with client, or client's pre-cut clips folder. */
+  clipsFolderUrl?: string
+  clipReviewPhase?: BatchClipReviewPhase
   /** Credits reserved for this batch — debited when every video reaches Done */
   creditCost: number
   creditsDebited: boolean
@@ -151,7 +179,11 @@ export const MOCK_ADMIN_BATCH_FOLDERS: AdminBatchFolder[] = [
     videoCount: 5,
     createdAt: '2026-04-18',
     updatedAt: '2026-04-28',
-    footageUrl: 'https://drive.google.com/file/d/example-q2',
+    footageUrl: 'https://www.youtube.com/watch?v=example-techwithtim-podcast',
+    intakePath: 'source_media',
+    sourceMediaUrl: 'https://www.youtube.com/watch?v=example-techwithtim-podcast',
+    clipsFolderUrl: 'https://drive.google.com/drive/folders/example-q2-clips',
+    clipReviewPhase: 'awaiting_client',
     creditCost: 6,
     creditsDebited: false,
   },
@@ -177,6 +209,9 @@ export const MOCK_ADMIN_BATCH_FOLDERS: AdminBatchFolder[] = [
     videoCount: 4,
     createdAt: '2026-04-12',
     updatedAt: '2026-04-29',
+    intakePath: 'clips_ready',
+    clipsFolderUrl: 'https://drive.google.com/drive/folders/example-northwind-clips',
+    clipReviewPhase: 'approved',
     creditCost: 4,
     creditsDebited: false,
   },
@@ -199,10 +234,22 @@ export const MOCK_ADMIN_BATCH_FOLDERS: AdminBatchFolder[] = [
     batchNumber: 2,
     title: 'Weekly Shorts — May',
     status: 'active',
-    videoCount: 6,
+    videoCount: 0,
     createdAt: '2026-04-20',
     updatedAt: '2026-04-30',
     creditCost: 6,
+    creditsDebited: false,
+  },
+  {
+    id: 'b-210',
+    clientId: 'c-1',
+    batchNumber: 5,
+    title: 'May shorts — new folder',
+    status: 'active',
+    videoCount: 0,
+    createdAt: '2026-05-01',
+    updatedAt: '2026-05-01',
+    creditCost: 5,
     creditsDebited: false,
   },
   {
@@ -251,7 +298,7 @@ export const MOCK_ADMIN_VIDEO_TICKETS: AdminVideoTicket[] = [
     id: 'v-1',
     batchId: 'b-204',
     clientId: 'c-1',
-    title: 'Clip 1 — API tutorial hook',
+    title: 'Clip approval',
     owner: 'client',
     stageLabel: 'Clip review',
     deadlineRole: null,
@@ -282,9 +329,9 @@ export const MOCK_ADMIN_VIDEO_TICKETS: AdminVideoTicket[] = [
     batchId: 'b-204',
     clientId: 'c-1',
     title: 'Clip 4 — Q&A short',
-    owner: 'smm',
-    stageLabel: 'SMM QA',
-    deadlineRole: 'smm',
+    owner: 'client',
+    stageLabel: 'Final video review',
+    deadlineRole: null,
     deadlineAt: null,
   },
   {
