@@ -37,6 +37,23 @@ export {
   type PipelineOwnerKind,
 } from './adminDashboard'
 export {
+  ADMIN_KANBAN_COLUMNS,
+  MOCK_ADMIN_BATCH_FOLDERS,
+  MOCK_ADMIN_CLIENT_PROFILES,
+  MOCK_ADMIN_VIDEO_TICKETS,
+  MOCK_STAFF_EDITORS,
+  MOCK_STAFF_SMM,
+  guidelinesSourceLabel,
+  type AdminBatchFolder,
+  type AdminBatchFolderStatus,
+  type AdminClientAccountStatus,
+  type AdminClientProfile,
+  type AdminVideoTicket,
+  type BrandGuidelinesSource,
+  type StaffMember,
+  type VideoPipelineOwner,
+} from './adminWorkspace'
+export {
   getMockEditorDashboard,
   listEditorTaskSummaries,
   MOCK_EDITOR_TASKS,

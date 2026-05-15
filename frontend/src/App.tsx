@@ -1,9 +1,9 @@
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { ScrollToTop } from '@/components/ScrollToTop'
-import { AdminClients } from '@/pages/admin/AdminClients'
-import { AdminDeadlines } from '@/pages/admin/AdminDeadlines'
+import { AdminBatchRedirect } from '@/pages/admin/AdminBatchRedirect'
+import { AdminClientDetail } from '@/pages/admin/AdminClientDetail'
 import { AdminLayout } from '@/pages/admin/AdminLayout'
-import { AdminOverview } from '@/pages/admin/AdminOverview'
+import { AdminWorkspace } from '@/pages/admin/AdminWorkspace'
 import { EditorLayout } from '@/pages/editor/EditorLayout'
 import { EditorOverview } from '@/pages/editor/EditorOverview'
 import { EditorTaskDetail } from '@/pages/editor/EditorTaskDetail'
@@ -119,10 +119,15 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Navigate to="overview" replace />} />
-          <Route path="overview" element={<AdminOverview />} />
-          <Route path="clients" element={<AdminClients />} />
-          <Route path="deadlines" element={<AdminDeadlines />} />
+          <Route index element={<AdminWorkspace />} />
+          <Route path="clients/:clientId" element={<AdminClientDetail />} />
+          <Route
+            path="clients/:clientId/batches/:batchId"
+            element={<AdminBatchRedirect />}
+          />
+          <Route path="clients" element={<Navigate to="/admin" replace />} />
+          <Route path="deadlines" element={<Navigate to="/admin" replace />} />
+          <Route path="overview" element={<Navigate to="/admin" replace />} />
         </Route>
       </Routes>
     </>
