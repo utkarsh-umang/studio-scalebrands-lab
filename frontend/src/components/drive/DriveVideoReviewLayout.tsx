@@ -44,12 +44,6 @@ export function DriveVideoReviewLayout({
           driveFileId={driveFileId}
           videoSrc={videoSrc}
         />
-        {driveFileId && (
-          <p className="text-muted-foreground mt-2 shrink-0 text-center text-xs">
-            Timestamp comments require the native player; with Drive preview, use general
-            feedback or open the file on Drive.
-          </p>
-        )}
       </div>
     </DriveFolderReviewShell>
   )

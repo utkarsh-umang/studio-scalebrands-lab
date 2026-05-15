@@ -177,6 +177,10 @@ export function CreateBatchFolderModal({
               className="border-border bg-background focus:ring-primary/25 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2"
               placeholder="https://drive.google.com/..."
             />
+            <span className="text-muted-foreground block text-[11px] leading-snug">
+              Internal reference only — the client still submits their podcast or clips
+              link from their dashboard to kick off the batch.
+            </span>
           </label>
           {error && (
             <p className="text-destructive text-xs font-medium">{error}</p>

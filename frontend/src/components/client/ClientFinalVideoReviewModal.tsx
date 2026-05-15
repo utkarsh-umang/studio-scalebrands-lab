@@ -1,13 +1,14 @@
 import { useMemo, useState } from 'react'
 import { ExternalLink, RefreshCw } from 'lucide-react'
-import { SAMPLE_VIDEO_SRC } from '@mockData/index'
 import type { AdminBatchFolder, AdminVideoTicket } from '@mockData/index'
 import { DriveOrStreamVideo } from '@/components/drive/DriveOrStreamVideo'
 import { QaCommentThread } from '@/components/drive/QaCommentThread'
 import { StudioModalShell } from '@/components/StudioModalShell'
+import type { VideoReviewFeedback } from '@/components/VideoDeliverableReviewPanel'
 import { VideoDeliverableReviewPanel } from '@/components/VideoDeliverableReviewPanel'
+import { videoNeedsClientFinalReview } from '@/lib/clientBoard'
 import type { DeliverableSidebarRow } from '@/lib/deliverableSidebar'
-import { buildDeliverableSidebarRows } from '@/lib/deliverableSidebar'
+import { buildClientFinalReviewSidebarRows } from '@/lib/deliverableSidebar'
 import {
   deliverableIndexForTicket,
   formatSyncedAt,
@@ -15,19 +16,17 @@ import {
   reloadDriveManifestForBatch,
 } from '@/lib/driveMedia'
 import { qaPortraitChromeClass, qaPortraitPlayerBoxClass, qaPortraitVideoInnerClass } from '@/lib/qaVideoPortrait'
-import { generalFromComments, markersFromComments, flagsToQaComments } from '@/lib/qaComments'
-import type { SmmVideoCard } from '@/lib/smmBoard'
-import { videoNeedsSmmQa } from '@/lib/smmBoard'
-import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
-import { useTheme } from '@/theme'
+import { flagsToQaComments, generalFromComments, markersFromComments } from '@/lib/qaComments'
+import type { AppTheme } from '@/theme/types'
 
-function rowStatusLabel(row: DeliverableSidebarRow): string {
+function clientFinalRowStatus(row: DeliverableSidebarRow): string {
   if (!row.ticket) return 'New on Drive — no ticket yet'
   const t = row.ticket
-  if (videoNeedsSmmQa(t)) return 'Needs your QA'
+  if (videoNeedsClientFinalReview(t)) return 'Needs your review'
   const stage = t.stageLabel.toLowerCase()
-  if (t.owner === 'editor' && stage.includes('qa flagged')) return 'Editor fixing'
-  if (t.owner === 'client' && stage.includes('final')) return 'With client'
+  if (t.owner === 'editor' && stage.includes('qa flagged')) return 'Editor addressing feedback'
+  if (t.owner === 'smm' && stage.includes('qa')) return 'Scale Brands QA'
+  if (stage.includes('thumbnail')) return 'Thumbnail review'
   if (t.owner === 'editor') return 'With editor'
   if (t.owner === 'done' || stage.includes('scheduling')) return 'Scheduling / done'
   return t.stageLabel
@@ -35,25 +34,27 @@ function rowStatusLabel(row: DeliverableSidebarRow): string {
 
 type Props = {
   batch: AdminBatchFolder
-  clientName: string
-  /** All tickets for this batch (sidebar merges manifest + Studio state). */
+  batchTitle: string
   batchTickets: AdminVideoTicket[]
-  initialCard: SmmVideoCard
-  open: boolean
+  initialTicket: AdminVideoTicket
+  fallbackVideoSrc: string
+  theme: AppTheme
   onClose: () => void
+  onApprove: (videoId: string) => void
+  onReject: (videoId: string, feedback: VideoReviewFeedback) => void
 }
 
-export function SmmVideoQaModal({
+export function ClientFinalVideoReviewModal({
   batch,
-  clientName,
+  batchTitle,
   batchTickets,
-  initialCard,
-  open,
+  initialTicket,
+  fallbackVideoSrc,
+  theme,
   onClose,
+  onApprove,
+  onReject,
 }: Props) {
-  const { theme } = useTheme()
-  const { submitSmmQaReview } = useAdminWorkspace()
-
   const [manifestSnapshot, setManifestSnapshot] = useState<
     ReturnType<typeof getManifestForBatch> | undefined
   >(undefined)
@@ -64,14 +65,12 @@ export function SmmVideoQaModal({
   const manifestVideos = manifest?.videos
 
   const rows = useMemo(
-    () => buildDeliverableSidebarRows(batch.id, manifestVideos, batchTickets),
+    () => buildClientFinalReviewSidebarRows(batch.id, manifestVideos, batchTickets),
     [batch.id, manifestVideos, batchTickets],
   )
 
-  const initialIndex = deliverableIndexForTicket(initialCard)
+  const initialIndex = deliverableIndexForTicket(initialTicket)
   const [selectedIndex, setSelectedIndex] = useState(initialIndex)
-
-  if (!open) return null
 
   const folderUrl = batch.editorDeliverablesDriveUrl?.trim() ?? ''
 
@@ -89,7 +88,7 @@ export function SmmVideoQaModal({
         setSyncMessage('No manifest for this batch yet.')
       }
     } catch {
-      setSyncMessage('Could not reload manifest — try a full page refresh.')
+      setSyncMessage('Could not reload manifest — try refreshing the page.')
     } finally {
       setSyncing(false)
     }
@@ -136,7 +135,7 @@ export function SmmVideoQaModal({
     ) : null
 
   const qaTicket = selectedRow?.ticket
-  const canAct = qaTicket ? videoNeedsSmmQa(qaTicket) : false
+  const canAct = qaTicket ? videoNeedsClientFinalReview(qaTicket) : false
 
   const history = qaTicket ? flagsToQaComments(qaTicket, 'video') : []
   const qaCommentHistory = qaTicket?.qaCommentHistory ?? []
@@ -154,22 +153,23 @@ export function SmmVideoQaModal({
 
   return (
     <StudioModalShell
-      title="Video QA"
-      subtitle={`${clientName} · ${batch.title}`}
-      titleId="smm-qa-title"
+      title="Final video review"
+      subtitle={batchTitle}
+      titleId="client-final-video-modal-title"
       headerAside={headerAside}
       headerMeta={headerMeta}
       onClose={onClose}
     >
       {!folderUrl ? (
         <p className="text-muted-foreground text-sm">
-          Editor has not shared the deliverables Drive folder yet.
+          Deliverables folder is not linked for this batch yet.
         </p>
       ) : rows.length === 0 ? (
         <div className="space-y-3">
-          <p className="text-muted-foreground text-sm">
-            No numbered videos in the manifest for this batch yet. Try{' '}
-            <strong className="text-foreground">Sync from Drive</strong> in the header.
+          <p className="text-muted-foreground text-sm leading-relaxed">
+            Nothing is in your final video review queue right now. New releases will appear here after
+            internal QA — try <strong className="text-foreground">Sync from Drive</strong> if you expect
+            new files.
           </p>
           <button
             type="button"
@@ -197,7 +197,8 @@ export function SmmVideoQaModal({
               <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto p-2 md:px-0 md:pb-0">
                 {rows.map((row) => {
                   const active = row.index === selectedRow?.index
-                  const status = rowStatusLabel(row)
+                  const status = clientFinalRowStatus(row)
+                  const needsYou = row.ticket ? videoNeedsClientFinalReview(row.ticket) : false
                   return (
                     <li key={row.index}>
                       <button
@@ -209,7 +210,7 @@ export function SmmVideoQaModal({
                           'flex w-full flex-col rounded-lg px-2 py-2 text-left text-xs transition-colors',
                           active
                             ? 'bg-primary text-primary-foreground'
-                            : row.ticket && videoNeedsSmmQa(row.ticket)
+                            : needsYou
                               ? 'bg-muted/40 hover:bg-muted/55 ring-primary/25 text-foreground ring-1'
                               : 'bg-muted/25 hover:bg-muted/45 text-foreground',
                         ].join(' ')}
@@ -249,8 +250,8 @@ export function SmmVideoQaModal({
                     role="status"
                   >
                     {qaTicket
-                      ? 'This deliverable is not waiting on SMM video QA right now. Preview only.'
-                      : 'No Studio ticket for this index yet — editors may still be wiring uploads. Preview only.'}
+                      ? 'This deliverable is not waiting on your video approval right now. You can still preview it.'
+                      : 'No Studio ticket for this numbered video yet — preview only.'}
                   </div>
                   {history.length > 0 && (
                     <QaCommentThread comments={history} heading="Earlier feedback" />
@@ -272,7 +273,7 @@ export function SmmVideoQaModal({
                           controls
                           playsInline
                           preload="metadata"
-                          src={SAMPLE_VIDEO_SRC}
+                          src={fallbackVideoSrc}
                         />
                       </div>
                     </div>
@@ -291,35 +292,19 @@ export function SmmVideoQaModal({
                   <VideoDeliverableReviewPanel
                     className="min-h-0 min-w-0"
                     driveFileId={driveFileId}
-                    videoSrc={driveFileId ? undefined : SAMPLE_VIDEO_SRC}
+                    videoSrc={driveFileId ? undefined : fallbackVideoSrc}
                     fileName={fileName}
                     introText=""
                     theme={theme}
-                    commentsHeading="QA comments"
+                    commentsHeading="Your feedback"
                     initialMarkers={initialMarkers}
                     initialGeneralNote={initialGeneral}
-                    approveLabel="Approve for client"
-                    rejectLabel="Send back to editor"
-                    disableApproveWhenHasComments
-                    requireCommentsOnReject
+                    rejectLabel="Request changes"
                     onApprove={() => {
-                      submitSmmQaReview(qaTicket!.id, {
-                        timestampFlags: [],
-                        generalNote: '',
-                        action: 'approve',
-                      })
-                      onClose()
+                      onApprove(qaTicket!.id)
                     }}
                     onReject={(feedback) => {
-                      submitSmmQaReview(qaTicket!.id, {
-                        timestampFlags: feedback.markers.map((m) => ({
-                          atSeconds: m.at,
-                          note: m.text,
-                        })),
-                        generalNote: feedback.generalNote,
-                        action: 'send_back',
-                      })
-                      onClose()
+                      onReject(qaTicket!.id, feedback)
                     }}
                   />
                 </div>

@@ -1,26 +1,49 @@
 import { ExternalLink } from 'lucide-react'
 import { driveFileViewUrl, driveVideoPreviewUrl } from '@/lib/driveMedia'
+import { qaPortraitIframeClass, qaPortraitPlayerBoxClass } from '@/lib/qaVideoPortrait'
+
+export type DriveVideoLayout = 'landscape' | 'portrait'
 
 type Props = {
   driveFileId: string
   fileName?: string
   className?: string
+  /** Shorts / vertical — 9:16. Default is 16:9 landscape. */
+  layout?: DriveVideoLayout
 }
 
-export function DriveVideoPreview({ driveFileId, fileName, className }: Props) {
+export function DriveVideoPreview({
+  driveFileId,
+  fileName,
+  className,
+  layout = 'landscape',
+}: Props) {
   const previewUrl = driveVideoPreviewUrl(driveFileId)
   const viewUrl = driveFileViewUrl(driveFileId)
+
+  const frameClass =
+    layout === 'portrait'
+      ? qaPortraitPlayerBoxClass
+      : 'aspect-video w-full max-h-[min(52vh,560px)]'
 
   return (
     <div className={className}>
       <div
-        className="bg-muted/40 border-border aspect-video w-full overflow-hidden rounded-xl border"
-        style={{ minHeight: 240 }}
+        className={
+          layout === 'portrait'
+            ? frameClass
+            : `bg-muted/40 border-border overflow-hidden rounded-xl border ${frameClass}`
+        }
+        dir={layout === 'portrait' ? 'ltr' : undefined}
       >
         <iframe
           src={previewUrl}
           title={fileName ?? 'Video preview'}
-          className="h-full min-h-[min(42vh,420px)] w-full border-0"
+          className={
+            layout === 'portrait'
+              ? qaPortraitIframeClass
+              : 'h-full w-full border-0'
+          }
           allow="autoplay; encrypted-media"
           allowFullScreen
         />

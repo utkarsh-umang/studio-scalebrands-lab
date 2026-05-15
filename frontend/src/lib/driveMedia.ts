@@ -16,6 +16,20 @@ export function getManifestForBatch(batchId: string): BatchDriveManifest | undef
   return DRIVE_MANIFESTS[batchId]
 }
 
+/**
+ * Re-import generated manifests so edits from `npm run drive:sync-manifests` show up
+ * without a full page reload (best-effort in dev; falls back to latest bundled module).
+ */
+export async function reloadDriveManifestForBatch(
+  batchId: string,
+): Promise<BatchDriveManifest | undefined> {
+  const mod = await import(
+    /* @vite-ignore */
+    `../../mockData/driveManifests.ts?t=${Date.now()}`
+  )
+  return mod.DRIVE_MANIFESTS[batchId]
+}
+
 export function getMediaEntry(
   batchId: string,
   slot: 'clips' | 'videos' | 'thumbnails',

@@ -144,6 +144,13 @@ export type AdminVideoTicket = {
   assetVersions?: Partial<Record<QaMediaSlot, number>>
   /** Who last requested a revision (controls resubmit routing) */
   lastRevisionRequestedBy?: 'smm' | 'client'
+  /**
+   * When false, this deliverable is hidden from the client final-video QA UI (still in
+   * internal SMM/editor video QA, or not yet handed off). When true, the client may see
+   * it once the pipeline stage is final review. When omitted, derive from stage/owner
+   * (see `videoNeedsClientFinalReview` in clientBoard).
+   */
+  releasedToClientFinalVideoReview?: boolean
   /** Full QA thread; older entries marked deprecated on re-upload */
   qaCommentHistory?: QaComment[]
 }
@@ -381,6 +388,7 @@ export const MOCK_ADMIN_VIDEO_TICKETS: AdminVideoTicket[] = [
     stageLabel: 'Clip identification',
     deadlineRole: 'smm',
     deadlineAt: '2026-05-08T17:00:00.000Z',
+    releasedToClientFinalVideoReview: false,
   },
   {
     id: 'v-3',
@@ -393,6 +401,7 @@ export const MOCK_ADMIN_VIDEO_TICKETS: AdminVideoTicket[] = [
     deadlineRole: 'smm',
     deadlineAt: '2026-05-10T12:00:00.000Z',
     editorPhase: 'videos',
+    releasedToClientFinalVideoReview: false,
   },
   {
     id: 'v-4',
@@ -404,6 +413,7 @@ export const MOCK_ADMIN_VIDEO_TICKETS: AdminVideoTicket[] = [
     stageLabel: 'Final video review',
     deadlineRole: null,
     deadlineAt: null,
+    releasedToClientFinalVideoReview: true,
   },
   {
     id: 'v-5',
@@ -478,6 +488,7 @@ export const MOCK_ADMIN_VIDEO_TICKETS: AdminVideoTicket[] = [
     stageLabel: 'Final video review',
     deadlineRole: null,
     deadlineAt: null,
+    releasedToClientFinalVideoReview: true,
   },
 ]
 

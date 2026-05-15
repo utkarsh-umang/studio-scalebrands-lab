@@ -1,6 +1,6 @@
 import { ExternalLink } from 'lucide-react'
 import type { AdminBatchFolder } from '@mockData/index'
-import { DriveVideoPreview } from '@/components/drive/DriveVideoPreview'
+import { DriveOrStreamVideo } from '@/components/drive/DriveOrStreamVideo'
 import { QaCommentThread } from '@/components/drive/QaCommentThread'
 import { StudioModalShell } from '@/components/StudioModalShell'
 import {
@@ -62,9 +62,10 @@ export function EditorQaFixModal({
           </a>
         )}
         {videoEntry && (
-          <DriveVideoPreview
+          <DriveOrStreamVideo
             driveFileId={videoEntry.driveFileId}
             fileName={videoEntry.name}
+            layout="portrait"
           />
         )}
         <QaCommentThread comments={history} />

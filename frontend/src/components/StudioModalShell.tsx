@@ -6,6 +6,10 @@ type Props = {
   subtitle: string
   onClose: () => void
   titleId?: string
+  /** e.g. primary external link shown next to the close control */
+  headerAside?: ReactNode
+  /** Second line under subtitle (e.g. last synced from Drive) */
+  headerMeta?: ReactNode
   children: ReactNode
 }
 
@@ -14,6 +18,8 @@ export function StudioModalShell({
   subtitle,
   onClose,
   titleId = 'studio-modal-title',
+  headerAside,
+  headerMeta,
   children,
 }: Props) {
   return (
@@ -34,23 +40,31 @@ export function StudioModalShell({
         style={{ boxShadow: '0 0 0 1px rgba(255, 255, 255, 0.55) inset' }}
       >
         <div className="border-border flex shrink-0 items-start justify-between gap-3 border-b px-5 py-4">
-          <div className="min-w-0 pr-2">
+          <div className="min-w-0 flex-1 pr-2">
             <h2 id={titleId} className="text-foreground font-semibold">
               {title}
             </h2>
             <p className="text-muted-foreground truncate text-xs">{subtitle}</p>
+            {headerMeta ? (
+              <p className="text-muted-foreground mt-1 text-[11px] leading-snug md:text-xs">
+                {headerMeta}
+              </p>
+            ) : null}
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-muted-foreground hover:text-foreground shrink-0 rounded-lg p-1"
-            aria-label="Close"
-          >
-            <X className="size-5" aria-hidden />
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            {headerAside}
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-muted-foreground hover:text-foreground shrink-0 rounded-lg p-1"
+              aria-label="Close"
+            >
+              <X className="size-5" aria-hidden />
+            </button>
+          </div>
         </div>
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-6 py-5">
-          <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-6 pb-6 pt-5">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
         </div>
       </div>
     </div>

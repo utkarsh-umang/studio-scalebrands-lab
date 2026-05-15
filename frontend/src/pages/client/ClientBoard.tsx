@@ -4,8 +4,10 @@ import { ClientAttentionStrip } from '@/components/client/ClientAttentionStrip'
 import { ClientBatchFolderRow } from '@/components/client/ClientBatchFolderRow'
 import { ClientCardDetailModal } from '@/components/client/ClientCardDetailModal'
 import { ClientPageTitleRow } from '@/components/client/ClientPageTitleRow'
+import { ClientBatchIntakeCard } from '@/components/client/ClientBatchIntakeCard'
 import { ClientVideoKanban } from '@/components/client/ClientVideoKanban'
 import {
+  batchNeedsClientIntake,
   filterVideosForClientKanban,
   listClientAttention,
   toClientVideoCard,
@@ -92,15 +94,25 @@ export function ClientBoard() {
       />
 
       {selectedBatch ? (
-        <section className="space-y-2">
-          <p className="text-muted-foreground text-[10px] font-semibold uppercase tracking-[0.12em]">
-            {selectedBatch.title} — videos
-          </p>
-          <ClientVideoKanban
-            batch={selectedBatch}
-            videos={batchVideos}
-            onOpenVideo={setOpenVideoId}
-          />
+        <section className="space-y-4">
+          {batchNeedsClientIntake(selectedBatch) && (
+            <div className="space-y-2">
+              <p className="text-muted-foreground text-[10px] font-semibold uppercase tracking-[0.12em]">
+                Start this batch — we need your link
+              </p>
+              <ClientBatchIntakeCard batch={selectedBatch} />
+            </div>
+          )}
+          <div className="space-y-2">
+            <p className="text-muted-foreground text-[10px] font-semibold uppercase tracking-[0.12em]">
+              {selectedBatch.title} — videos
+            </p>
+            <ClientVideoKanban
+              batch={selectedBatch}
+              videos={batchVideos}
+              onOpenVideo={setOpenVideoId}
+            />
+          </div>
         </section>
       ) : (
         <p className="text-muted-foreground text-sm">

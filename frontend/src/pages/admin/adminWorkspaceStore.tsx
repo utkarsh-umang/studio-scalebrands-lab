@@ -611,6 +611,7 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
               stageLabel: 'QA flagged',
               deadlineRole: 'editor' as const,
               lastRevisionRequestedBy: 'smm' as const,
+              releasedToClientFinalVideoReview: false,
               qaFlags: flags,
               qaGeneralNote: input.generalNote.trim() || undefined,
               qaCommentHistory: [...(v.qaCommentHistory ?? []), ...newComments],
@@ -621,6 +622,7 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
             owner: 'client' as const,
             stageLabel: 'Final video review',
             deadlineRole: null,
+            releasedToClientFinalVideoReview: true,
             qaFlags: undefined,
             qaGeneralNote: undefined,
           }
@@ -665,6 +667,7 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
             owner: 'smm' as const,
             stageLabel: 'SMM QA',
             deadlineRole: 'smm' as const,
+            releasedToClientFinalVideoReview: false,
           }
         }),
       )

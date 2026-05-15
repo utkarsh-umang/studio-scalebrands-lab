@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Check } from 'lucide-react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { Check, ExternalLink, RefreshCw } from 'lucide-react'
 import {
   getClientFinalReview,
   getClientIdeaReview,
@@ -11,8 +11,9 @@ import type { ClientVideoCard } from '@/lib/clientBoard'
 import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
 import { useTheme } from '@/theme'
 import { StudioModalShell } from '@/components/StudioModalShell'
+import { formatSyncedAt, getManifestForBatch, reloadDriveManifestForBatch } from '@/lib/driveMedia'
 import { ClientClipReviewPanel } from './ClientClipReviewPanel'
-import { ClientFinalReviewPanel } from './ClientFinalReviewPanel'
+import { ClientFinalVideoReviewModal } from './ClientFinalVideoReviewModal'
 
 type Props = {
   card: ClientVideoCard | null
@@ -28,12 +29,34 @@ export function ClientCardDetailModal({
   onClose,
 }: Props) {
   const { theme } = useTheme()
-  const { batches, applyClientVideoDecision, approveBatchClips, rejectBatchClips } =
+  const { batches, applyClientVideoDecision, approveBatchClips, rejectBatchClips, getVideosForBatch } =
     useAdminWorkspace()
   const batch = batches.find((b) => b.id === batchId)
   const [rejectReason, setRejectReason] = useState('')
 
+  const [clipManifestSnap, setClipManifestSnap] = useState<
+    ReturnType<typeof getManifestForBatch> | undefined
+  >(undefined)
+  const [clipSyncing, setClipSyncing] = useState(false)
+
+  useEffect(() => {
+    setClipManifestSnap(undefined)
+  }, [batchId])
+
   if (!card) return null
+
+  const clipManifest = clipManifestSnap ?? getManifestForBatch(batchId)
+
+  async function handleClipSyncFromDrive() {
+    if (!batchId) return
+    setClipSyncing(true)
+    try {
+      const next = await reloadDriveManifestForBatch(batchId)
+      if (next) setClipManifestSnap(next)
+    } finally {
+      setClipSyncing(false)
+    }
+  }
 
   const isReview = card.clientColumn === 'in_review' && card.reviewKind
 
@@ -58,15 +81,54 @@ export function ClientCardDetailModal({
   const isFinalReview = card.reviewKind === 'final'
 
   if (card.reviewKind === 'clip' && batch?.clipsFolderUrl) {
+    const clipHeaderMeta = clipManifest ? (
+      <>
+        Last synced {formatSyncedAt(clipManifest.syncedAt)}
+        {clipManifest.unmapped.length > 0 && (
+          <span className="text-destructive">
+            {' '}
+            · {clipManifest.unmapped.length} unmapped file(s)
+          </span>
+        )}
+      </>
+    ) : (
+      'No Drive manifest loaded.'
+    )
+
     return (
       <ModalShell
         title="Clip approval"
         subtitle={batchTitle}
         onClose={onClose}
-        wide
+        headerMeta={clipHeaderMeta}
+        headerAside={
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                void handleClipSyncFromDrive()
+              }}
+              disabled={clipSyncing}
+              className="border-border bg-muted/30 hover:border-primary/35 inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors disabled:opacity-60"
+            >
+              <RefreshCw className={`size-3.5 ${clipSyncing ? 'animate-spin' : ''}`} aria-hidden />
+              Sync with Drive
+            </button>
+            <a
+              href={batch.clipsFolderUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="border-border bg-muted/30 hover:border-primary/35 text-foreground inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors"
+            >
+              Clips folder
+              <ExternalLink className="size-3.5 opacity-70" aria-hidden />
+            </a>
+          </div>
+        }
       >
         <ClientClipReviewPanel
           batchId={batchId}
+          manifest={clipManifest}
           clipsFolderUrl={batch.clipsFolderUrl}
           onApprove={() => {
             approveBatchClips(batchId, card.id)
@@ -144,7 +206,7 @@ export function ClientCardDetailModal({
 
   if (card.reviewKind === 'thumbnail' && batch?.editorDeliverablesDriveUrl) {
     return (
-      <ModalShell title="Thumbnail review" subtitle={card.title} onClose={onClose} wide>
+      <ModalShell title="Thumbnail review" subtitle={card.title} onClose={onClose}>
         <ThumbnailReviewPanel
           batchId={batchId}
           deliverablesFolderUrl={batch.editorDeliverablesDriveUrl}
@@ -160,31 +222,50 @@ export function ClientCardDetailModal({
     )
   }
 
-  if (isFinalReview) {
+  if (isFinalReview && batch) {
     return (
-      <ModalShell
-        title="Final video review"
-        subtitle={card.title}
+      <ClientFinalVideoReviewModal
+        key={card.id}
+        batch={batch}
+        batchTitle={batchTitle}
+        batchTickets={getVideosForBatch(batch.id)}
+        initialTicket={card}
+        fallbackVideoSrc={finalDetail?.videoSrc ?? SAMPLE_VIDEO_SRC}
+        theme={theme}
         onClose={onClose}
-        wide
-      >
-        <ClientFinalReviewPanel
-          mock={{
-            batchId: card.batchId,
-            batchTitle,
-            videoSrc: finalDetail?.videoSrc ?? SAMPLE_VIDEO_SRC,
-            thumbnailAlt: finalDetail?.thumbnailAlt ?? card.title,
-          }}
-          theme={theme}
-          ticket={card}
-          deliverablesFolderUrl={batch?.editorDeliverablesDriveUrl}
-          onApprove={() => {
-            finish('approve')
-          }}
-          onReject={(feedback) => {
-            finish('reject', { feedback })
-          }}
-        />
+        onApprove={(videoId) => {
+          applyClientVideoDecision(videoId, 'approve')
+          onClose()
+        }}
+        onReject={(videoId, feedback) => {
+          applyClientVideoDecision(videoId, 'reject', { feedback })
+          onClose()
+        }}
+      />
+    )
+  }
+
+  if (isFinalReview && !batch) {
+    return (
+      <ModalShell title={card.title} subtitle={batchTitle} onClose={onClose}>
+        <p className="text-muted-foreground text-sm leading-relaxed">
+          {isReview
+            ? 'This item is waiting for your review, but detail data is not wired in the prototype yet.'
+            : 'Scale Brands is working on this video. You will be notified when it needs your approval.'}
+        </p>
+        <p className="text-muted-foreground mt-2 text-xs">Status: {card.stageLabel}</p>
+        {isReview && (
+          <ReviewActions
+            rejectReason={rejectReason}
+            onRejectReason={setRejectReason}
+            onApprove={() => {
+              finish('approve')
+            }}
+            onReject={() => {
+              finish('reject')
+            }}
+          />
+        )}
       </ModalShell>
     )
   }
@@ -217,27 +298,29 @@ function ModalShell({
   title,
   subtitle,
   onClose,
-  wide,
+  headerAside,
+  headerMeta,
   children,
 }: {
   title: string
   subtitle: string
   onClose: () => void
-  wide?: boolean
+  headerAside?: ReactNode
+  headerMeta?: ReactNode
   children: React.ReactNode
 }) {
-  void wide
   return (
     <StudioModalShell
       title={title}
       subtitle={subtitle}
       onClose={onClose}
       titleId="client-card-modal-title"
+      headerAside={headerAside}
+      headerMeta={headerMeta}
     >
       {children}
     </StudioModalShell>
   )
-
 }
 
 function ReviewActions({

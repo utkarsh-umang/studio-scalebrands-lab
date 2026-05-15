@@ -2,6 +2,6 @@
 
 from fastapi import APIRouter
 
-# Aggregate versioned routers here
+# Aggregate versioned routers here. Empty for now — feature routers will be
+# registered as they land.
 api_v1_router = APIRouter()
-# api_v1_router.include_router(items_router, prefix="/items", tags=["items"])

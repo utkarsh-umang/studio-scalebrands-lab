@@ -80,6 +80,12 @@ export function toClientVideoCard(ticket: AdminVideoTicket): ClientVideoCard {
   }
 }
 
+export function videoNeedsClientFinalReview(video: AdminVideoTicket): boolean {
+  if (video.owner !== 'client') return false
+  if (video.releasedToClientFinalVideoReview === false) return false
+  return reviewKindFromStage(video.stageLabel) === 'final'
+}
+
 export function batchNeedsClientIntake(batch: AdminBatchFolder): boolean {
   if (batch.status !== 'active') return false
   if (!batch.intakePath) return true
@@ -97,25 +103,33 @@ export function batchNeedsFootageIntake(batch: AdminBatchFolder): boolean {
   return batchNeedsClientIntake(batch)
 }
 
+/** Hide ghost “final review” rows until `releasedToClientFinalVideoReview` allows them. */
+function clientSeesFinalVideoReviewCard(video: AdminVideoTicket): boolean {
+  if (reviewKindFromStage(video.stageLabel) !== 'final') return true
+  return videoNeedsClientFinalReview(video)
+}
+
 /** While clip review is open, only show the batch clip-approval card to the client. */
 export function filterVideosForClientKanban(
   batch: AdminBatchFolder,
   videos: AdminVideoTicket[],
 ): AdminVideoTicket[] {
+  let out: AdminVideoTicket[]
   if (batch.intakePath === 'clips_ready' && batch.clipReviewPhase === 'approved') {
-    return videos.filter((v) => v.stageLabel.toLowerCase() !== 'clip review')
-  }
-  if (
+    out = videos.filter((v) => v.stageLabel.toLowerCase() !== 'clip review')
+  } else if (
     batch.intakePath === 'source_media' &&
     batch.clipReviewPhase &&
     batch.clipReviewPhase !== 'approved'
   ) {
-    return videos.filter((v) => {
+    out = videos.filter((v) => {
       if (v.stageLabel.toLowerCase().includes('clip review')) return true
       return deriveClientColumn(v.owner, v.stageLabel) === 'in_review'
     })
+  } else {
+    out = videos
   }
-  return videos
+  return out.filter(clientSeesFinalVideoReviewCard)
 }
 
 export type ClientAttentionItem = {
@@ -137,6 +151,7 @@ export function listClientAttention(
       const batch = batchById.get(v.batchId)
       const kind = reviewKindFromStage(v.stageLabel)
       if (!kind) return null
+      if (kind === 'final' && !videoNeedsClientFinalReview(v)) return null
       return {
         videoId: v.id,
         batchId: v.batchId,

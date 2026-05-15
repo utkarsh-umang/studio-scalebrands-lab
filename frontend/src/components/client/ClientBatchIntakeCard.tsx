@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Link2, Mic, FolderOpen } from 'lucide-react'
+import { Copy, Link2, Mic, FolderOpen } from 'lucide-react'
 import type { AdminBatchFolder, BatchIntakePath } from '@mockData/index'
+import { STUDIO_DRIVE_READER_EMAIL } from '@/lib/studioDrive'
 import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
 import { useTheme } from '@/theme'
 
@@ -22,10 +23,13 @@ export function ClientBatchIntakeCard({ batch }: Props) {
   const [expanded, setExpanded] = useState(true)
 
   const primary = theme.colors.primary
+  /** Client-submitted intake only (admin-only footageUrl does not count). */
   const submitted =
-    path === 'clips_ready'
+    batch.intakePath === 'clips_ready'
       ? Boolean(batch.clipsFolderUrl?.trim())
-      : Boolean(batch.sourceMediaUrl?.trim() || batch.footageUrl?.trim())
+      : batch.intakePath === 'source_media'
+        ? Boolean(batch.sourceMediaUrl?.trim())
+        : false
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -113,12 +117,43 @@ export function ClientBatchIntakeCard({ batch }: Props) {
                   I already have a clips folder
                 </span>
                 <span className="text-muted-foreground block">
-                  Share your Drive folder — we go straight to the editor (no clip
-                  review round).
+                  Paste a Google Drive folder link — we skip the clip-finding step
+                  and go straight to editing (no clip review round in Studio).
                 </span>
               </span>
             </label>
           </fieldset>
+
+          {path === 'clips_ready' && (
+            <div
+              className="rounded-lg border border-amber-500/35 bg-amber-500/10 px-3 py-2.5 text-xs leading-snug"
+              role="status"
+            >
+              <p className="text-foreground font-semibold">
+                Share your Drive folder with our reader account
+              </p>
+              <p className="text-muted-foreground mt-1">
+                Add this email as a <strong className="text-foreground">Viewer</strong>{' '}
+                on the folder (or parent) so we can list files and show previews in
+                Studio:
+              </p>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <code className="bg-background/80 border-border text-foreground max-w-full break-all rounded border px-2 py-1 font-mono text-[11px]">
+                  {STUDIO_DRIVE_READER_EMAIL}
+                </code>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void navigator.clipboard?.writeText(STUDIO_DRIVE_READER_EMAIL)
+                  }}
+                  className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 rounded-md border border-[var(--border)] bg-background px-2 py-1 text-[10px] font-semibold uppercase tracking-wide"
+                >
+                  <Copy className="size-3" aria-hidden />
+                  Copy
+                </button>
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-2">
             <label

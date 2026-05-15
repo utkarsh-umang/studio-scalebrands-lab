@@ -175,11 +175,11 @@ export function SmmBoard() {
 
       {qaCard && qaBatch && (
         <SmmVideoQaModal
-          card={qaCard}
-          batchId={qaBatch.id}
-          batchTitle={qaBatch.title}
+          key={qaCard.id}
+          batch={qaBatch}
+          batchTickets={getVideosForBatch(qaBatch.id)}
           clientName={clientNameById.get(qaBatch.clientId) ?? 'Client'}
-          deliverablesFolderUrl={qaBatch.editorDeliverablesDriveUrl}
+          initialCard={qaCard}
           open={qaVideoId === qaCard.id}
           onClose={() => {
             setQaVideoId(null)

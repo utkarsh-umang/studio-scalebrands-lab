@@ -7,7 +7,6 @@ import {
   type ClientVideoCard,
 } from '@/lib/clientBoard'
 import { useTheme } from '@/theme'
-import { ClientBatchIntakeCard } from './ClientBatchIntakeCard'
 
 type Props = {
   batch: AdminBatchFolder
@@ -19,7 +18,7 @@ export function ClientVideoKanban({ batch, videos, onOpenVideo }: Props) {
   const { theme } = useTheme()
   const primary = theme.colors.primary
   const cards = videos
-  const showIntake = batchNeedsClientIntake(batch)
+  const intakeDone = !batchNeedsClientIntake(batch)
 
   function cardsInColumn(col: ClientBoardColumn) {
     return cards.filter((c) => c.clientColumn === col)
@@ -28,14 +27,8 @@ export function ClientVideoKanban({ batch, videos, onOpenVideo }: Props) {
   return (
     <div className="flex min-h-[420px] gap-3 overflow-x-auto pb-2">
       {CLIENT_BOARD_COLUMNS.map((col) => {
-        const columnCards =
-          col.id === 'yet_to_start' && showIntake
-            ? cardsInColumn(col.id)
-            : cardsInColumn(col.id)
-        const count =
-          col.id === 'yet_to_start' && showIntake
-            ? columnCards.length + 1
-            : columnCards.length
+        const columnCards = cardsInColumn(col.id)
+        const count = columnCards.length
 
         return (
           <div
@@ -56,12 +49,13 @@ export function ClientVideoKanban({ batch, videos, onOpenVideo }: Props) {
               </p>
             </div>
             <ul className="flex min-h-[200px] flex-1 flex-col gap-2 p-2">
-              {col.id === 'yet_to_start' && showIntake && (
-                <li>
-                  <ClientBatchIntakeCard batch={batch} />
+              {col.id === 'yet_to_start' && !intakeDone ? (
+                <li className="text-muted-foreground flex flex-col items-center gap-1 px-2 py-6 text-center text-[11px]">
+                  <Upload className="size-4 opacity-50" aria-hidden />
+                  Submit your podcast or clips link above to kick off this batch.
                 </li>
-              )}
-              {columnCards.length === 0 && !showIntake && col.id === 'yet_to_start' ? (
+              ) : null}
+              {columnCards.length === 0 && intakeDone && col.id === 'yet_to_start' ? (
                 <li className="text-muted-foreground flex flex-col items-center gap-1 px-2 py-6 text-center text-[11px]">
                   <Upload className="size-4 opacity-50" aria-hidden />
                   Kickoff items appear here
