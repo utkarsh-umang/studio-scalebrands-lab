@@ -4,10 +4,8 @@ import { AdminBatchRedirect } from '@/pages/admin/AdminBatchRedirect'
 import { AdminClientDetail } from '@/pages/admin/AdminClientDetail'
 import { AdminLayout } from '@/pages/admin/AdminLayout'
 import { AdminWorkspace } from '@/pages/admin/AdminWorkspace'
+import { EditorBoard } from '@/pages/editor/EditorBoard'
 import { EditorLayout } from '@/pages/editor/EditorLayout'
-import { EditorOverview } from '@/pages/editor/EditorOverview'
-import { EditorTaskDetail } from '@/pages/editor/EditorTaskDetail'
-import { EditorTasksList } from '@/pages/editor/EditorTasksList'
 import { ClientAllWork } from '@/pages/client/ClientAllWork'
 import { ClientBoard } from '@/pages/client/ClientBoard'
 import { ClientLayout } from '@/pages/client/ClientLayout'
@@ -56,11 +54,12 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Navigate to="overview" replace />} />
-          <Route path="overview" element={<EditorOverview />} />
-          <Route path="tasks" element={<EditorTasksList />} />
-          <Route path="qa" element={<EditorTasksList />} />
-          <Route path="tasks/:taskId" element={<EditorTaskDetail />} />
+          <Route index element={<Navigate to="board" replace />} />
+          <Route path="board" element={<EditorBoard />} />
+          <Route path="overview" element={<Navigate to="/editor/board" replace />} />
+          <Route path="tasks" element={<Navigate to="/editor/board" replace />} />
+          <Route path="qa" element={<Navigate to="/editor/board" replace />} />
+          <Route path="tasks/:taskId" element={<Navigate to="/editor/board" replace />} />
         </Route>
         <Route
           path="/smm"

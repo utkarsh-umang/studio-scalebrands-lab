@@ -6,6 +6,7 @@ const reviewLabel: Record<ClientReviewKind, string> = {
   clip: 'Clip approval',
   idea: 'Ideas review',
   text: 'Titles review',
+  thumbnail: 'Thumbnail review',
   final: 'Final video',
 }
 

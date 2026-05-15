@@ -11,7 +11,7 @@ export type ClientBoardColumn =
   | 'in_review'
   | 'completed'
 
-export type ClientReviewKind = 'clip' | 'idea' | 'text' | 'final'
+export type ClientReviewKind = 'clip' | 'idea' | 'text' | 'thumbnail' | 'final'
 
 export const CLIENT_BOARD_COLUMNS: {
   id: ClientBoardColumn
@@ -50,6 +50,7 @@ function reviewKindFromStage(stageLabel: string): ClientReviewKind | null {
   if (s.includes('clip review')) return 'clip'
   if (s.includes('idea')) return 'idea'
   if (s.includes('text review')) return 'text'
+  if (s.includes('thumbnail review')) return 'thumbnail'
   if (s.includes('final')) return 'final'
   return null
 }
@@ -174,7 +175,20 @@ export function nextStateAfterClientAction(
           stageLabel: 'Editing in progress',
           deadlineRole: 'editor',
         }
+      case 'thumbnail':
+        return {
+          owner: 'editor',
+          stageLabel: 'Video titles',
+          deadlineRole: 'editor',
+        }
       case 'final':
+        if (video.editorPhase === 'videos') {
+          return {
+            owner: 'editor',
+            stageLabel: 'Thumbnails in progress',
+            deadlineRole: 'editor',
+          }
+        }
         return {
           owner: 'scheduling',
           stageLabel: 'Scheduling',
@@ -208,7 +222,20 @@ export function nextStateAfterClientAction(
         stageLabel: 'Text creation',
         deadlineRole: 'smm',
       }
+    case 'thumbnail':
+      return {
+        owner: 'editor',
+        stageLabel: 'Thumbnails in progress',
+        deadlineRole: 'editor',
+      }
     case 'final':
+      if (video.editorPhase === 'videos') {
+        return {
+          owner: 'editor',
+          stageLabel: 'QA flagged',
+          deadlineRole: 'editor',
+        }
+      }
       return {
         owner: 'smm',
         stageLabel: 'SMM QA',

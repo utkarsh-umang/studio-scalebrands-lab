@@ -68,6 +68,7 @@ export {
   type AdminClientProfile,
   type AdminVideoTicket,
   type BrandGuidelinesSource,
+  type EditorWorkflowPhase,
   type StaffMember,
   type VideoPipelineOwner,
 } from './adminWorkspace'

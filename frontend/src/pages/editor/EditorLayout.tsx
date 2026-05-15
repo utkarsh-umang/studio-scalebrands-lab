@@ -1,20 +1,10 @@
-import {
-  AlertTriangle,
-  ClipboardList,
-  Layers,
-  LogOut,
-  Scissors,
-} from 'lucide-react'
+import { LayoutGrid, LogOut, Scissors } from 'lucide-react'
 import { NavLink, Outlet } from 'react-router-dom'
 import logo from '@/assets/logo.png'
 import { useMockAuth } from '@/auth'
 import { useTheme } from '@/theme'
 
-const NAV = [
-  { to: '/editor/overview', label: 'Overview', Icon: Layers },
-  { to: '/editor/tasks', label: 'My tasks', Icon: ClipboardList },
-  { to: '/editor/qa', label: 'QA inbox', Icon: AlertTriangle },
-] as const
+const NAV = [{ to: '/editor/board', label: 'Board', Icon: LayoutGrid, end: true }] as const
 
 export function EditorLayout() {
   const { theme } = useTheme()
@@ -62,11 +52,11 @@ export function EditorLayout() {
         </div>
 
         <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-hidden px-2 pb-2">
-          {NAV.map(({ to, label, Icon }) => (
+          {NAV.map((item) => (
             <NavLink
-              key={to}
-              to={to}
-              end={to === '/editor/overview'}
+              key={item.to}
+              to={item.to}
+              end={'end' in item ? item.end : false}
               className={({ isActive }) =>
                 [
                   'flex items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium transition-colors',
@@ -85,8 +75,8 @@ export function EditorLayout() {
                   : { border: '1px solid transparent' }
               }
             >
-              <Icon className="size-3.5 shrink-0 opacity-90" aria-hidden />
-              {label}
+              <item.Icon className="size-3.5 shrink-0 opacity-90" aria-hidden />
+              {item.label}
             </NavLink>
           ))}
         </nav>

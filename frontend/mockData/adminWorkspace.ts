@@ -91,7 +91,15 @@ export type AdminBatchFolder = {
   /** Credits reserved for this batch — debited when every video reaches Done */
   creditCost: number
   creditsDebited: boolean
+  /**
+   * Shared Drive folder for editor deliverables (Videos + Thumbnails subfolders).
+   * Set when the editor shares the link after uploading finals.
+   */
+  editorDeliverablesDriveUrl?: string
 }
+
+/** Editor-facing workflow column on the deliverables board. */
+export type EditorWorkflowPhase = 'videos' | 'thumbnails' | 'titles' | 'handed_off'
 
 /** Operational owner for admin board columns */
 export type VideoPipelineOwner = 'client' | 'smm' | 'editor' | 'scheduling' | 'done'
@@ -110,6 +118,10 @@ export type AdminVideoTicket = {
   /** SMM QA flags returned to the editor */
   qaFlags?: VideoQaTimestampFlag[]
   qaGeneralNote?: string
+  /** Where the ticket sits on the editor 3-column board */
+  editorPhase?: EditorWorkflowPhase
+  /** Title the editor sends to SMM after the QA cycle */
+  editorPublishTitle?: string
 }
 
 export type StaffMember = {
@@ -206,6 +218,8 @@ export const MOCK_ADMIN_BATCH_FOLDERS: AdminBatchFolder[] = [
     clipReviewPhase: 'awaiting_client',
     creditCost: 6,
     creditsDebited: false,
+    editorDeliverablesDriveUrl:
+      'https://drive.google.com/drive/folders/example-q2-deliverables',
   },
   {
     id: 'b-198',
@@ -234,6 +248,8 @@ export const MOCK_ADMIN_BATCH_FOLDERS: AdminBatchFolder[] = [
     clipReviewPhase: 'approved',
     creditCost: 4,
     creditsDebited: false,
+    editorDeliverablesDriveUrl:
+      'https://drive.google.com/drive/folders/example-northwind-deliverables',
   },
   {
     id: 'b-189',
@@ -345,10 +361,11 @@ export const MOCK_ADMIN_VIDEO_TICKETS: AdminVideoTicket[] = [
     batchId: 'b-204',
     clientId: 'c-1',
     title: 'Clip 3 — Tool comparison',
-    owner: 'editor',
-    stageLabel: 'Editing in progress',
-    deadlineRole: 'editor',
+    owner: 'smm',
+    stageLabel: 'SMM QA',
+    deadlineRole: 'smm',
     deadlineAt: '2026-05-10T12:00:00.000Z',
+    editorPhase: 'videos',
   },
   {
     id: 'v-4',
@@ -386,19 +403,32 @@ export const MOCK_ADMIN_VIDEO_TICKETS: AdminVideoTicket[] = [
     clientId: 'c-2',
     title: 'Teaser B',
     owner: 'editor',
-    stageLabel: 'Editing in progress',
+    stageLabel: 'Thumbnails in progress',
     deadlineRole: 'editor',
     deadlineAt: '2026-05-06T18:00:00.000Z',
+    editorPhase: 'thumbnails',
+  },
+  {
+    id: 'v-11',
+    batchId: 'b-201',
+    clientId: 'c-2',
+    title: 'Teaser D — feature walkthrough',
+    owner: 'client',
+    stageLabel: 'Thumbnail review',
+    deadlineRole: null,
+    deadlineAt: null,
+    editorPhase: 'thumbnails',
   },
   {
     id: 'v-10',
     batchId: 'b-201',
     clientId: 'c-2',
     title: 'Teaser C — hero hook',
-    owner: 'smm',
-    stageLabel: 'SMM QA',
-    deadlineRole: 'smm',
+    owner: 'editor',
+    stageLabel: 'Video titles',
+    deadlineRole: 'editor',
     deadlineAt: '2026-05-07T14:00:00.000Z',
+    editorPhase: 'titles',
   },
   {
     id: 'v-8',

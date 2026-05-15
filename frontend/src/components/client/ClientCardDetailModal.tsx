@@ -139,6 +139,27 @@ export function ClientCardDetailModal({
     )
   }
 
+  if (card.reviewKind === 'thumbnail') {
+    return (
+      <ModalShell title="Thumbnail review" subtitle={card.title} onClose={onClose}>
+        <p className="text-muted-foreground mb-4 text-sm leading-relaxed">
+          Review the thumbnail image for this short in the deliverables folder.
+          Approve when it matches your brand, or reject with feedback for the editor.
+        </p>
+        <ReviewActions
+          rejectReason={rejectReason}
+          onRejectReason={setRejectReason}
+          onApprove={() => {
+            finish('approve')
+          }}
+          onReject={() => {
+            finish('reject')
+          }}
+        />
+      </ModalShell>
+    )
+  }
+
   if (isFinalReview) {
     return (
       <ModalShell

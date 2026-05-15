@@ -22,7 +22,10 @@ import {
   type VideoPipelineOwner,
 } from '@mockData/index'
 import type { ProvisionClientInput } from '@/components/admin/ProvisionClientModal'
-import { nextStateAfterClientAction } from '@/lib/clientBoard'
+import {
+  nextStateAfterClientAction,
+  type ClientReviewKind,
+} from '@/lib/clientBoard'
 
 type CreateBatchInput = {
   clientId: string
@@ -124,6 +127,10 @@ type AdminWorkspaceContextValue = {
   submitSmmClipsFolder: (batchId: string, clipsFolderUrl: string) => void
   submitSmmQaReview: (videoId: string, input: SubmitSmmQaInput) => void
   scheduleBatch: (batchId: string, input: ScheduleBatchInput) => void
+  submitEditorVideosDrive: (batchId: string, driveUrl: string) => void
+  submitEditorThumbnailsForReview: (batchId: string) => void
+  submitEditorVideoTitle: (videoId: string, title: string) => void
+  resubmitEditorVideoQa: (videoId: string) => void
 }
 
 export type SubmitSmmQaInput = {
@@ -152,6 +159,16 @@ const AdminWorkspaceContext = createContext<AdminWorkspaceContextValue | null>(
 
 function staffName(list: StaffMember[], id: string) {
   return list.find((s) => s.id === id)?.name ?? '—'
+}
+
+function reviewKindFromStage(stageLabel: string): ClientReviewKind | null {
+  const s = stageLabel.toLowerCase()
+  if (s.includes('clip review')) return 'clip'
+  if (s.includes('idea')) return 'idea'
+  if (s.includes('text review')) return 'text'
+  if (s.includes('thumbnail review')) return 'thumbnail'
+  if (s.includes('final')) return 'final'
+  return null
 }
 
 export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
@@ -364,17 +381,19 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
           return {
             ...v,
             owner: 'editor' as const,
-            stageLabel: 'Editing in progress',
+            editorPhase: 'videos' as const,
+            stageLabel: 'Videos in progress',
             deadlineRole: 'editor' as const,
           }
         }
         return {
           ...v,
           owner: 'editor' as const,
+          editorPhase: 'videos' as const,
           stageLabel:
             v.stageLabel.toLowerCase().includes('editing') ||
             v.stageLabel.toLowerCase().includes('clip identification')
-              ? 'Editing in progress'
+              ? 'Videos in progress'
               : v.stageLabel,
           deadlineRole: 'editor' as const,
         }
@@ -435,7 +454,8 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
             return {
               ...v,
               owner: 'editor' as const,
-              stageLabel: 'Editing in progress',
+              editorPhase: 'videos' as const,
+              stageLabel: 'Videos in progress',
               deadlineRole: 'editor' as const,
             }
           }
@@ -446,7 +466,8 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
             return {
               ...v,
               owner: 'editor' as const,
-              stageLabel: 'Editing in progress',
+              editorPhase: 'videos' as const,
+              stageLabel: 'Videos in progress',
               deadlineRole: 'editor' as const,
             }
           }
@@ -559,6 +580,7 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
             return {
               ...v,
               owner: 'editor' as const,
+              editorPhase: 'videos' as const,
               stageLabel: 'QA flagged',
               deadlineRole: 'editor' as const,
               qaFlags: flags,
@@ -585,6 +607,113 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
     },
     [videos],
   )
+
+  const submitEditorVideosDrive = useCallback(
+    (batchId: string, driveUrl: string) => {
+      const trimmed = driveUrl.trim()
+      if (!trimmed) return
+      const now = new Date().toISOString().slice(0, 10)
+
+      setBatches((prev) =>
+        prev.map((b) =>
+          b.id === batchId
+            ? {
+                ...b,
+                editorDeliverablesDriveUrl: trimmed,
+                updatedAt: now,
+              }
+            : b,
+        ),
+      )
+
+      setVideos((prev) =>
+        prev.map((v) => {
+          if (v.batchId !== batchId) return v
+          if (v.editorPhase && v.editorPhase !== 'videos') return v
+          return {
+            ...v,
+            editorPhase: 'videos' as const,
+            owner: 'smm' as const,
+            stageLabel: 'SMM QA',
+            deadlineRole: 'smm' as const,
+          }
+        }),
+      )
+    },
+    [],
+  )
+
+  const submitEditorThumbnailsForReview = useCallback((batchId: string) => {
+    const now = new Date().toISOString().slice(0, 10)
+    setVideos((prev) =>
+      prev.map((v) => {
+        if (v.batchId !== batchId) return v
+        if (v.editorPhase !== 'thumbnails') return v
+        if (v.owner !== 'editor') return v
+        return {
+          ...v,
+          owner: 'client' as const,
+          stageLabel: 'Thumbnail review',
+          deadlineRole: null,
+        }
+      }),
+    )
+    setBatches((prev) =>
+      prev.map((b) => (b.id === batchId ? { ...b, updatedAt: now } : b)),
+    )
+  }, [])
+
+  const submitEditorVideoTitle = useCallback((videoId: string, title: string) => {
+    const trimmed = title.trim()
+    if (!trimmed) return
+    const now = new Date().toISOString().slice(0, 10)
+
+    setVideos((prev) =>
+      prev.map((v) => {
+        if (v.id !== videoId) return v
+        return {
+          ...v,
+          editorPublishTitle: trimmed,
+          editorPhase: 'handed_off' as const,
+          owner: 'smm' as const,
+          stageLabel: 'Editor handoff',
+          deadlineRole: 'smm' as const,
+        }
+      }),
+    )
+    setBatches((prev) =>
+      prev.map((b) => {
+        const video = videos.find((v) => v.id === videoId)
+        if (!video || video.batchId !== b.id) return b
+        return { ...b, updatedAt: now }
+      }),
+    )
+  }, [videos])
+
+  const resubmitEditorVideoQa = useCallback((videoId: string) => {
+    const now = new Date().toISOString().slice(0, 10)
+    setVideos((prev) =>
+      prev.map((v) => {
+        if (v.id !== videoId) return v
+        return {
+          ...v,
+          owner: 'smm' as const,
+          editorPhase: 'videos' as const,
+          stageLabel: 'SMM QA',
+          deadlineRole: 'smm' as const,
+          qaFlags: undefined,
+          qaGeneralNote: undefined,
+        }
+      }),
+    )
+    setBatches((prev) =>
+      prev.map((b) => {
+        const video = videos.find((v) => v.id === videoId)
+        if (!video || video.batchId !== b.id) return b
+        return { ...b, updatedAt: now }
+      }),
+    )
+  }, [videos])
 
   const scheduleBatch = useCallback((batchId: string, input: ScheduleBatchInput) => {
     if (!input.allVideosScheduled) return
@@ -631,16 +760,29 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
         prev.map((v) => {
           if (v.id !== videoId) return v
           const next = nextStateAfterClientAction(v, action)
+          const kind = reviewKindFromStage(v.stageLabel)
+          let editorPhase = v.editorPhase
+
+          if (action === 'approve') {
+            if (kind === 'final' && v.editorPhase === 'videos') {
+              editorPhase = 'thumbnails'
+            }
+            if (kind === 'thumbnail') {
+              editorPhase = 'titles'
+            }
+          }
+
           if (action === 'approve' && next.owner === 'scheduling') {
             return {
               ...v,
               ...next,
+              editorPhase,
               owner: 'done' as const,
               stageLabel: 'Scheduled',
               deadlineRole: null,
             }
           }
-          return { ...v, ...next }
+          return { ...v, ...next, editorPhase }
         }),
       )
       setBatches((prev) =>
@@ -680,6 +822,10 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
       submitSmmClipsFolder,
       submitSmmQaReview,
       scheduleBatch,
+      submitEditorVideosDrive,
+      submitEditorThumbnailsForReview,
+      submitEditorVideoTitle,
+      resubmitEditorVideoQa,
     }),
     [
       clients,
@@ -704,6 +850,10 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
       submitSmmClipsFolder,
       submitSmmQaReview,
       scheduleBatch,
+      submitEditorVideosDrive,
+      submitEditorThumbnailsForReview,
+      submitEditorVideoTitle,
+      resubmitEditorVideoQa,
     ],
   )
 
