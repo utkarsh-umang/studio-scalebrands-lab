@@ -179,8 +179,8 @@ export type EditorAttentionItem = {
     | 'qa_fix'
     | 'thumbnails_ready'
     | 'set_title'
-  videoId?: string
-  videoTitle?: string
+  /** Number of videos needing this action in the batch (omitted for share_videos_drive). */
+  count?: number
 }
 
 export function listEditorAttention(
@@ -196,43 +196,25 @@ export function listEditorAttention(
     const batchVideos = videos.filter((v) => v.batchId === batch.id)
 
     if (videoNeedsEditorVideosSubmit(batch, batchVideos)) {
-      items.push({
-        batchId: batch.id,
-        batchTitle: batch.title,
-        clientName,
-        kind: 'share_videos_drive',
-      })
+      items.push({ batchId: batch.id, batchTitle: batch.title, clientName, kind: 'share_videos_drive' })
+      continue
     }
 
-    for (const v of filterVideosForEditorKanban(batchVideos)) {
-      if (videoEditorQaReturn(v)) {
-        items.push({
-          batchId: batch.id,
-          batchTitle: batch.title,
-          clientName,
-          kind: 'qa_fix',
-          videoId: v.id,
-          videoTitle: v.title,
-        })
-      } else if (videoNeedsEditorThumbnailsSubmit(v)) {
-        items.push({
-          batchId: batch.id,
-          batchTitle: batch.title,
-          clientName,
-          kind: 'thumbnails_ready',
-          videoId: v.id,
-          videoTitle: v.title,
-        })
-      } else if (videoNeedsEditorTitleSubmit(v)) {
-        items.push({
-          batchId: batch.id,
-          batchTitle: batch.title,
-          clientName,
-          kind: 'set_title',
-          videoId: v.id,
-          videoTitle: v.title,
-        })
-      }
+    const work = filterVideosForEditorKanban(batchVideos)
+
+    const qaCount = work.filter(videoEditorQaReturn).length
+    if (qaCount > 0) {
+      items.push({ batchId: batch.id, batchTitle: batch.title, clientName, kind: 'qa_fix', count: qaCount })
+    }
+
+    const thumbCount = work.filter(videoNeedsEditorThumbnailsSubmit).length
+    if (thumbCount > 0) {
+      items.push({ batchId: batch.id, batchTitle: batch.title, clientName, kind: 'thumbnails_ready', count: thumbCount })
+    }
+
+    const titleCount = work.filter(videoNeedsEditorTitleSubmit).length
+    if (titleCount > 0) {
+      items.push({ batchId: batch.id, batchTitle: batch.title, clientName, kind: 'set_title', count: titleCount })
     }
   }
 

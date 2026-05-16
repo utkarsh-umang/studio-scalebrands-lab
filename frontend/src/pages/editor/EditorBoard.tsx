@@ -116,9 +116,8 @@ export function EditorBoard() {
           setSelectedBatchId(item.batchId)
           if (item.kind === 'share_videos_drive') {
             setShareVideosBatchId(item.batchId)
-          }
-          if (item.videoId) {
-            setActiveVideoId(item.videoId)
+          } else {
+            setWorkspaceModalBatchId(item.batchId)
           }
         }}
       />

@@ -11,18 +11,18 @@ type Props = {
   clipsFolderUrl: string
   /** Browse-only: clip list + preview, no approve/reject footer. */
   readOnly?: boolean
-  /** Default matches client modal (list on the left); editor uses right. */
+  /** Default: list on the right. */
   sidebarPosition?: 'left' | 'right'
   onApprove?: () => void
   onReject?: (note: string) => void
 }
 
-export function ClientClipReviewPanel({
+export function ClipsReviewPanel({
   batchId,
   manifest: manifestProp,
   clipsFolderUrl,
   readOnly = false,
-  sidebarPosition = 'left',
+  sidebarPosition = 'right',
   onApprove,
   onReject,
 }: Props) {

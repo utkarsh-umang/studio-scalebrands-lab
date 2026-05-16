@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { ExternalLink, RefreshCw } from 'lucide-react'
 import type { AdminBatchFolder, AdminVideoTicket } from '@mockData/index'
 import { DeliverableVideoThumbnailTitleBlock } from '@/components/drive/DeliverableVideoThumbnailTitleBlock'
+import { DeliverableSidebarList } from '@/components/drive/DeliverableSidebarList'
 import { QaCommentThread } from '@/components/drive/QaCommentThread'
 import { StudioModalShell } from '@/components/StudioModalShell'
 import type { VideoReviewFeedback } from '@/components/VideoDeliverableReviewPanel'
@@ -196,53 +197,6 @@ export function ClientFinalVideoReviewModal({
           ) : null}
 
           <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden md:flex-row md:gap-4">
-            <aside className="border-border bg-muted/15 flex max-h-[min(32vh,260px)] shrink-0 flex-col rounded-xl border pt-2 md:max-h-none md:w-56 md:bg-transparent md:pt-0">
-              <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto p-2 md:px-0 md:pb-0">
-                {rows.map((row) => {
-                  const active = row.index === selectedRow?.index
-                  const status = clientFinalRowStatus(row)
-                  const needsYou = row.ticket ? videoNeedsClientFinalReview(row.ticket) : false
-                  return (
-                    <li key={row.index}>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedIndex(row.index)
-                        }}
-                        className={[
-                          'flex w-full flex-col rounded-lg px-2 py-2 text-left text-xs transition-colors',
-                          active
-                            ? 'bg-primary text-primary-foreground'
-                            : needsYou
-                              ? 'bg-muted/40 hover:bg-muted/55 ring-primary/25 text-foreground ring-1'
-                              : 'bg-muted/25 hover:bg-muted/45 text-foreground',
-                        ].join(' ')}
-                      >
-                        <span className="font-semibold tabular-nums">Video {row.index}</span>
-                        <span
-                          className={[
-                            'mt-0.5 line-clamp-2 font-normal opacity-90',
-                            active ? 'text-primary-foreground/85' : 'text-muted-foreground',
-                          ].join(' ')}
-                          title={row.entry?.name ?? row.ticket?.title}
-                        >
-                          {row.entry?.name ?? row.ticket?.title ?? '—'}
-                        </span>
-                        <span
-                          className={[
-                            'mt-1 text-[10px] font-medium uppercase tracking-wide',
-                            active ? 'text-primary-foreground/80' : 'text-muted-foreground',
-                          ].join(' ')}
-                        >
-                          {status}
-                        </span>
-                      </button>
-                    </li>
-                  )
-                })}
-              </ul>
-            </aside>
-
             <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden pr-1">
               {!selectedRow ? (
                 <p className="text-muted-foreground text-sm">Select a video.</p>
@@ -304,6 +258,17 @@ export function ClientFinalVideoReviewModal({
                 </div>
               )}
             </main>
+
+            <DeliverableSidebarList
+              rows={rows.map((row) => ({
+                index: row.index,
+                label: row.entry?.name ?? row.ticket?.title ?? '—',
+                statusText: clientFinalRowStatus(row),
+                highlighted: row.ticket ? videoNeedsClientFinalReview(row.ticket) : false,
+              }))}
+              selectedIndex={selectedRow?.index ?? null}
+              onSelect={setSelectedIndex}
+            />
           </div>
         </div>
       )}

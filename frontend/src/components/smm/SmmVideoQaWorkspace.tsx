@@ -2,9 +2,10 @@ import { useMemo, useState } from 'react'
 import { SAMPLE_VIDEO_SRC } from '@mockData/index'
 import type { AdminBatchFolder, AdminVideoTicket } from '@mockData/index'
 import { DeliverableVideoThumbnailTitleBlock } from '@/components/drive/DeliverableVideoThumbnailTitleBlock'
+import { DeliverableSidebarList } from '@/components/drive/DeliverableSidebarList'
+import type { DeliverableSidebarRow as LibSidebarRow } from '@/lib/deliverableSidebar'
 import { QaCommentThread } from '@/components/drive/QaCommentThread'
 import { VideoDeliverableReviewPanel } from '@/components/VideoDeliverableReviewPanel'
-import type { DeliverableSidebarRow } from '@/lib/deliverableSidebar'
 import { buildDeliverableSidebarRows } from '@/lib/deliverableSidebar'
 import type { BatchDriveManifest } from '@/lib/driveMedia'
 import { deliverableIndexForTicket, getMediaEntry } from '@/lib/driveMedia'
@@ -14,7 +15,7 @@ import { videoNeedsSmmQa } from '@/lib/smmBoard'
 import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
 import { useTheme } from '@/theme'
 
-function rowStatusLabel(row: DeliverableSidebarRow): string {
+function rowStatusLabel(row: LibSidebarRow): string {
   if (!row.ticket) return 'New on Drive — no ticket yet'
   const t = row.ticket
   if (videoNeedsSmmQa(t)) return 'Needs your QA'
@@ -85,69 +86,21 @@ export function SmmVideoQaWorkspace({
     ? getMediaEntry(batch.id, 'thumbnails', selectedRow.index)
     : undefined
 
+  const sidebarRows = rows.map((row) => ({
+    index: row.index,
+    label: row.entry?.name ?? row.ticket?.title ?? '—',
+    statusText: rowStatusLabel(row),
+    highlighted: !!(row.ticket && videoNeedsSmmQa(row.ticket)),
+  }))
+
   const asideColumn = (
-    <aside
-      className={[
-        'border-border bg-muted/15 flex max-h-[min(32vh,260px)] shrink-0 flex-col rounded-xl border',
-        layoutClientStyle
-          ? 'pt-2 md:max-h-none md:w-56 md:bg-transparent md:pt-0'
-          : 'md:max-h-none md:w-56',
-      ].join(' ')}
-    >
-      {!layoutClientStyle ? (
-        <p className="text-muted-foreground border-border border-b px-2 py-2 text-[10px] font-semibold uppercase tracking-wide md:px-3">
-          Videos in this batch
-        </p>
-      ) : null}
-      <ul
-        className={[
-          'min-h-0 flex-1 space-y-1 overflow-y-auto p-2',
-          layoutClientStyle ? 'md:px-0 md:pb-0' : 'md:px-3 md:pb-3',
-        ].join(' ')}
-      >
-        {rows.map((row) => {
-          const active = row.index === selectedRow?.index
-          const status = rowStatusLabel(row)
-          return (
-            <li key={row.index}>
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedIndex(row.index)
-                }}
-                className={[
-                  'flex w-full flex-col rounded-lg px-2 py-2 text-left text-xs transition-colors',
-                  active
-                    ? 'bg-primary text-primary-foreground'
-                    : row.ticket && videoNeedsSmmQa(row.ticket)
-                      ? 'bg-muted/40 hover:bg-muted/55 ring-primary/25 text-foreground ring-1'
-                      : 'bg-muted/25 hover:bg-muted/45 text-foreground',
-                ].join(' ')}
-              >
-                <span className="font-semibold tabular-nums">Video {row.index}</span>
-                <span
-                  className={[
-                    'mt-0.5 line-clamp-2 font-normal opacity-90',
-                    active ? 'text-primary-foreground/85' : 'text-muted-foreground',
-                  ].join(' ')}
-                  title={row.entry?.name ?? row.ticket?.title}
-                >
-                  {row.entry?.name ?? row.ticket?.title ?? '—'}
-                </span>
-                <span
-                  className={[
-                    'mt-1 text-[10px] font-medium uppercase tracking-wide',
-                    active ? 'text-primary-foreground/80' : 'text-muted-foreground',
-                  ].join(' ')}
-                >
-                  {status}
-                </span>
-              </button>
-            </li>
-          )
-        })}
-      </ul>
-    </aside>
+    <DeliverableSidebarList
+      rows={sidebarRows}
+      selectedIndex={selectedRow?.index ?? null}
+      onSelect={setSelectedIndex}
+      heading={layoutClientStyle ? undefined : 'Videos in this batch'}
+      variant={layoutClientStyle ? 'flat' : 'bordered'}
+    />
   )
 
   const mainColumn = (
@@ -257,17 +210,8 @@ export function SmmVideoQaWorkspace({
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden md:flex-row md:gap-4">
-        {layoutClientStyle ? (
-          <>
-            {asideColumn}
-            {mainColumn}
-          </>
-        ) : (
-          <>
-            {mainColumn}
-            {asideColumn}
-          </>
-        )}
+        {mainColumn}
+        {asideColumn}
       </div>
     </div>
   )

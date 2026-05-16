@@ -22,7 +22,7 @@ export function EditorAttentionStrip({ items, onOpen }: Props) {
       </p>
       <ul className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         {items.map((item) => (
-          <li key={`${item.batchId}-${item.kind}-${item.videoId ?? ''}`}>
+          <li key={`${item.batchId}-${item.kind}`}>
             <button
               type="button"
               onClick={() => {
@@ -63,11 +63,11 @@ export function EditorAttentionStrip({ items, onOpen }: Props) {
                       ? 'Fix QA feedback'
                       : item.kind === 'thumbnails_ready'
                         ? 'Send thumbnails to client'
-                        : 'Set video title'}
+                        : 'Set video titles'}
+                  {item.count != null && item.count > 1 ? ` (${item.count})` : ''}
                 </span>
                 <span className="text-muted-foreground block truncate text-[10px]">
-                  {item.clientName} ·{' '}
-                  {item.videoTitle ?? item.batchTitle}
+                  {item.clientName} · {item.batchTitle}
                 </span>
               </span>
             </button>

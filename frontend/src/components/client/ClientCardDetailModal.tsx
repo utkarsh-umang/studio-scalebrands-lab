@@ -11,7 +11,7 @@ import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
 import { useTheme } from '@/theme'
 import { StudioModalShell } from '@/components/StudioModalShell'
 import { formatSyncedAt, getManifestForBatch, reloadDriveManifestForBatch } from '@/lib/driveMedia'
-import { ClientClipReviewPanel } from './ClientClipReviewPanel'
+import { ClipsReviewPanel } from '@/components/drive/ClipsReviewPanel'
 import { ClientFinalVideoReviewModal } from './ClientFinalVideoReviewModal'
 import { ClientThumbnailReviewModal } from './ClientThumbnailReviewModal'
 
@@ -126,7 +126,7 @@ export function ClientCardDetailModal({
           </div>
         }
       >
-        <ClientClipReviewPanel
+        <ClipsReviewPanel
           batchId={batchId}
           manifest={clipManifest}
           clipsFolderUrl={batch.clipsFolderUrl}

@@ -3,8 +3,9 @@ import { ExternalLink, RefreshCw } from 'lucide-react'
 import { SAMPLE_VIDEO_SRC } from '@mockData/index'
 import type { AdminBatchFolder, AdminVideoTicket } from '@mockData/index'
 import { DeliverableVideoThumbnailTitleBlock } from '@/components/drive/DeliverableVideoThumbnailTitleBlock'
+import { DeliverableSidebarList } from '@/components/drive/DeliverableSidebarList'
 import { StudioModalShell } from '@/components/StudioModalShell'
-import { ClientClipReviewPanel } from '@/components/client/ClientClipReviewPanel'
+import { ClipsReviewPanel } from '@/components/drive/ClipsReviewPanel'
 import { EditorQaFixPanel } from '@/components/editor/EditorQaFixPanel'
 import {
   batchAwaitingClips,
@@ -66,6 +67,8 @@ export function EditorBatchWorkspaceModal({ batch, clientName, open, onClose }: 
   const [syncing, setSyncing] = useState(false)
   const [syncMsg, setSyncMsg] = useState<string | null>(null)
   const [thumbPick, setThumbPick] = useState(1)
+  const [activeQaIndex, setActiveQaIndex] = useState(1)
+  const [activeTitleIndex, setActiveTitleIndex] = useState(1)
   const [titleDrafts, setTitleDrafts] = useState<Record<string, string>>({})
 
   useEffect(() => {
@@ -104,6 +107,20 @@ export function EditorBatchWorkspaceModal({ batch, clientName, open, onClose }: 
   const selectedThumbTicket = thumbWorkTickets.find(
     (t) => deliverableIndexForTicket(t) === activeThumbIndex,
   )
+
+  const resolvedQaIndex = useMemo(() => {
+    if (qaFixTickets.some((t) => deliverableIndexForTicket(t) === activeQaIndex)) return activeQaIndex
+    return deliverableIndexForTicket(qaFixTickets[0] ?? batchTickets[0]) ?? 1
+  }, [qaFixTickets, activeQaIndex, batchTickets])
+
+  const selectedQaTicket = qaFixTickets.find((t) => deliverableIndexForTicket(t) === resolvedQaIndex)
+
+  const resolvedTitleIndex = useMemo(() => {
+    if (titleWorkTickets.some((t) => deliverableIndexForTicket(t) === activeTitleIndex)) return activeTitleIndex
+    return deliverableIndexForTicket(titleWorkTickets[0] ?? batchTickets[0]) ?? 1
+  }, [titleWorkTickets, activeTitleIndex, batchTickets])
+
+  const selectedTitleTicket = titleWorkTickets.find((t) => deliverableIndexForTicket(t) === resolvedTitleIndex)
 
   const titlesHandedOffForBatch =
     batchTickets.length > 0 &&
@@ -230,12 +247,11 @@ export function EditorBatchWorkspaceModal({ batch, clientName, open, onClose }: 
               the raw file — indexed names should align with deliverable numbers in Studio.
             </p>
             <div className="border-border flex min-h-[min(52vh,440px)] flex-col overflow-hidden rounded-xl border md:min-h-[440px]">
-              <ClientClipReviewPanel
+              <ClipsReviewPanel
                 batchId={batch.id}
                 manifest={manifest}
                 clipsFolderUrl={batch.clipsFolderUrl}
                 readOnly
-                sidebarPosition="right"
               />
             </div>
           </section>
@@ -287,18 +303,35 @@ export function EditorBatchWorkspaceModal({ batch, clientName, open, onClose }: 
               Video QA — your fixes
             </h3>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              Same view as SMM/client QA: finish cuts on Drive, then resubmit. Prior video comments
-              are archived as resolved for this upload.
+              Finish the cut on Drive, then resubmit. Prior comments are archived as resolved.
             </p>
-            {qaFixTickets.map((t) => (
-              <EditorQaFixPanel
-                key={t.id}
-                batch={batch}
-                clientName={clientName}
-                ticket={t}
-                fallbackVideoSrc={SAMPLE_VIDEO_SRC}
+            <div className="flex min-h-0 flex-col gap-3 md:flex-row md:gap-4">
+              <div className="min-h-0 flex-1">
+                {selectedQaTicket ? (
+                  <EditorQaFixPanel
+                    key={selectedQaTicket.id}
+                    batch={batch}
+                    clientName={clientName}
+                    ticket={selectedQaTicket}
+                    fallbackVideoSrc={SAMPLE_VIDEO_SRC}
+                  />
+                ) : (
+                  <p className="text-muted-foreground text-sm">Select a video on the right.</p>
+                )}
+              </div>
+              <DeliverableSidebarList
+                rows={qaFixTickets.map((t) => ({
+                  index: deliverableIndexForTicket(t),
+                  label: t.title,
+                  statusText: t.lastRevisionRequestedBy
+                    ? `Back from ${t.lastRevisionRequestedBy}`
+                    : 'QA flagged',
+                  highlighted: true,
+                }))}
+                selectedIndex={resolvedQaIndex}
+                onSelect={setActiveQaIndex}
               />
-            ))}
+            </div>
           </section>
         ) : null}
 
@@ -308,58 +341,49 @@ export function EditorBatchWorkspaceModal({ batch, clientName, open, onClose }: 
               Thumbnails — upload &amp; preview
             </h3>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              Add images next to <span className="text-foreground font-medium">Videos</span> under a{' '}
-              <span className="text-foreground font-medium">Thumbnail</span> folder. Sync from Drive,
-              then confirm side-by-side previews before sending to the client.
+              Add images to the{' '}
+              <span className="text-foreground font-medium">Thumbnail</span> folder. Sync from
+              Drive, then confirm side-by-side previews before sending to the client.
             </p>
             {!batch.editorDeliverablesDriveUrl?.trim() ? (
               <p className="text-muted-foreground text-xs">Save a deliverables folder first.</p>
             ) : (
               <>
-                <div className="flex flex-wrap gap-2">
-                  {thumbWorkTickets.map((t) => {
-                    const idx = deliverableIndexForTicket(t)
-                    const sel = idx === activeThumbIndex
-                    return (
-                      <button
-                        key={t.id}
-                        type="button"
-                        onClick={() => {
-                          setThumbPick(idx)
-                        }}
-                        className={[
-                          'rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors',
-                          sel
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted/40 text-foreground hover:bg-muted/55',
-                        ].join(' ')}
-                      >
-                        Video {idx}
-                      </button>
-                    )
-                  })}
-                </div>
-                {selectedThumbTicket ? (
-                  <DeliverableVideoThumbnailTitleBlock
-                    theme={theme}
-                    videoDriveFileId={
-                      getMediaEntry(batch.id, 'videos', activeThumbIndex)?.driveFileId
-                    }
-                    fallbackVideoSrc={
-                      getMediaEntry(batch.id, 'videos', activeThumbIndex)?.driveFileId
-                        ? undefined
-                        : SAMPLE_VIDEO_SRC
-                    }
-                    videoFileName={getMediaEntry(batch.id, 'videos', activeThumbIndex)?.name}
-                    thumbnailDriveFileId={
-                      getMediaEntry(batch.id, 'thumbnails', activeThumbIndex)?.driveFileId
-                    }
-                    thumbnailFileName={
-                      getMediaEntry(batch.id, 'thumbnails', activeThumbIndex)?.name
-                    }
-                    displayVideoTitle={selectedThumbTicket.title}
+                <div className="flex min-h-0 flex-col gap-3 md:flex-row md:gap-4">
+                  <div className="min-h-0 flex-1 space-y-3">
+                    {selectedThumbTicket ? (
+                      <DeliverableVideoThumbnailTitleBlock
+                        theme={theme}
+                        videoDriveFileId={
+                          getMediaEntry(batch.id, 'videos', activeThumbIndex)?.driveFileId
+                        }
+                        fallbackVideoSrc={
+                          getMediaEntry(batch.id, 'videos', activeThumbIndex)?.driveFileId
+                            ? undefined
+                            : SAMPLE_VIDEO_SRC
+                        }
+                        videoFileName={getMediaEntry(batch.id, 'videos', activeThumbIndex)?.name}
+                        thumbnailDriveFileId={
+                          getMediaEntry(batch.id, 'thumbnails', activeThumbIndex)?.driveFileId
+                        }
+                        thumbnailFileName={
+                          getMediaEntry(batch.id, 'thumbnails', activeThumbIndex)?.name
+                        }
+                        displayVideoTitle={selectedThumbTicket.title}
+                      />
+                    ) : (
+                      <p className="text-muted-foreground text-sm">Select a video on the right.</p>
+                    )}
+                  </div>
+                  <DeliverableSidebarList
+                    rows={thumbWorkTickets.map((t) => ({
+                      index: deliverableIndexForTicket(t),
+                      label: t.title,
+                    }))}
+                    selectedIndex={activeThumbIndex}
+                    onSelect={setThumbPick}
                   />
-                ) : null}
+                </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
@@ -392,62 +416,76 @@ export function EditorBatchWorkspaceModal({ batch, clientName, open, onClose }: 
               Client approved thumbnails. Enter the publish title for each short — submissions go
               to your SMM for scheduling.
             </p>
-            <ul className="space-y-4">
-              {titleWorkTickets.map((t) => (
-                <li
-                  key={t.id}
-                  className="border-border bg-muted/10 space-y-2 rounded-xl border p-4"
-                >
-                  <p className="text-foreground text-sm font-medium">
-                    Video {deliverableIndexForTicket(t)} — {t.title}
-                  </p>
-                  <DeliverableVideoThumbnailTitleBlock
-                    theme={theme}
-                    videoDriveFileId={getMediaEntry(batch.id, 'videos', deliverableIndexForTicket(t))
-                      ?.driveFileId}
-                    fallbackVideoSrc={
-                      getMediaEntry(batch.id, 'videos', deliverableIndexForTicket(t))?.driveFileId
-                        ? undefined
-                        : SAMPLE_VIDEO_SRC
-                    }
-                    videoFileName={
-                      getMediaEntry(batch.id, 'videos', deliverableIndexForTicket(t))?.name
-                    }
-                    thumbnailDriveFileId={
-                      getMediaEntry(batch.id, 'thumbnails', deliverableIndexForTicket(t))
-                        ?.driveFileId
-                    }
-                    thumbnailFileName={
-                      getMediaEntry(batch.id, 'thumbnails', deliverableIndexForTicket(t))?.name
-                    }
-                  />
-                  <label className="block space-y-1.5">
-                    <span className="text-muted-foreground text-[10px] font-semibold uppercase tracking-wide">
-                      Publish title
-                    </span>
-                    <input
-                      type="text"
-                      value={titleDrafts[t.id] ?? ''}
-                      onChange={(e) => {
-                        setTitleDrafts((prev) => ({ ...prev, [t.id]: e.target.value }))
-                      }}
-                      placeholder="Title for the scheduled post"
-                      className="border-border bg-background w-full rounded-xl border px-3 py-2.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+            <div className="flex min-h-0 flex-col gap-3 md:flex-row md:gap-4">
+              <div className="min-h-0 flex-1 space-y-3">
+                {selectedTitleTicket ? (
+                  <>
+                    <DeliverableVideoThumbnailTitleBlock
+                      theme={theme}
+                      videoDriveFileId={
+                        getMediaEntry(batch.id, 'videos', resolvedTitleIndex)?.driveFileId
+                      }
+                      fallbackVideoSrc={
+                        getMediaEntry(batch.id, 'videos', resolvedTitleIndex)?.driveFileId
+                          ? undefined
+                          : SAMPLE_VIDEO_SRC
+                      }
+                      videoFileName={
+                        getMediaEntry(batch.id, 'videos', resolvedTitleIndex)?.name
+                      }
+                      thumbnailDriveFileId={
+                        getMediaEntry(batch.id, 'thumbnails', resolvedTitleIndex)?.driveFileId
+                      }
+                      thumbnailFileName={
+                        getMediaEntry(batch.id, 'thumbnails', resolvedTitleIndex)?.name
+                      }
                     />
-                  </label>
-                  <button
-                    type="button"
-                    disabled={!(titleDrafts[t.id] ?? '').trim()}
-                    onClick={() => {
-                      submitEditorVideoTitle(t.id, titleDrafts[t.id] ?? '')
-                    }}
-                    className="bg-primary text-primary-foreground rounded-xl px-4 py-2 text-sm font-semibold disabled:opacity-50"
-                  >
-                    Send title to SMM
-                  </button>
-                </li>
-              ))}
-            </ul>
+                    <label className="block space-y-1.5">
+                      <span className="text-muted-foreground text-[10px] font-semibold uppercase tracking-wide">
+                        Publish title
+                      </span>
+                      <input
+                        type="text"
+                        value={titleDrafts[selectedTitleTicket.id] ?? ''}
+                        onChange={(e) => {
+                          setTitleDrafts((prev) => ({
+                            ...prev,
+                            [selectedTitleTicket.id]: e.target.value,
+                          }))
+                        }}
+                        placeholder="Title for the scheduled post"
+                        className="border-border bg-background w-full rounded-xl border px-3 py-2.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      disabled={!(titleDrafts[selectedTitleTicket.id] ?? '').trim()}
+                      onClick={() => {
+                        submitEditorVideoTitle(
+                          selectedTitleTicket.id,
+                          titleDrafts[selectedTitleTicket.id] ?? '',
+                        )
+                      }}
+                      className="bg-primary text-primary-foreground rounded-xl px-4 py-2 text-sm font-semibold disabled:opacity-50"
+                    >
+                      Send title to SMM
+                    </button>
+                  </>
+                ) : (
+                  <p className="text-muted-foreground text-sm">Select a video on the right.</p>
+                )}
+              </div>
+              <DeliverableSidebarList
+                rows={titleWorkTickets.map((t) => ({
+                  index: deliverableIndexForTicket(t),
+                  label: titleDrafts[t.id]?.trim() || t.title,
+                  statusText: titleDrafts[t.id]?.trim() ? 'Draft ready' : 'Needs title',
+                  highlighted: !titleDrafts[t.id]?.trim(),
+                }))}
+                selectedIndex={resolvedTitleIndex}
+                onSelect={setActiveTitleIndex}
+              />
+            </div>
           </section>
         ) : null}
 

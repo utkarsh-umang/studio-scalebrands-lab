@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { SAMPLE_VIDEO_SRC } from '@mockData/index'
 import type { AdminBatchFolder, AdminVideoTicket } from '@mockData/index'
+import { DeliverableVideoThumbnailTitleBlock } from '@/components/drive/DeliverableVideoThumbnailTitleBlock'
+import { DeliverableSidebarList } from '@/components/drive/DeliverableSidebarList'
 import { DriveOrStreamVideo } from '@/components/drive/DriveOrStreamVideo'
 import { QaCommentThread } from '@/components/drive/QaCommentThread'
 import { videoNeedsClientFinalReview } from '@/lib/clientBoard'
@@ -9,7 +11,6 @@ import { buildDeliverableSidebarRows } from '@/lib/deliverableSidebar'
 import type { BatchDriveManifest } from '@/lib/driveMedia'
 import {
   deliverableIndexForTicket,
-  driveThumbnailUrl,
   getMediaEntry,
 } from '@/lib/driveMedia'
 import { flagsToQaComments, generalFromComments, markersFromComments } from '@/lib/qaComments'
@@ -140,91 +141,18 @@ export function SmmSmmObserverWorkspace({ batch, batchTickets, clientName, mode,
       </p>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden md:flex-row md:gap-4">
-        <aside className="border-border bg-muted/15 flex max-h-[min(32vh,260px)] shrink-0 flex-col rounded-xl border pt-2 md:max-h-none md:w-56 md:bg-transparent md:pt-0">
-          <p className="text-muted-foreground border-border hidden border-b px-3 py-2 text-[10px] font-semibold uppercase tracking-wide md:block">
-            {sidebarLabel}
-          </p>
-          <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto p-2 md:px-0">
-            {rows.map((row) => {
-              const active = row.index === selectedRow?.index
-              const hint = rowHint(row)
-              return (
-                <li key={row.index}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedIndex(row.index)
-                    }}
-                    className={[
-                      'flex w-full flex-col rounded-lg px-2 py-2 text-left text-xs transition-colors',
-                      active ? 'bg-primary text-primary-foreground' : 'bg-muted/25 text-foreground',
-                    ].join(' ')}
-                  >
-                    <span className="font-semibold tabular-nums">Video {row.index}</span>
-                    <span
-                      className={[
-                        'mt-1 text-[10px] font-medium uppercase tracking-wide',
-                        active ? 'text-primary-foreground/85' : 'text-muted-foreground',
-                      ].join(' ')}
-                    >
-                      {hint}
-                    </span>
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
-        </aside>
-
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto md:overflow-hidden">
           {!selectedRow ? (
             <p className="text-muted-foreground text-sm">Select a video on the left.</p>
           ) : mode === 'observe_thumbnails' ? (
-            <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto md:grid-cols-2 md:overflow-y-auto">
-              <div className="space-y-2">
-                <p className="text-muted-foreground text-[10px] font-semibold uppercase tracking-wide">
-                  video_{selectedRow.index}
-                </p>
-                {driveFileId ? (
-                  <DriveOrStreamVideo
-                    driveFileId={driveFileId}
-                    fileName={fileName}
-                    layout="portrait"
-                  />
-                ) : (
-                  <div
-                    className={qaPortraitChromeClass}
-                    style={{ boxShadow: `0 12px 40px -12px ${theme.colors.primary}22` }}
-                  >
-                    <div className={qaPortraitPlayerBoxClass} dir="ltr">
-                      <video
-                        className={qaPortraitVideoInnerClass}
-                        controls
-                        playsInline
-                        preload="metadata"
-                        src={SAMPLE_VIDEO_SRC}
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-              <div className="space-y-2">
-                <p className="text-muted-foreground text-[10px] font-semibold uppercase tracking-wide">
-                  thumbnail_{selectedRow.index}
-                </p>
-                {thumbEntry?.driveFileId ? (
-                  <img
-                    src={driveThumbnailUrl(thumbEntry.driveFileId)}
-                    alt=""
-                    className="border-border bg-muted/20 max-w-full rounded-xl border object-cover"
-                  />
-                ) : (
-                  <p className="text-muted-foreground text-sm">
-                    Waiting for editor to upload a thumbnail file.
-                  </p>
-                )}
-              </div>
-            </div>
+            <DeliverableVideoThumbnailTitleBlock
+              theme={theme}
+              videoDriveFileId={driveFileId}
+              fallbackVideoSrc={driveFileId ? undefined : SAMPLE_VIDEO_SRC}
+              videoFileName={fileName}
+              thumbnailDriveFileId={thumbEntry?.driveFileId}
+              thumbnailFileName={thumbEntry?.name}
+            />
           ) : (
             <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
               {history.length > 0 && (
@@ -261,6 +189,17 @@ export function SmmSmmObserverWorkspace({ batch, batchTickets, clientName, mode,
             </div>
           )}
         </div>
+
+        <DeliverableSidebarList
+          rows={rows.map((row) => ({
+            index: row.index,
+            label: rowHint(row),
+          }))}
+          selectedIndex={selectedRow?.index ?? null}
+          onSelect={setSelectedIndex}
+          heading={sidebarLabel}
+          variant="bordered"
+        />
       </div>
     </div>
   )
