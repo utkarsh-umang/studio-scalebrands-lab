@@ -197,6 +197,16 @@ export function ClientFinalVideoReviewModal({
           ) : null}
 
           <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden md:flex-row md:gap-4">
+            <DeliverableSidebarList
+              rows={rows.map((row) => ({
+                index: row.index,
+                label: row.entry?.name ?? row.ticket?.title ?? '—',
+                statusText: clientFinalRowStatus(row),
+                highlighted: row.ticket ? videoNeedsClientFinalReview(row.ticket) : false,
+              }))}
+              selectedIndex={selectedRow?.index ?? null}
+              onSelect={setSelectedIndex}
+            />
             <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden pr-1">
               {!selectedRow ? (
                 <p className="text-muted-foreground text-sm">Select a video.</p>
@@ -258,17 +268,6 @@ export function ClientFinalVideoReviewModal({
                 </div>
               )}
             </main>
-
-            <DeliverableSidebarList
-              rows={rows.map((row) => ({
-                index: row.index,
-                label: row.entry?.name ?? row.ticket?.title ?? '—',
-                statusText: clientFinalRowStatus(row),
-                highlighted: row.ticket ? videoNeedsClientFinalReview(row.ticket) : false,
-              }))}
-              selectedIndex={selectedRow?.index ?? null}
-              onSelect={setSelectedIndex}
-            />
           </div>
         </div>
       )}

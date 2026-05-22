@@ -109,7 +109,7 @@ export function SmmVideoQaWorkspace({
         <p className="text-muted-foreground text-sm">
           {layoutClientStyle
             ? 'Select a video.'
-            : 'Select a deliverable on the right.'}
+            : 'Select a deliverable on the left.'}
         </p>
       ) : !canAct ? (
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto">
@@ -210,8 +210,8 @@ export function SmmVideoQaWorkspace({
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden md:flex-row md:gap-4">
-        {mainColumn}
         {asideColumn}
+        {mainColumn}
       </div>
     </div>
   )

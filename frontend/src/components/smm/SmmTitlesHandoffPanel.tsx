@@ -45,6 +45,14 @@ export function SmmTitlesHandoffPanel({ batch, batchTickets, manifest }: Props) 
 
   return (
     <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col gap-4 overflow-y-auto md:flex-row md:gap-6 md:overflow-hidden">
+      <DeliverableSidebarList
+        rows={rows.map((row) => ({
+          index: row.index,
+          label: row.ticket?.editorPublishTitle ?? row.entry?.name ?? '—',
+        }))}
+        selectedIndex={selectedRow?.index ?? null}
+        onSelect={setSelectedIndex}
+      />
       <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto md:pr-1">
         {!selectedRow ? (
           <p className="text-muted-foreground text-sm">Select a slot on the left.</p>
@@ -70,15 +78,6 @@ export function SmmTitlesHandoffPanel({ batch, batchTickets, manifest }: Props) 
           </div>
         )}
       </div>
-
-      <DeliverableSidebarList
-        rows={rows.map((row) => ({
-          index: row.index,
-          label: row.ticket?.editorPublishTitle ?? row.entry?.name ?? '—',
-        }))}
-        selectedIndex={selectedRow?.index ?? null}
-        onSelect={setSelectedIndex}
-      />
     </div>
   )
 }

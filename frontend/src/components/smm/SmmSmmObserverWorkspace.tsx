@@ -141,6 +141,16 @@ export function SmmSmmObserverWorkspace({ batch, batchTickets, clientName, mode,
       </p>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden md:flex-row md:gap-4">
+        <DeliverableSidebarList
+          rows={rows.map((row) => ({
+            index: row.index,
+            label: rowHint(row),
+          }))}
+          selectedIndex={selectedRow?.index ?? null}
+          onSelect={setSelectedIndex}
+          heading={sidebarLabel}
+          variant="bordered"
+        />
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto md:overflow-hidden">
           {!selectedRow ? (
             <p className="text-muted-foreground text-sm">Select a video on the left.</p>
@@ -189,17 +199,6 @@ export function SmmSmmObserverWorkspace({ batch, batchTickets, clientName, mode,
             </div>
           )}
         </div>
-
-        <DeliverableSidebarList
-          rows={rows.map((row) => ({
-            index: row.index,
-            label: rowHint(row),
-          }))}
-          selectedIndex={selectedRow?.index ?? null}
-          onSelect={setSelectedIndex}
-          heading={sidebarLabel}
-          variant="bordered"
-        />
       </div>
     </div>
   )

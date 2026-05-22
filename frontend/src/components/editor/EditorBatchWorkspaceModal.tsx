@@ -306,19 +306,6 @@ export function EditorBatchWorkspaceModal({ batch, clientName, open, onClose }: 
               Finish the cut on Drive, then resubmit. Prior comments are archived as resolved.
             </p>
             <div className="flex min-h-0 flex-col gap-3 md:flex-row md:gap-4">
-              <div className="min-h-0 flex-1">
-                {selectedQaTicket ? (
-                  <EditorQaFixPanel
-                    key={selectedQaTicket.id}
-                    batch={batch}
-                    clientName={clientName}
-                    ticket={selectedQaTicket}
-                    fallbackVideoSrc={SAMPLE_VIDEO_SRC}
-                  />
-                ) : (
-                  <p className="text-muted-foreground text-sm">Select a video on the right.</p>
-                )}
-              </div>
               <DeliverableSidebarList
                 rows={qaFixTickets.map((t) => ({
                   index: deliverableIndexForTicket(t),
@@ -331,6 +318,19 @@ export function EditorBatchWorkspaceModal({ batch, clientName, open, onClose }: 
                 selectedIndex={resolvedQaIndex}
                 onSelect={setActiveQaIndex}
               />
+              <div className="min-h-0 flex-1">
+                {selectedQaTicket ? (
+                  <EditorQaFixPanel
+                    key={selectedQaTicket.id}
+                    batch={batch}
+                    clientName={clientName}
+                    ticket={selectedQaTicket}
+                    fallbackVideoSrc={SAMPLE_VIDEO_SRC}
+                  />
+                ) : (
+                  <p className="text-muted-foreground text-sm">Select a video on the left.</p>
+                )}
+              </div>
             </div>
           </section>
         ) : null}
@@ -350,6 +350,14 @@ export function EditorBatchWorkspaceModal({ batch, clientName, open, onClose }: 
             ) : (
               <>
                 <div className="flex min-h-0 flex-col gap-3 md:flex-row md:gap-4">
+                  <DeliverableSidebarList
+                    rows={thumbWorkTickets.map((t) => ({
+                      index: deliverableIndexForTicket(t),
+                      label: t.title,
+                    }))}
+                    selectedIndex={activeThumbIndex}
+                    onSelect={setThumbPick}
+                  />
                   <div className="min-h-0 flex-1 space-y-3">
                     {selectedThumbTicket ? (
                       <DeliverableVideoThumbnailTitleBlock
@@ -372,17 +380,9 @@ export function EditorBatchWorkspaceModal({ batch, clientName, open, onClose }: 
                         displayVideoTitle={selectedThumbTicket.title}
                       />
                     ) : (
-                      <p className="text-muted-foreground text-sm">Select a video on the right.</p>
+                      <p className="text-muted-foreground text-sm">Select a video on the left.</p>
                     )}
                   </div>
-                  <DeliverableSidebarList
-                    rows={thumbWorkTickets.map((t) => ({
-                      index: deliverableIndexForTicket(t),
-                      label: t.title,
-                    }))}
-                    selectedIndex={activeThumbIndex}
-                    onSelect={setThumbPick}
-                  />
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <button
@@ -417,6 +417,16 @@ export function EditorBatchWorkspaceModal({ batch, clientName, open, onClose }: 
               to your SMM for scheduling.
             </p>
             <div className="flex min-h-0 flex-col gap-3 md:flex-row md:gap-4">
+              <DeliverableSidebarList
+                rows={titleWorkTickets.map((t) => ({
+                  index: deliverableIndexForTicket(t),
+                  label: titleDrafts[t.id]?.trim() || t.title,
+                  statusText: titleDrafts[t.id]?.trim() ? 'Draft ready' : 'Needs title',
+                  highlighted: !titleDrafts[t.id]?.trim(),
+                }))}
+                selectedIndex={resolvedTitleIndex}
+                onSelect={setActiveTitleIndex}
+              />
               <div className="min-h-0 flex-1 space-y-3">
                 {selectedTitleTicket ? (
                   <>
@@ -472,19 +482,9 @@ export function EditorBatchWorkspaceModal({ batch, clientName, open, onClose }: 
                     </button>
                   </>
                 ) : (
-                  <p className="text-muted-foreground text-sm">Select a video on the right.</p>
+                  <p className="text-muted-foreground text-sm">Select a video on the left.</p>
                 )}
               </div>
-              <DeliverableSidebarList
-                rows={titleWorkTickets.map((t) => ({
-                  index: deliverableIndexForTicket(t),
-                  label: titleDrafts[t.id]?.trim() || t.title,
-                  statusText: titleDrafts[t.id]?.trim() ? 'Draft ready' : 'Needs title',
-                  highlighted: !titleDrafts[t.id]?.trim(),
-                }))}
-                selectedIndex={resolvedTitleIndex}
-                onSelect={setActiveTitleIndex}
-              />
             </div>
           </section>
         ) : null}

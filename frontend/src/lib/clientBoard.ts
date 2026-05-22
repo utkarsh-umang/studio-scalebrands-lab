@@ -94,6 +94,9 @@ export function videoNeedsClientThumbnailReview(video: AdminVideoTicket): boolea
 export function batchNeedsClientIntake(batch: AdminBatchFolder): boolean {
   if (batch.status !== 'active') return false
   if (!batch.intakePath) return true
+  // clipReviewPhase is set the moment intake is submitted, so any value means the
+  // client already completed intake even if sourceMediaUrl is absent in mock data.
+  if (batch.clipReviewPhase) return false
   if (batch.intakePath === 'source_media') {
     return !batch.sourceMediaUrl?.trim()
   }
