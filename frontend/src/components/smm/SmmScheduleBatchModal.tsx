@@ -27,7 +27,7 @@ export function SmmScheduleBatchModal({
   onClose,
 }: Props) {
   const { theme } = useTheme()
-  const { scheduleBatch } = useAdminWorkspace()
+  const { scheduleBatch, smmFinalizeBatchPublish } = useAdminWorkspace()
 
   const schedulingVideos = useMemo(
     () => videos.filter((v) => v.owner === 'scheduling'),
@@ -94,6 +94,7 @@ export function SmmScheduleBatchModal({
         publishLink: r.publishLink.trim() || undefined,
       })),
     })
+    smmFinalizeBatchPublish(batch.id)
     onClose()
   }
 

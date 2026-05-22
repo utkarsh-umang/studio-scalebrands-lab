@@ -1,9 +1,6 @@
 import { Folder, FolderOpen } from 'lucide-react'
 import type { AdminBatchFolder } from '@mockData/index'
-import {
-  batchNeedsSmmFindClips,
-  smmBatchCardSubtitle,
-} from '@/lib/smmBoard'
+import { smmBatchFolderHint } from '@/lib/smmBoard'
 import type { AdminVideoTicket } from '@mockData/index'
 import { useTheme } from '@/theme'
 
@@ -18,9 +15,8 @@ function batchSubtitle(
   batch: AdminBatchFolder,
   videos: AdminVideoTicket[],
 ): string {
-  if (batchNeedsSmmFindClips(batch)) return 'Find clips from raw footage'
   if (batch.status === 'completed') return 'Completed'
-  return smmBatchCardSubtitle(batch, videos)
+  return smmBatchFolderHint(batch, videos)
 }
 
 export function SmmBatchFolderRow({

@@ -3,14 +3,15 @@ import { ExternalLink } from 'lucide-react'
 import type { AdminBatchFolder, AdminVideoTicket } from '@mockData/index'
 import { StudioModalShell } from '@/components/StudioModalShell'
 import {
+  DeliverableReadinessStrip,
+  DeliverableSummaryPanel,
   DriveSyncButton,
   DriveSyncMeta,
-  QaCommentWorkspace,
 } from '@/components/path-b'
 import { useDriveManifestSync } from '@/hooks/useDriveManifestSync'
-import { deliverableIndexForTicket, getMediaEntry } from '@/lib/driveMedia'
-import { activeCommentsForSlot } from '@/lib/qaComments'
-import { videoNeedsSmmQa } from '@/lib/smmBoard'
+import { deliverableIndexForTicket } from '@/lib/driveMedia'
+import { readinessForDeliverable } from '@/lib/pathBDeliverables'
+import { smmNeedsAssetPrep } from '@/lib/smmBoard'
 import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
 
 type Props = {
@@ -21,41 +22,35 @@ type Props = {
   onClose: () => void
 }
 
-export function SmmVideoQaModal({
+export function SmmProductionModal({
   batch,
   clientName,
   ticket,
   open,
   onClose,
 }: Props) {
-  const { submitSmmQaReview, appendSmmQaComment } = useAdminWorkspace()
+  const { saveVideoPublishTitle, sendEditorDeliverableToSmmQa } = useAdminWorkspace()
   const { manifest, syncing, error, sync } = useDriveManifestSync(
     batch.id,
     open ? ticket.id : undefined,
   )
 
   const index = deliverableIndexForTicket(ticket)
-  const canAct = videoNeedsSmmQa(ticket)
-  const comments = useMemo(
-    () => activeCommentsForSlot(ticket.qaCommentHistory, 'video'),
-    [ticket.qaCommentHistory],
+  const readiness = useMemo(
+    () => readinessForDeliverable(batch.id, index, ticket, manifest),
+    [batch.id, index, ticket, manifest],
   )
-
-  const videoEntry =
-    manifest?.videos.find((e) => e.index === index) ??
-    getMediaEntry(batch.id, 'videos', index)
-  const thumbEntry =
-    manifest?.thumbnails.find((e) => e.index === index) ??
-    getMediaEntry(batch.id, 'thumbnails', index)
-  const folderUrl = batch.editorDeliverablesDriveUrl?.trim() ?? ''
 
   if (!open) return null
 
+  const canReturnToQa = smmNeedsAssetPrep(ticket, batch) && readiness.allReady
+  const folderUrl = batch.editorDeliverablesDriveUrl?.trim() ?? ''
+
   return (
     <StudioModalShell
-      title="SMM QA"
-      subtitle={`${clientName} · #${index} · ${ticket.title}`}
-      titleId="smm-video-qa-title"
+      title={ticket.title}
+      subtitle={`${clientName} · #${index} · Thumbnail & title`}
+      titleId="smm-production-title"
       onClose={onClose}
       headerAside={
         folderUrl ? (
@@ -80,34 +75,34 @@ export function SmmVideoQaModal({
       }
       headerMeta={<DriveSyncMeta manifest={manifest} errorMessage={error} />}
     >
-      {!canAct ? (
-        <p className="text-muted-foreground text-sm">
-          This deliverable is not in SMM QA right now. Close and pick another card.
-        </p>
-      ) : (
-        <QaCommentWorkspace
-          role="smm"
-          videoTitle={ticket.title}
+      <div className="space-y-4">
+        <DeliverableSummaryPanel
+          batch={batch}
           deliverableIndex={index}
-          comments={comments}
-          videoDriveFileId={videoEntry?.driveFileId}
-          videoFileName={videoEntry?.name}
-          thumbnailDriveFileId={thumbEntry?.driveFileId}
-          thumbnailFileName={thumbEntry?.name}
-          displayVideoTitle={ticket.editorPublishTitle ?? ticket.title}
-          onAddComment={(body) => {
-            appendSmmQaComment(ticket.id, body)
+          ticket={ticket}
+          manifest={manifest}
+          titleEditable
+          onSaveTitle={(title) => {
+            saveVideoPublishTitle(ticket.id, title)
           }}
-          onApprove={() => {
-            submitSmmQaReview(ticket.id, { action: 'approve' })
-            onClose()
+          onSyncDrive={() => {
+            void sync()
           }}
-          onRequestChanges={(body) => {
-            submitSmmQaReview(ticket.id, { action: 'send_back', commentBody: body })
+          driveSyncing={syncing}
+        />
+
+        <DeliverableReadinessStrip
+          videoReady={readiness.videoReady}
+          thumbnailReady={readiness.thumbnailReady}
+          titleReady={readiness.titleReady}
+          ctaLabel="Return to SMM QA"
+          ctaDisabled={!canReturnToQa}
+          onCta={() => {
+            sendEditorDeliverableToSmmQa(ticket.id)
             onClose()
           }}
         />
-      )}
+      </div>
     </StudioModalShell>
   )
 }

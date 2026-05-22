@@ -1,88 +1,4 @@
-import type {
-  AdminBatchFolder,
-  AdminVideoTicket,
-  EditorWorkflowPhase,
-  VideoPipelineOwner,
-} from '@mockData/index'
-
-/** Editor deliverables board — three workflow columns. */
-export type EditorBoardColumn =
-  | 'videos_created'
-  | 'thumbnails_created'
-  | 'video_titles'
-
-export const EDITOR_BOARD_COLUMNS: {
-  id: EditorBoardColumn
-  label: string
-  hint: string
-}[] = [
-  {
-    id: 'videos_created',
-    label: 'Videos created',
-    hint: 'Upload finals to Drive · share link for QA',
-  },
-  {
-    id: 'thumbnails_created',
-    label: 'Thumbnails created',
-    hint: 'Thumbnails folder · client QA',
-  },
-  {
-    id: 'video_titles',
-    label: 'Video titles',
-    hint: 'Set titles · hand folder to SMM',
-  },
-]
-
-export type EditorWaitingOn = 'smm' | 'client'
-
-export type EditorVideoCard = AdminVideoTicket & {
-  editorColumn: EditorBoardColumn
-  waitingOn: EditorWaitingOn | null
-}
-
-function phaseToColumn(phase: EditorWorkflowPhase): EditorBoardColumn {
-  switch (phase) {
-    case 'videos':
-      return 'videos_created'
-    case 'thumbnails':
-      return 'thumbnails_created'
-    case 'titles':
-    case 'handed_off':
-      return 'video_titles'
-    default: {
-      const _exhaustive: never = phase
-      return _exhaustive
-    }
-  }
-}
-
-function waitingOnFromOwner(owner: VideoPipelineOwner): EditorWaitingOn | null {
-  if (owner === 'smm') return 'smm'
-  if (owner === 'client') return 'client'
-  return null
-}
-
-export function deriveEditorColumn(
-  video: AdminVideoTicket,
-): EditorBoardColumn {
-  const phase = video.editorPhase ?? 'videos'
-  if (phase === 'handed_off') return 'video_titles'
-  return phaseToColumn(phase)
-}
-
-export function toEditorVideoCard(ticket: AdminVideoTicket): EditorVideoCard {
-  const editorColumn = deriveEditorColumn(ticket)
-  const waitingOn =
-    ticket.editorPhase === 'handed_off'
-      ? null
-      : waitingOnFromOwner(ticket.owner)
-  return {
-    ...ticket,
-    editorColumn,
-    waitingOn:
-      editorColumn && waitingOn && ticket.owner !== 'editor' ? waitingOn : null,
-  }
-}
+import type { AdminBatchFolder, AdminVideoTicket } from '@mockData/index'
 
 /** Batch is on the editor's desk (clips approved or client sent clips folder). */
 export function batchReadyForEditorWork(batch: AdminBatchFolder): boolean {
@@ -99,53 +15,101 @@ export function batchAwaitingClips(batch: AdminBatchFolder): boolean {
   return batch.clipReviewPhase !== 'approved'
 }
 
-/** Hide clip-identification tickets from the deliverables board. */
+export type EditorBatchKanbanPhase = 'awaiting_clips' | 'pre_split' | 'post_split'
+
+export function editorBatchKanbanPhase(batch: AdminBatchFolder): EditorBatchKanbanPhase {
+  if (batchAwaitingClips(batch)) return 'awaiting_clips'
+  if (!batch.editorDeliverablesDriveUrl?.trim()) return 'pre_split'
+  return 'post_split'
+}
+
+function isPreSplitGateTicket(video: AdminVideoTicket): boolean {
+  return video.deliverableIndex == null || video.deliverableIndex < 1
+}
+
+/** Path B editor kanban columns */
+export type EditorPathBColumn = 'setup' | 'production' | 'in_qa' | 'done'
+
+export const EDITOR_PATH_B_COLUMNS: {
+  id: EditorPathBColumn
+  label: string
+  hint: string
+}[] = [
+  { id: 'setup', label: 'Setup', hint: 'Clips + deliverables folder' },
+  { id: 'production', label: 'Production', hint: 'Upload video, thumb, title' },
+  { id: 'in_qa', label: 'In QA', hint: 'SMM or client review' },
+  { id: 'done', label: 'Done', hint: 'Scheduled' },
+]
+
+export function deriveEditorPathBColumn(
+  video: AdminVideoTicket,
+  batch: AdminBatchFolder,
+): EditorPathBColumn {
+  const phase = editorBatchKanbanPhase(batch)
+  if (phase === 'pre_split') return 'setup'
+  if (video.owner === 'done' || video.owner === 'scheduling') return 'done'
+  if (videoEditorQaReturn(video)) return 'production'
+  if (video.owner === 'editor') {
+    const stage = video.stageLabel.toLowerCase()
+    if (stage.includes('production') || stage.includes('thumbnail') || stage.includes('title')) {
+      return 'production'
+    }
+    return 'production'
+  }
+  if (video.owner === 'smm' || video.owner === 'client') return 'in_qa'
+  return 'production'
+}
+
+export type EditorPathBVideoCard = AdminVideoTicket & {
+  pathBColumn: EditorPathBColumn
+}
+
+export function toEditorPathBVideoCard(
+  ticket: AdminVideoTicket,
+  batch: AdminBatchFolder,
+): EditorPathBVideoCard {
+  return {
+    ...ticket,
+    pathBColumn: deriveEditorPathBColumn(ticket, batch),
+  }
+}
+
+/**
+ * Path B kanban rules — awaiting clips: 0 cards; pre-split: one gate; post-split: n indexed cards.
+ */
 export function filterVideosForEditorKanban(
+  batch: AdminBatchFolder,
   videos: AdminVideoTicket[],
 ): AdminVideoTicket[] {
-  return videos.filter((v) => {
-    const stage = v.stageLabel.toLowerCase()
-    if (stage.includes('clip identification')) return false
-    if (stage.includes('clip review') && !v.editorPhase) return false
-    if (v.editorPhase === 'handed_off') return false
-    return (
-      v.editorPhase != null ||
-      v.owner === 'editor' ||
-      (v.owner === 'smm' && stage.includes('qa')) ||
-      (v.owner === 'client' &&
-        (stage.includes('final') || stage.includes('thumbnail')))
-    )
-  })
+  const batchVideos = videos.filter((v) => v.batchId === batch.id)
+  const phase = editorBatchKanbanPhase(batch)
+
+  if (phase === 'awaiting_clips') return []
+
+  if (phase === 'pre_split') {
+    return batchVideos
+      .filter(isPreSplitGateTicket)
+      .filter((v) => !v.stageLabel.toLowerCase().includes('clip review'))
+  }
+
+  return batchVideos.filter(
+    (v) => v.deliverableIndex != null && v.deliverableIndex > 0,
+  )
 }
 
 export function videoNeedsEditorVideosSubmit(
   batch: AdminBatchFolder,
-  videos: AdminVideoTicket[],
+  _videos?: AdminVideoTicket[],
 ): boolean {
   if (!batchReadyForEditorWork(batch)) return false
-  if (batch.editorDeliverablesDriveUrl?.trim()) return false
-  const batchVideos = videos.filter((v) => v.batchId === batch.id)
-  const work = filterVideosForEditorKanban(batchVideos)
-  if (work.length === 0) return true
-  return work.some((v) => (v.editorPhase ?? 'videos') === 'videos')
+  return !batch.editorDeliverablesDriveUrl?.trim()
 }
 
-export function videoNeedsEditorThumbnailsSubmit(
-  video: AdminVideoTicket,
-): boolean {
-  return (
-    video.editorPhase === 'thumbnails' &&
-    video.owner === 'editor' &&
-    !video.stageLabel.toLowerCase().includes('thumbnail review')
-  )
-}
-
-export function videoNeedsEditorTitleSubmit(video: AdminVideoTicket): boolean {
-  return (
-    video.editorPhase === 'titles' &&
-    video.owner === 'editor' &&
-    !video.editorPublishTitle?.trim()
-  )
+export function editorNeedsProductionWork(video: AdminVideoTicket): boolean {
+  if (video.owner !== 'editor') return false
+  if (videoEditorQaReturn(video)) return true
+  const stage = video.stageLabel.toLowerCase()
+  return stage.includes('production') || stage.includes('thumbnail') || stage.includes('title')
 }
 
 export function videoEditorQaReturn(video: AdminVideoTicket): boolean {
@@ -156,30 +120,12 @@ export function videoEditorQaReturn(video: AdminVideoTicket): boolean {
   )
 }
 
-export function editorStageHint(video: EditorVideoCard): string {
-  const stage = video.stageLabel.toLowerCase()
-  if (video.editorPhase === 'handed_off') return 'With SMM'
-  if (stage.includes('qa flagged')) return 'Fix QA flags'
-  if (stage.includes('smm qa')) return 'SMM reviewing video'
-  if (stage.includes('final')) return 'Client reviewing video'
-  if (stage.includes('thumbnail review')) return 'Client reviewing thumb'
-  if (stage.includes('thumbnail')) return 'Upload thumbnails'
-  if (stage.includes('title')) return 'Set publish title'
-  if (video.waitingOn === 'smm') return 'Waiting on SMM'
-  if (video.waitingOn === 'client') return 'Waiting on client'
-  return 'Your turn'
-}
-
 export type EditorAttentionItem = {
   batchId: string
   batchTitle: string
   clientName: string
-  kind:
-    | 'share_videos_drive'
-    | 'qa_fix'
-    | 'thumbnails_ready'
-    | 'set_title'
-  /** Number of videos needing this action in the batch (omitted for share_videos_drive). */
+  kind: 'submit_deliverables' | 'qa_fix' | 'production' | 'pre_split_gate'
+  videoId?: string
   count?: number
 }
 
@@ -195,26 +141,42 @@ export function listEditorAttention(
     const clientName = clientNameById.get(batch.clientId) ?? 'Client'
     const batchVideos = videos.filter((v) => v.batchId === batch.id)
 
-    if (videoNeedsEditorVideosSubmit(batch, batchVideos)) {
-      items.push({ batchId: batch.id, batchTitle: batch.title, clientName, kind: 'share_videos_drive' })
+    const phase = editorBatchKanbanPhase(batch)
+
+    if (phase === 'pre_split' && videoNeedsEditorVideosSubmit(batch)) {
+      const gate = filterVideosForEditorKanban(batch, batchVideos)[0]
+      items.push({
+        batchId: batch.id,
+        batchTitle: batch.title,
+        clientName,
+        kind: gate ? 'pre_split_gate' : 'submit_deliverables',
+        videoId: gate?.id,
+      })
       continue
     }
 
-    const work = filterVideosForEditorKanban(batchVideos)
+    const work = filterVideosForEditorKanban(batch, batchVideos)
 
-    const qaCount = work.filter(videoEditorQaReturn).length
-    if (qaCount > 0) {
-      items.push({ batchId: batch.id, batchTitle: batch.title, clientName, kind: 'qa_fix', count: qaCount })
+    const qaTickets = work.filter(videoEditorQaReturn)
+    for (const t of qaTickets) {
+      items.push({
+        batchId: batch.id,
+        batchTitle: batch.title,
+        clientName,
+        kind: 'qa_fix',
+        videoId: t.id,
+      })
     }
 
-    const thumbCount = work.filter(videoNeedsEditorThumbnailsSubmit).length
-    if (thumbCount > 0) {
-      items.push({ batchId: batch.id, batchTitle: batch.title, clientName, kind: 'thumbnails_ready', count: thumbCount })
-    }
-
-    const titleCount = work.filter(videoNeedsEditorTitleSubmit).length
-    if (titleCount > 0) {
-      items.push({ batchId: batch.id, batchTitle: batch.title, clientName, kind: 'set_title', count: titleCount })
+    const prodCount = work.filter(editorNeedsProductionWork).length
+    if (prodCount > 0) {
+      items.push({
+        batchId: batch.id,
+        batchTitle: batch.title,
+        clientName,
+        kind: 'production',
+        count: prodCount,
+      })
     }
   }
 
@@ -228,13 +190,9 @@ export function batchSubtitle(
   if (batchAwaitingClips(batch)) return 'Waiting — clips not approved yet'
   if (!batchReadyForEditorWork(batch)) return 'Not ready for deliverables'
   if (videoNeedsEditorVideosSubmit(batch, videos)) return 'Share videos Drive link'
-  const work = filterVideosForEditorKanban(
-    videos.filter((v) => v.batchId === batch.id),
-  )
-  const titles = work.filter((v) => v.editorPhase === 'titles').length
-  const thumbs = work.filter((v) => v.editorPhase === 'thumbnails').length
-  if (titles > 0) return `${titles} need title${titles === 1 ? '' : 's'}`
-  if (thumbs > 0) return `${thumbs} in thumbnails`
+  const work = filterVideosForEditorKanban(batch, videos)
+  const prod = work.filter(editorNeedsProductionWork).length
+  if (prod > 0) return `${prod} in production`
   return `Updated ${batch.updatedAt.slice(0, 10)}`
 }
 
@@ -249,9 +207,8 @@ export function editorBatchPhaseLabel(
   if (!batchReadyForEditorWork(batch)) return 'Not ready'
   if (!batch.editorDeliverablesDriveUrl?.trim())
     return 'Your turn — submit deliverables folder'
-  if (vs.some(videoEditorQaReturn)) return 'Your turn — video QA fixes'
-  if (vs.some(videoNeedsEditorThumbnailsSubmit)) return 'Your turn — thumbnails'
-  if (vs.some(videoNeedsEditorTitleSubmit)) return 'Your turn — publish titles'
+  if (vs.some(videoEditorQaReturn)) return 'Your turn — QA fixes'
+  if (vs.some(editorNeedsProductionWork)) return 'Your turn — production'
   if (vs.length > 0 && vs.every((v) => v.owner !== 'editor'))
     return 'Waiting on SMM or client'
   return 'In progress'

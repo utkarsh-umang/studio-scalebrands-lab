@@ -1,10 +1,54 @@
-import { CalendarClock, ScanEye, Scissors } from 'lucide-react'
-import type { SmmBatchAttention } from '@/lib/smmBoard'
+import { CalendarClock, FolderOpen, MessageSquareWarning, ScanEye, Scissors } from 'lucide-react'
+import type { SmmAttentionItem } from '@/lib/smmBoard'
 import { useTheme } from '@/theme'
 
 type Props = {
-  items: SmmBatchAttention[]
-  onOpen: (item: SmmBatchAttention) => void
+  items: SmmAttentionItem[]
+  onOpen: (item: SmmAttentionItem) => void
+}
+
+function itemLabel(item: SmmAttentionItem): string {
+  switch (item.kind) {
+    case 'find_clips':
+      return 'Find clips'
+    case 'view_clips':
+      return 'View clips folder'
+    case 'video_qa':
+      return item.count && item.count > 1 ? `Video QA (${item.count})` : 'Video QA'
+    case 'client_revision':
+      return item.count && item.count > 1
+        ? `Client revisions (${item.count})`
+        : 'Client revisions'
+    case 'schedule':
+      return 'Schedule batch'
+    default:
+      return 'Action needed'
+  }
+}
+
+function ItemIcon({
+  kind,
+  color,
+}: {
+  kind: SmmAttentionItem['kind']
+  color: string
+}) {
+  const className = 'size-3.5 shrink-0'
+  const style = { color }
+  switch (kind) {
+    case 'find_clips':
+      return <Scissors className={className} style={style} aria-hidden />
+    case 'view_clips':
+      return <FolderOpen className={className} style={style} aria-hidden />
+    case 'video_qa':
+      return <ScanEye className={className} style={style} aria-hidden />
+    case 'client_revision':
+      return <MessageSquareWarning className={className} style={style} aria-hidden />
+    case 'schedule':
+      return <CalendarClock className={className} style={style} aria-hidden />
+    default:
+      return null
+  }
 }
 
 export function SmmAttentionStrip({ items, onOpen }: Props) {
@@ -22,7 +66,7 @@ export function SmmAttentionStrip({ items, onOpen }: Props) {
       </p>
       <ul className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         {items.map((item) => (
-          <li key={`${item.batchId}-${item.kind}`}>
+          <li key={`${item.batchId}-${item.kind}-${item.videoId ?? ''}`}>
             <button
               type="button"
               onClick={() => {
@@ -30,36 +74,13 @@ export function SmmAttentionStrip({ items, onOpen }: Props) {
               }}
               className="border-border hover:border-primary/35 bg-muted/30 flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left text-xs transition-colors sm:w-auto"
             >
-              {item.kind === 'find_clips' ? (
-                <Scissors
-                  className="size-3.5 shrink-0"
-                  style={{ color: theme.colors.primary }}
-                  aria-hidden
-                />
-              ) : item.kind === 'video_qa' ? (
-                <ScanEye
-                  className="size-3.5 shrink-0"
-                  style={{ color: theme.colors.primary }}
-                  aria-hidden
-                />
-              ) : (
-                <CalendarClock
-                  className="size-3.5 shrink-0"
-                  style={{ color: theme.colors.primary }}
-                  aria-hidden
-                />
-              )}
+              <ItemIcon kind={item.kind} color={theme.colors.primary} />
               <span className="min-w-0">
                 <span className="text-foreground block font-semibold">
-                  {item.kind === 'find_clips'
-                    ? 'Find clips'
-                    : item.kind === 'video_qa'
-                      ? 'Video QA'
-                      : 'Mark published'}
+                  {itemLabel(item)}
                 </span>
                 <span className="text-muted-foreground block truncate text-[10px]">
-                  {item.clientName} ·{' '}
-                  {item.batchTitle}
+                  {item.clientName} · {item.batchTitle}
                 </span>
               </span>
             </button>

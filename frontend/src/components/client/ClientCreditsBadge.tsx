@@ -3,10 +3,12 @@ import { useTheme } from '@/theme'
 
 type Props = {
   credits: number
+  /** Sum of creditCost on active, not-yet-debited batches */
+  reserved?: number
 }
 
 /** Compact credits pill for the page title row. */
-export function ClientCreditsBadge({ credits }: Props) {
+export function ClientCreditsBadge({ credits, reserved = 0 }: Props) {
   const { theme } = useTheme()
   const primary = theme.colors.primary
 
@@ -29,6 +31,11 @@ export function ClientCreditsBadge({ credits }: Props) {
         >
           {credits}
         </p>
+        {reserved > 0 ? (
+          <p className="text-muted-foreground mt-0.5 text-[10px] leading-snug">
+            {reserved} reserved across active batches
+          </p>
+        ) : null}
       </div>
     </div>
   )

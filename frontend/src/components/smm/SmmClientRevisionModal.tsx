@@ -2,15 +2,11 @@ import { useMemo } from 'react'
 import { ExternalLink } from 'lucide-react'
 import type { AdminBatchFolder, AdminVideoTicket } from '@mockData/index'
 import { StudioModalShell } from '@/components/StudioModalShell'
-import {
-  DriveSyncButton,
-  DriveSyncMeta,
-  QaCommentWorkspace,
-} from '@/components/path-b'
+import { DeliverableSummaryPanel, DriveSyncButton, DriveSyncMeta } from '@/components/path-b'
+import { SmmClientRevisionPanel } from '@/components/smm/SmmClientRevisionPanel'
 import { useDriveManifestSync } from '@/hooks/useDriveManifestSync'
-import { deliverableIndexForTicket, getMediaEntry } from '@/lib/driveMedia'
-import { activeCommentsForSlot } from '@/lib/qaComments'
-import { videoNeedsSmmQa } from '@/lib/smmBoard'
+import { deliverableIndexForTicket } from '@/lib/driveMedia'
+import { videoNeedsSmmClientRevision } from '@/lib/smmBoard'
 import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
 
 type Props = {
@@ -19,43 +15,41 @@ type Props = {
   ticket: AdminVideoTicket
   open: boolean
   onClose: () => void
+  onOpenProduction: () => void
 }
 
-export function SmmVideoQaModal({
+export function SmmClientRevisionModal({
   batch,
   clientName,
   ticket,
   open,
   onClose,
+  onOpenProduction,
 }: Props) {
-  const { submitSmmQaReview, appendSmmQaComment } = useAdminWorkspace()
+  const { smmTriageClientRevision } = useAdminWorkspace()
   const { manifest, syncing, error, sync } = useDriveManifestSync(
     batch.id,
     open ? ticket.id : undefined,
   )
 
   const index = deliverableIndexForTicket(ticket)
-  const canAct = videoNeedsSmmQa(ticket)
-  const comments = useMemo(
-    () => activeCommentsForSlot(ticket.qaCommentHistory, 'video'),
+  const clientComments = useMemo(
+    () =>
+      (ticket.qaCommentHistory ?? []).filter(
+        (c) => c.authorRole === 'client' && !c.deprecated,
+      ),
     [ticket.qaCommentHistory],
   )
 
-  const videoEntry =
-    manifest?.videos.find((e) => e.index === index) ??
-    getMediaEntry(batch.id, 'videos', index)
-  const thumbEntry =
-    manifest?.thumbnails.find((e) => e.index === index) ??
-    getMediaEntry(batch.id, 'thumbnails', index)
   const folderUrl = batch.editorDeliverablesDriveUrl?.trim() ?? ''
 
   if (!open) return null
 
   return (
     <StudioModalShell
-      title="SMM QA"
+      title="Client revisions"
       subtitle={`${clientName} · #${index} · ${ticket.title}`}
-      titleId="smm-video-qa-title"
+      titleId="smm-client-revision-title"
       onClose={onClose}
       headerAside={
         folderUrl ? (
@@ -80,33 +74,37 @@ export function SmmVideoQaModal({
       }
       headerMeta={<DriveSyncMeta manifest={manifest} errorMessage={error} />}
     >
-      {!canAct ? (
+      {!videoNeedsSmmClientRevision(ticket) ? (
         <p className="text-muted-foreground text-sm">
-          This deliverable is not in SMM QA right now. Close and pick another card.
+          This deliverable is not waiting on client-revision triage.
         </p>
       ) : (
-        <QaCommentWorkspace
-          role="smm"
-          videoTitle={ticket.title}
-          deliverableIndex={index}
-          comments={comments}
-          videoDriveFileId={videoEntry?.driveFileId}
-          videoFileName={videoEntry?.name}
-          thumbnailDriveFileId={thumbEntry?.driveFileId}
-          thumbnailFileName={thumbEntry?.name}
-          displayVideoTitle={ticket.editorPublishTitle ?? ticket.title}
-          onAddComment={(body) => {
-            appendSmmQaComment(ticket.id, body)
-          }}
-          onApprove={() => {
-            submitSmmQaReview(ticket.id, { action: 'approve' })
-            onClose()
-          }}
-          onRequestChanges={(body) => {
-            submitSmmQaReview(ticket.id, { action: 'send_back', commentBody: body })
-            onClose()
-          }}
-        />
+        <div className="space-y-5">
+          <DeliverableSummaryPanel
+            batch={batch}
+            deliverableIndex={index}
+            ticket={ticket}
+            manifest={manifest}
+            titleEditable={false}
+            onSyncDrive={() => {
+              void sync()
+            }}
+            driveSyncing={syncing}
+          />
+          <SmmClientRevisionPanel
+            ticket={ticket}
+            clientComments={clientComments}
+            onRouteToEditor={() => {
+              smmTriageClientRevision(ticket.id, 'editor')
+              onClose()
+            }}
+            onUpdateAssets={() => {
+              smmTriageClientRevision(ticket.id, 'smm_assets')
+              onClose()
+              onOpenProduction()
+            }}
+          />
+        </div>
       )}
     </StudioModalShell>
   )

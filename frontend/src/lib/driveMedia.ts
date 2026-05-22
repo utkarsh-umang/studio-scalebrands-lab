@@ -30,6 +30,7 @@ const MANIFEST_ALIASES: Record<string, string> = {
   'b-pipeline': 'b-204',
   'b-schedule': 'b-204',
   'b-identifying': 'b-204',
+  'b-archive': 'b-204',
 }
 
 export function getManifestForBatch(batchId: string): BatchDriveManifest | undefined {

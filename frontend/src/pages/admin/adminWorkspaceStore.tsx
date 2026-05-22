@@ -31,6 +31,19 @@ import {
   appendClipRejectNote,
   buildQaCommentsFromFeedback,
 } from '@/lib/qaComments'
+import {
+  batchClipReviewPhaseAfterIntake,
+  batchDemoStageAfterClipApproval,
+  batchDemoStageAfterDeliverablesSplit,
+  batchDemoStageAfterIntake,
+  batchDemoStageAfterScheduleComplete,
+  batchDemoStageAfterSmmClipsFolder,
+  createClipReviewGateTicket,
+  createPreSplitGateTicket,
+  createSplitDeliverableTicket,
+  patchBatchDemoStage,
+  videoStateFromDemoStage,
+} from '@/lib/pathBStateMachine'
 
 type CreateBatchInput = {
   clientId: string
@@ -94,21 +107,30 @@ type AdminWorkspaceContextValue = {
     action: 'approve' | 'reject',
     opts?: { rejectNote?: string; feedback?: VideoReviewFeedback },
   ) => void
+  appendClientQaComment: (videoId: string, body: string) => void
   submitSmmClipsFolder: (batchId: string, clipsFolderUrl: string) => void
   submitSmmQaReview: (videoId: string, input: SubmitSmmQaInput) => void
+  appendSmmQaComment: (videoId: string, body: string) => void
+  smmTriageClientRevision: (
+    videoId: string,
+    route: 'editor' | 'smm_assets',
+  ) => void
   scheduleBatch: (batchId: string, input: ScheduleBatchInput) => void
   /** Moves `scheduling` → done if needed, then closes batch + debits credits when every deliverable is done. */
   smmFinalizeBatchPublish: (batchId: string) => void
   submitEditorVideosDrive: (batchId: string, driveUrl: string) => void
-  submitEditorThumbnailsForReview: (batchId: string) => void
-  submitEditorVideoTitle: (videoId: string, title: string) => void
+  sendEditorDeliverableToSmmQa: (videoId: string) => void
+  saveVideoPublishTitle: (videoId: string, title: string) => void
   resubmitEditorVideoQa: (videoId: string) => void
 }
 
 export type SubmitSmmQaInput = {
-  timestampFlags: { atSeconds: number; note: string }[]
-  generalNote: string
   action: 'approve' | 'send_back'
+  /** Path B QA workspace — plain-text send-back */
+  commentBody?: string
+  /** Legacy timestamp QA panel */
+  timestampFlags?: { atSeconds: number; note: string }[]
+  generalNote?: string
 }
 
 export type ScheduleBatchVideoInput = {
@@ -136,9 +158,7 @@ function staffName(list: StaffMember[], id: string) {
 function reviewKindFromStage(stageLabel: string): ClientReviewKind | null {
   const s = stageLabel.toLowerCase()
   if (s.includes('clip review')) return 'clip'
-  if (s.includes('idea')) return 'idea'
-  if (s.includes('text review')) return 'text'
-  if (s.includes('thumbnail review')) return 'thumbnail'
+  if (s.includes('client qa')) return 'final'
   if (s.includes('final')) return 'final'
   return null
 }
@@ -329,68 +349,63 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
     [],
   )
 
-  const assignBatchVideosToEditor = useCallback((batchId: string) => {
-    setVideos((prev) =>
-      prev.map((v) => {
-        if (v.batchId !== batchId) return v
-        if (v.stageLabel.toLowerCase().includes('clip review')) {
-          return {
-            ...v,
-            owner: 'editor' as const,
-            editorPhase: 'videos' as const,
-            stageLabel: 'Videos in progress',
-            deadlineRole: 'editor' as const,
-          }
-        }
-        return {
-          ...v,
-          owner: 'editor' as const,
-          editorPhase: 'videos' as const,
-          stageLabel:
-            v.stageLabel.toLowerCase().includes('editing') ||
-            v.stageLabel.toLowerCase().includes('clip identification')
-              ? 'Videos in progress'
-              : v.stageLabel,
-          deadlineRole: 'editor' as const,
-        }
-      }),
-    )
-  }, [])
-
   const submitBatchIntake = useCallback(
     (batchId: string, path: BatchIntakePath, url: string) => {
       const now = new Date().toISOString().slice(0, 10)
       const trimmed = url.trim()
       if (!trimmed) return
 
+      const batchSnapshot = batches.find((b) => b.id === batchId)
+      if (!batchSnapshot) return
+
+      const batchDemoStage = batchDemoStageAfterIntake(path)
+      const clipReviewPhase = batchClipReviewPhaseAfterIntake(path)
+
       setBatches((prev) =>
         prev.map((b) => {
           if (b.id !== batchId) return b
           if (path === 'clips_ready') {
-            return {
+            return patchBatchDemoStage(
+              {
+                ...b,
+                intakePath: path,
+                clipsFolderUrl: trimmed,
+                clipReviewPhase,
+                updatedAt: now,
+              },
+              batchDemoStage,
+            )
+          }
+          return patchBatchDemoStage(
+            {
               ...b,
               intakePath: path,
-              clipsFolderUrl: trimmed,
-              clipReviewPhase: 'approved',
+              sourceMediaUrl: trimmed,
+              footageUrl: trimmed,
+              clipReviewPhase,
               updatedAt: now,
-            }
-          }
-          return {
-            ...b,
-            intakePath: path,
-            sourceMediaUrl: trimmed,
-            footageUrl: trimmed,
-            clipReviewPhase: 'smm_identifying',
-            updatedAt: now,
-          }
+            },
+            batchDemoStage,
+          )
         }),
       )
 
       if (path === 'clips_ready') {
-        assignBatchVideosToEditor(batchId)
+        const gateId = `v-gate-${batchId}-${Date.now()}`
+        const gate = createPreSplitGateTicket(
+          { ...batchSnapshot, clipsFolderUrl: trimmed, clipReviewPhase: 'approved' },
+          gateId,
+          'clips_ready_intake',
+        )
+        setVideos((prev) => [
+          gate,
+          ...prev.filter((v) => v.batchId !== batchId),
+        ])
+      } else {
+        setVideos((prev) => prev.filter((v) => v.batchId !== batchId))
       }
     },
-    [assignBatchVideosToEditor],
+    [batches],
   )
 
   const approveBatchClips = useCallback(
@@ -398,42 +413,28 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
       const now = new Date().toISOString().slice(0, 10)
       const manifest = getManifestForBatch(batchId)
       const clipCount = manifest?.clips.length ?? 0
+      const gateState = videoStateFromDemoStage('pre_split_production')
 
       setBatches((prev) =>
         prev.map((b) =>
           b.id === batchId
-            ? {
-                ...b,
-                clipReviewPhase: 'approved' as const,
-                updatedAt: now,
-                ...(clipCount > 0 ? { videoCount: clipCount } : {}),
-              }
+            ? patchBatchDemoStage(
+                {
+                  ...b,
+                  clipReviewPhase: 'approved' as const,
+                  updatedAt: now,
+                  ...(clipCount > 0 ? { videoCount: clipCount } : {}),
+                },
+                batchDemoStageAfterClipApproval(),
+              )
             : b,
         ),
       )
       setVideos((prev) =>
         prev.map((v) => {
           if (v.batchId !== batchId) return v
-          if (v.id === clipReviewVideoId) {
-            return {
-              ...v,
-              owner: 'editor' as const,
-              editorPhase: 'videos' as const,
-              stageLabel: 'Videos in progress',
-              deadlineRole: 'editor' as const,
-            }
-          }
-          if (
-            v.stageLabel.toLowerCase().includes('clip identification') ||
-            v.stageLabel.toLowerCase().includes('clip review')
-          ) {
-            return {
-              ...v,
-              owner: 'editor' as const,
-              editorPhase: 'videos' as const,
-              stageLabel: 'Videos in progress',
-              deadlineRole: 'editor' as const,
-            }
+          if (v.id === clipReviewVideoId || isPreSplitGateOrClipReview(v)) {
+            return { ...v, ...gateState }
           }
           return v
         }),
@@ -442,13 +443,28 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
     [],
   )
 
+  function isPreSplitGateOrClipReview(v: AdminVideoTicket): boolean {
+    const stage = v.stageLabel.toLowerCase()
+    return (
+      stage.includes('clip identification') ||
+      stage.includes('clip review') ||
+      v.deliverableIndex == null ||
+      v.deliverableIndex < 1
+    )
+  }
+
   const rejectBatchClips = useCallback(
     (batchId: string, clipReviewVideoId: string, note: string) => {
       const now = new Date().toISOString().slice(0, 10)
+      const smmIdentifying = videoStateFromDemoStage('clips_identifying')
+
       setBatches((prev) =>
         prev.map((b) =>
           b.id === batchId
-            ? { ...b, clipReviewPhase: 'with_smm' as const, updatedAt: now }
+            ? patchBatchDemoStage(
+                { ...b, clipReviewPhase: 'with_smm' as const, updatedAt: now },
+                'clips_identifying',
+              )
             : b,
         ),
       )
@@ -457,9 +473,7 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
           if (v.id !== clipReviewVideoId) return v
           return {
             ...v,
-            owner: 'smm' as const,
-            stageLabel: 'Clip identification',
-            deadlineRole: 'smm' as const,
+            ...smmIdentifying,
             qaCommentHistory: appendClipRejectNote(v, note),
           }
         }),
@@ -472,17 +486,24 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
     const trimmed = clipsFolderUrl.trim()
     if (!trimmed) return
     const now = new Date().toISOString().slice(0, 10)
+    const batch = batches.find((b) => b.id === batchId)
+    if (!batch) return
+
+    const clipReviewState = videoStateFromDemoStage('clip_client_review')
 
     setBatches((prev) =>
       prev.map((b) => {
         if (b.id !== batchId) return b
-        return {
-          ...b,
-          intakePath: 'source_media' as const,
-          clipsFolderUrl: trimmed,
-          clipReviewPhase: 'awaiting_client' as const,
-          updatedAt: now,
-        }
+        return patchBatchDemoStage(
+          {
+            ...b,
+            intakePath: 'source_media' as const,
+            clipsFolderUrl: trimmed,
+            clipReviewPhase: 'awaiting_client' as const,
+            updatedAt: now,
+          },
+          batchDemoStageAfterSmmClipsFolder(),
+        )
       }),
     )
 
@@ -491,33 +512,20 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
       const hasClipReview = batchVideos.some((v) =>
         v.stageLabel.toLowerCase().includes('clip review'),
       )
-      const batch = batches.find((b) => b.id === batchId)
-      if (!batch) return prev
 
       let next = prev.map((v) => {
         if (v.batchId !== batchId) return v
         if (v.stageLabel.toLowerCase().includes('clip identification')) {
-          return {
-            ...v,
-            owner: 'client' as const,
-            stageLabel: 'Clip review',
-            deadlineRole: null,
-          }
+          return { ...v, ...clipReviewState }
         }
         return v
       })
 
       if (!hasClipReview) {
-        const clipReviewTicket: AdminVideoTicket = {
-          id: `v-clip-${batchId}-${Date.now()}`,
-          batchId,
-          clientId: batch.clientId,
-          title: 'Clip approval',
-          owner: 'client',
-          stageLabel: 'Clip review',
-          deadlineRole: null,
-          deadlineAt: null,
-        }
+        const clipReviewTicket = createClipReviewGateTicket(
+          batch,
+          `v-clip-${batchId}-${Date.now()}`,
+        )
         next = [clipReviewTicket, ...next]
       }
 
@@ -528,50 +536,62 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
   const submitSmmQaReview = useCallback(
     (videoId: string, input: SubmitSmmQaInput) => {
       const now = new Date().toISOString().slice(0, 10)
-      const flags = input.timestampFlags.map((f, i) => ({
+      const timestampFlags = input.timestampFlags ?? []
+      const generalNote = input.generalNote ?? ''
+      const commentBody = input.commentBody?.trim() ?? ''
+      const flags = timestampFlags.map((f, i) => ({
         id: `qf-${videoId}-${Date.now()}-${i}`,
         atSeconds: f.atSeconds,
         note: f.note,
       }))
       const hasFeedback =
-        input.action === 'send_back' ||
-        flags.length > 0 ||
-        input.generalNote.trim().length > 0
+        input.action === 'send_back' &&
+        (commentBody.length > 0 ||
+          flags.length > 0 ||
+          generalNote.trim().length > 0)
 
       setVideos((prev) =>
         prev.map((v) => {
           if (v.id !== videoId) return v
           const videoVersion = v.assetVersions?.video ?? 1
-          if (hasFeedback) {
-            const newComments = buildQaCommentsFromFeedback(
-              {
-                markers: input.timestampFlags.map((f) => ({
-                  at: f.atSeconds,
-                  text: f.note,
-                })),
-                generalNote: input.generalNote,
-              },
-              { slot: 'video', assetVersion: videoVersion, authorRole: 'smm' },
-            )
+          if (input.action === 'send_back') {
+            if (!hasFeedback) return v
+            const createdAt = new Date().toISOString()
+            const newComments = commentBody
+              ? [
+                  {
+                    id: `qc-smm-${Date.now()}`,
+                    slot: 'video' as const,
+                    assetVersion: videoVersion,
+                    kind: 'general' as const,
+                    authorRole: 'smm' as const,
+                    body: commentBody,
+                    createdAt,
+                    deprecated: false,
+                  },
+                ]
+              : buildQaCommentsFromFeedback(
+                  {
+                    markers: timestampFlags.map((f) => ({
+                      at: f.atSeconds,
+                      text: f.note,
+                    })),
+                    generalNote,
+                  },
+                  { slot: 'video', assetVersion: videoVersion, authorRole: 'smm' },
+                )
             return {
               ...v,
-              owner: 'editor' as const,
-              editorPhase: 'videos' as const,
-              stageLabel: 'QA flagged',
-              deadlineRole: 'editor' as const,
+              ...videoStateFromDemoStage('editor_fix'),
               lastRevisionRequestedBy: 'smm' as const,
-              releasedToClientFinalVideoReview: false,
-              qaFlags: flags,
-              qaGeneralNote: input.generalNote.trim() || undefined,
+              qaFlags: flags.length > 0 ? flags : undefined,
+              qaGeneralNote: generalNote.trim() || commentBody || undefined,
               qaCommentHistory: [...(v.qaCommentHistory ?? []), ...newComments],
             }
           }
           return {
             ...v,
-            owner: 'client' as const,
-            stageLabel: 'Final video review',
-            deadlineRole: null,
-            releasedToClientFinalVideoReview: true,
+            ...videoStateFromDemoStage('client_qa'),
             qaFlags: undefined,
             qaGeneralNote: undefined,
           }
@@ -588,78 +608,119 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
     [videos],
   )
 
-  const submitEditorVideosDrive = useCallback(
-    (batchId: string, driveUrl: string) => {
-      const trimmed = driveUrl.trim()
-      if (!trimmed) return
-      const now = new Date().toISOString().slice(0, 10)
-
-      setBatches((prev) =>
-        prev.map((b) =>
-          b.id === batchId
-            ? {
-                ...b,
-                editorDeliverablesDriveUrl: trimmed,
-                updatedAt: now,
-              }
-            : b,
-        ),
-      )
-
-      setVideos((prev) =>
-        prev.map((v) => {
-          if (v.batchId !== batchId) return v
-          if (v.editorPhase && v.editorPhase !== 'videos') return v
-          return {
-            ...v,
-            editorPhase: 'videos' as const,
-            owner: 'smm' as const,
-            stageLabel: 'SMM QA',
-            deadlineRole: 'smm' as const,
-            releasedToClientFinalVideoReview: false,
-          }
-        }),
-      )
-    },
-    [],
-  )
-
-  const submitEditorThumbnailsForReview = useCallback((batchId: string) => {
-    const now = new Date().toISOString().slice(0, 10)
-    setVideos((prev) =>
-      prev.map((v) => {
-        if (v.batchId !== batchId) return v
-        if (v.editorPhase !== 'thumbnails') return v
-        if (v.owner !== 'editor') return v
-        return {
-          ...v,
-          owner: 'client' as const,
-          stageLabel: 'Thumbnail review',
-          deadlineRole: null,
-        }
-      }),
-    )
-    setBatches((prev) =>
-      prev.map((b) => (b.id === batchId ? { ...b, updatedAt: now } : b)),
-    )
-  }, [])
-
-  const submitEditorVideoTitle = useCallback((videoId: string, title: string) => {
-    const trimmed = title.trim()
+  const appendSmmQaComment = useCallback((videoId: string, body: string) => {
+    const trimmed = body.trim()
     if (!trimmed) return
-    const now = new Date().toISOString().slice(0, 10)
-
     setVideos((prev) =>
       prev.map((v) => {
         if (v.id !== videoId) return v
         return {
           ...v,
-          editorPublishTitle: trimmed,
-          editorPhase: 'handed_off' as const,
-          owner: 'smm' as const,
-          stageLabel: 'Editor handoff',
-          deadlineRole: 'smm' as const,
+          qaCommentHistory: [
+            ...(v.qaCommentHistory ?? []),
+            {
+              id: `qc-smm-${Date.now()}`,
+              slot: 'video' as const,
+              assetVersion: v.assetVersions?.video ?? 1,
+              kind: 'general' as const,
+              authorRole: 'smm' as const,
+              body: trimmed,
+              createdAt: new Date().toISOString(),
+              deprecated: false,
+            },
+          ],
         }
+      }),
+    )
+  }, [])
+
+  const smmTriageClientRevision = useCallback(
+    (videoId: string, route: 'editor' | 'smm_assets') => {
+      const now = new Date().toISOString().slice(0, 10)
+      setVideos((prev) =>
+        prev.map((v) => {
+          if (v.id !== videoId) return v
+          if (route === 'editor') {
+            return {
+              ...v,
+              ...videoStateFromDemoStage('editor_fix'),
+              lastRevisionRequestedBy: 'smm' as const,
+            }
+          }
+          return {
+            ...v,
+            ...videoStateFromDemoStage('production', {
+              owner: 'smm',
+              deadlineRole: 'smm',
+            }),
+            lastRevisionRequestedBy: 'client' as const,
+          }
+        }),
+      )
+      setBatches((prev) =>
+        prev.map((b) => {
+          const video = videos.find((v) => v.id === videoId)
+          if (!video || video.batchId !== b.id) return b
+          return { ...b, updatedAt: now }
+        }),
+      )
+    },
+    [videos],
+  )
+
+  const submitEditorVideosDrive = useCallback((batchId: string, driveUrl: string) => {
+    const trimmed = driveUrl.trim()
+    if (!trimmed) return
+    const now = new Date().toISOString().slice(0, 10)
+    const batch = batches.find((b) => b.id === batchId)
+    if (!batch) return
+
+    const manifest = getManifestForBatch(batchId)
+    const clipCount = manifest?.clips.length ?? 0
+    const videoCount = manifest?.videos.length ?? 0
+    const n = Math.max(clipCount, videoCount, batch.videoCount, 1)
+    const ts = Date.now()
+
+    const newTickets: AdminVideoTicket[] = Array.from({ length: n }, (_, i) => {
+      const index = i + 1
+      const clip = manifest?.clips.find((c) => c.index === index)
+      const video = manifest?.videos.find((v) => v.index === index)
+      return createSplitDeliverableTicket(
+        batch,
+        index,
+        `v-${batchId}-d${index}-${ts}-${i}`,
+        clip?.name ?? video?.name ?? `Deliverable ${index}`,
+      )
+    })
+
+    setVideos((vPrev) => [
+      ...vPrev.filter((v) => v.batchId !== batchId),
+      ...newTickets,
+    ])
+
+    setBatches((prev) =>
+      prev.map((b) =>
+        b.id === batchId
+          ? patchBatchDemoStage(
+              {
+                ...b,
+                editorDeliverablesDriveUrl: trimmed,
+                videoCount: n,
+                updatedAt: now,
+              },
+              batchDemoStageAfterDeliverablesSplit(),
+            )
+          : b,
+      ),
+    )
+  }, [batches])
+
+  const sendEditorDeliverableToSmmQa = useCallback((videoId: string) => {
+    const now = new Date().toISOString().slice(0, 10)
+    setVideos((prev) =>
+      prev.map((v) => {
+        if (v.id !== videoId) return v
+        return { ...v, ...videoStateFromDemoStage('smm_qa') }
       }),
     )
     setBatches((prev) =>
@@ -671,23 +732,26 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
     )
   }, [videos])
 
+  const saveVideoPublishTitle = useCallback((videoId: string, title: string) => {
+    const trimmed = title.trim()
+    if (!trimmed) return
+    setVideos((prev) =>
+      prev.map((v) => (v.id === videoId ? { ...v, editorPublishTitle: trimmed } : v)),
+    )
+  }, [])
+
   const resubmitEditorVideoQa = useCallback((videoId: string) => {
     const now = new Date().toISOString().slice(0, 10)
     setVideos((prev) =>
       prev.map((v) => {
         if (v.id !== videoId) return v
-        const backToClient = v.lastRevisionRequestedBy === 'client'
         const nextVideoVersion = (v.assetVersions?.video ?? 1) + 1
         const qaCommentHistory = (v.qaCommentHistory ?? []).map((c) =>
           c.slot === 'video' && !c.deprecated ? { ...c, deprecated: true as const } : c,
         )
         return {
           ...v,
-          owner: backToClient ? ('client' as const) : ('smm' as const),
-          editorPhase: 'videos' as const,
-          stageLabel: backToClient ? 'Final video review' : 'SMM QA',
-          deadlineRole: backToClient ? null : ('smm' as const),
-          releasedToClientFinalVideoReview: backToClient,
+          ...videoStateFromDemoStage('smm_qa'),
           qaFlags: undefined,
           qaGeneralNote: undefined,
           assetVersions: { ...v.assetVersions, video: nextVideoVersion },
@@ -716,12 +780,7 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
       prev.map((v) => {
         if (v.batchId !== batchId) return v
         if (v.owner !== 'scheduling') return v
-        return {
-          ...v,
-          owner: 'done' as const,
-          stageLabel: 'Scheduled',
-          deadlineRole: null,
-        }
+        return { ...v, ...videoStateFromDemoStage('completed') }
       }),
     )
     setBatches((prev) =>
@@ -756,12 +815,7 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
         const nextVideos = prevVideos.map((v) => {
           if (v.batchId !== batchId) return v
           if (v.owner === 'scheduling') {
-            return {
-              ...v,
-              owner: 'done' as const,
-              stageLabel: 'Scheduled',
-              deadlineRole: null,
-            }
+            return { ...v, ...videoStateFromDemoStage('completed') }
           }
           return v
         })
@@ -776,20 +830,23 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
           setBatches((prev) =>
             prev.map((b) => {
               if (b.id !== batchId) return b
-              return {
-                ...b,
-                status: 'completed' as const,
-                completedAt: now,
-                updatedAt: now,
-                creditsDebited: true,
-                batchSchedule:
-                  b.batchSchedule ?? {
-                    platform: 'Social channels',
-                    goLiveAt,
-                    completedAt: now,
-                    videoPublishLinks: {},
-                  },
-              }
+              return patchBatchDemoStage(
+                {
+                  ...b,
+                  status: 'completed' as const,
+                  completedAt: now,
+                  updatedAt: now,
+                  creditsDebited: true,
+                  batchSchedule:
+                    b.batchSchedule ?? {
+                      platform: 'Social channels',
+                      goLiveAt,
+                      completedAt: now,
+                      videoPublishLinks: {},
+                    },
+                },
+                batchDemoStageAfterScheduleComplete(),
+              )
             }),
           )
           setClients((prev) =>
@@ -826,8 +883,8 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
           let qaCommentHistory = v.qaCommentHistory
 
           if (action === 'reject') {
-            const slot = kind === 'thumbnail' ? 'thumbnail' : 'video'
-            const version = v.assetVersions?.[slot] ?? 1
+            const slot = 'video' as const
+            const version = v.assetVersions?.video ?? 1
             if (opts?.feedback) {
               const added = buildQaCommentsFromFeedback(opts.feedback, {
                 slot,
@@ -852,13 +909,11 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
             }
           }
 
-          if (action === 'approve') {
-            if (kind === 'final' && v.editorPhase === 'videos') {
-              editorPhase = 'thumbnails'
-            }
-            if (kind === 'thumbnail') {
-              editorPhase = 'titles'
-            }
+          if (action === 'approve' && kind === 'clip') {
+            editorPhase = 'videos'
+          }
+          if (action === 'approve' && kind === 'final') {
+            editorPhase = 'handed_off'
           }
 
           const patch = {
@@ -885,6 +940,32 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
     [videos],
   )
 
+  const appendClientQaComment = useCallback((videoId: string, body: string) => {
+    const trimmed = body.trim()
+    if (!trimmed) return
+    setVideos((prev) =>
+      prev.map((v) => {
+        if (v.id !== videoId) return v
+        return {
+          ...v,
+          qaCommentHistory: [
+            ...(v.qaCommentHistory ?? []),
+            {
+              id: `qc-client-${Date.now()}`,
+              slot: 'video' as const,
+              assetVersion: v.assetVersions?.video ?? 1,
+              kind: 'general' as const,
+              authorRole: 'client' as const,
+              body: trimmed,
+              createdAt: new Date().toISOString(),
+              deprecated: false,
+            },
+          ],
+        }
+      }),
+    )
+  }, [])
+
   const value = useMemo(
     () => ({
       clients,
@@ -908,13 +989,16 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
       approveBatchClips,
       rejectBatchClips,
       applyClientVideoDecision,
+      appendClientQaComment,
       submitSmmClipsFolder,
       submitSmmQaReview,
+      appendSmmQaComment,
+      smmTriageClientRevision,
       scheduleBatch,
       smmFinalizeBatchPublish,
       submitEditorVideosDrive,
-      submitEditorThumbnailsForReview,
-      submitEditorVideoTitle,
+      sendEditorDeliverableToSmmQa,
+      saveVideoPublishTitle,
       resubmitEditorVideoQa,
     }),
     [
@@ -937,13 +1021,16 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
       approveBatchClips,
       rejectBatchClips,
       applyClientVideoDecision,
+      appendClientQaComment,
       submitSmmClipsFolder,
       submitSmmQaReview,
+      appendSmmQaComment,
+      smmTriageClientRevision,
       scheduleBatch,
       smmFinalizeBatchPublish,
       submitEditorVideosDrive,
-      submitEditorThumbnailsForReview,
-      submitEditorVideoTitle,
+      sendEditorDeliverableToSmmQa,
+      saveVideoPublishTitle,
       resubmitEditorVideoQa,
     ],
   )

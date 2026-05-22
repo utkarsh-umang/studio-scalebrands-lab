@@ -11,7 +11,8 @@ export type ClientBoardColumn =
   | 'in_review'
   | 'completed'
 
-export type ClientReviewKind = 'clip' | 'idea' | 'text' | 'thumbnail' | 'final'
+/** Path B v1 — client-facing review surfaces only. */
+export type ClientReviewKind = 'clip' | 'final'
 
 export const CLIENT_BOARD_COLUMNS: {
   id: ClientBoardColumn
@@ -48,12 +49,28 @@ export type ClientVideoCard = AdminVideoTicket & {
 function reviewKindFromStage(stageLabel: string): ClientReviewKind | null {
   const s = stageLabel.toLowerCase()
   if (s.includes('clip review')) return 'clip'
-  if (s.includes('idea')) return 'idea'
-  if (s.includes('text review')) return 'text'
-  if (s.includes('thumbnail review')) return 'thumbnail'
   if (s.includes('client qa')) return 'final'
   if (s.includes('final')) return 'final'
   return null
+}
+
+export type ClientBatchKanbanPhase = 'intake' | 'pre_split' | 'post_split'
+
+export function clientBatchKanbanPhase(batch: AdminBatchFolder): ClientBatchKanbanPhase {
+  if (batchNeedsClientIntake(batch)) return 'intake'
+  if (!batch.editorDeliverablesDriveUrl?.trim()) return 'pre_split'
+  return 'post_split'
+}
+
+function isPreSplitGateTicket(video: AdminVideoTicket): boolean {
+  return video.deliverableIndex == null || video.deliverableIndex < 1
+}
+
+/** Credits reserved on active batches until debited at batch complete. */
+export function clientReservedCredits(batches: AdminBatchFolder[]): number {
+  return batches
+    .filter((b) => b.status === 'active' && !b.creditsDebited)
+    .reduce((sum, b) => sum + b.creditCost, 0)
 }
 
 /** Map operational owner + stage to the client 4-column board. */
@@ -87,11 +104,6 @@ export function videoNeedsClientFinalReview(video: AdminVideoTicket): boolean {
   return reviewKindFromStage(video.stageLabel) === 'final'
 }
 
-export function videoNeedsClientThumbnailReview(video: AdminVideoTicket): boolean {
-  if (video.owner !== 'client') return false
-  return reviewKindFromStage(video.stageLabel) === 'thumbnail'
-}
-
 export function batchNeedsClientIntake(batch: AdminBatchFolder): boolean {
   if (batch.status !== 'active') return false
   if (!batch.intakePath) return true
@@ -107,37 +119,47 @@ export function batchNeedsClientIntake(batch: AdminBatchFolder): boolean {
   return true
 }
 
-/** @deprecated use batchNeedsClientIntake */
-export function batchNeedsFootageIntake(batch: AdminBatchFolder): boolean {
-  return batchNeedsClientIntake(batch)
-}
-
 /** Hide ghost “final review” rows until `releasedToClientFinalVideoReview` allows them. */
 function clientSeesFinalVideoReviewCard(video: AdminVideoTicket): boolean {
   if (reviewKindFromStage(video.stageLabel) !== 'final') return true
   return videoNeedsClientFinalReview(video)
 }
 
-/** While clip review is open, only show the batch clip-approval card to the client. */
+/**
+ * Path B kanban card rules (path-b-ui-spec.md §4.3):
+ * intake → 0 cards; pre-split → one gate card; post-split → n indexed deliverables.
+ */
 export function filterVideosForClientKanban(
   batch: AdminBatchFolder,
   videos: AdminVideoTicket[],
 ): AdminVideoTicket[] {
+  const phase = clientBatchKanbanPhase(batch)
+  if (phase === 'intake') return []
+
   let out: AdminVideoTicket[]
-  if (batch.intakePath === 'clips_ready' && batch.clipReviewPhase === 'approved') {
-    out = videos.filter((v) => v.stageLabel.toLowerCase() !== 'clip review')
-  } else if (
-    batch.intakePath === 'source_media' &&
-    batch.clipReviewPhase &&
-    batch.clipReviewPhase !== 'approved'
-  ) {
-    out = videos.filter((v) => {
-      if (v.stageLabel.toLowerCase().includes('clip review')) return true
-      return deriveClientColumn(v.owner, v.stageLabel) === 'in_review'
-    })
+  if (phase === 'pre_split') {
+    out = videos.filter(isPreSplitGateTicket)
+    if (
+      batch.intakePath === 'clips_ready' &&
+      batch.clipReviewPhase === 'approved'
+    ) {
+      out = out.filter((v) => !v.stageLabel.toLowerCase().includes('clip review'))
+    } else if (
+      batch.intakePath === 'source_media' &&
+      batch.clipReviewPhase &&
+      batch.clipReviewPhase !== 'approved'
+    ) {
+      out = out.filter((v) => {
+        if (v.stageLabel.toLowerCase().includes('clip review')) return true
+        return v.owner === 'client'
+      })
+    }
   } else {
-    out = videos
+    out = videos.filter(
+      (v) => v.deliverableIndex != null && v.deliverableIndex > 0,
+    )
   }
+
   return out.filter(clientSeesFinalVideoReviewCard)
 }
 
@@ -161,7 +183,6 @@ export function listClientAttention(
       const kind = reviewKindFromStage(v.stageLabel)
       if (!kind) return null
       if (kind === 'final' && !videoNeedsClientFinalReview(v)) return null
-      if (kind === 'thumbnail' && !videoNeedsClientThumbnailReview(v)) return null
       return {
         videoId: v.id,
         batchId: v.batchId,
@@ -177,7 +198,10 @@ export function listClientAttention(
 export function nextStateAfterClientAction(
   video: AdminVideoTicket,
   action: 'approve' | 'reject',
-): Pick<AdminVideoTicket, 'owner' | 'stageLabel' | 'deadlineRole'> {
+): Pick<
+  AdminVideoTicket,
+  'owner' | 'stageLabel' | 'deadlineRole' | 'demoStage' | 'releasedToClientFinalVideoReview'
+> {
   const kind = reviewKindFromStage(video.stageLabel)
 
   if (action === 'approve') {
@@ -185,45 +209,26 @@ export function nextStateAfterClientAction(
       case 'clip':
         return {
           owner: 'editor',
-          stageLabel: 'Editing in progress',
+          stageLabel: 'Awaiting deliverables folder',
           deadlineRole: 'editor',
-        }
-      case 'idea':
-        return {
-          owner: 'smm',
-          stageLabel: 'Awaiting your footage',
-          deadlineRole: null,
-        }
-      case 'text':
-        return {
-          owner: 'editor',
-          stageLabel: 'Editing in progress',
-          deadlineRole: 'editor',
-        }
-      case 'thumbnail':
-        return {
-          owner: 'editor',
-          stageLabel: 'Video titles',
-          deadlineRole: 'editor',
+          demoStage: 'pre_split_production',
+          releasedToClientFinalVideoReview: false,
         }
       case 'final':
-        if (video.editorPhase === 'videos') {
-          return {
-            owner: 'editor',
-            stageLabel: 'Thumbnails in progress',
-            deadlineRole: 'editor',
-          }
-        }
         return {
           owner: 'scheduling',
           stageLabel: 'Scheduling',
           deadlineRole: null,
+          demoStage: 'scheduling',
+          releasedToClientFinalVideoReview: false,
         }
       default:
         return {
           owner: 'smm',
           stageLabel: 'In progress',
           deadlineRole: 'smm',
+          demoStage: 'revision_via_smm',
+          releasedToClientFinalVideoReview: false,
         }
     }
   }
@@ -234,43 +239,24 @@ export function nextStateAfterClientAction(
         owner: 'smm',
         stageLabel: 'Clip identification',
         deadlineRole: 'smm',
-      }
-    case 'idea':
-      return {
-        owner: 'smm',
-        stageLabel: 'Idea research',
-        deadlineRole: 'smm',
-      }
-    case 'text':
-      return {
-        owner: 'smm',
-        stageLabel: 'Text creation',
-        deadlineRole: 'smm',
-      }
-    case 'thumbnail':
-      return {
-        owner: 'editor',
-        stageLabel: 'Thumbnails in progress',
-        deadlineRole: 'editor',
+        demoStage: 'clips_identifying',
+        releasedToClientFinalVideoReview: false,
       }
     case 'final':
-      if (video.editorPhase === 'videos') {
-        return {
-          owner: 'editor',
-          stageLabel: 'QA flagged',
-          deadlineRole: 'editor',
-        }
-      }
       return {
         owner: 'smm',
-        stageLabel: 'SMM QA',
+        stageLabel: 'Client revisions',
         deadlineRole: 'smm',
+        demoStage: 'revision_via_smm',
+        releasedToClientFinalVideoReview: false,
       }
     default:
       return {
         owner: 'smm',
         stageLabel: 'In progress',
         deadlineRole: 'smm',
+        demoStage: 'revision_via_smm',
+        releasedToClientFinalVideoReview: false,
       }
   }
 }

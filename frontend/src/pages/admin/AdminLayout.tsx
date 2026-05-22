@@ -1,10 +1,11 @@
-import { LayoutGrid, LogOut, Shield } from 'lucide-react'
+import { CalendarClock, LayoutGrid, LogOut, Shield } from 'lucide-react'
 import { NavLink, Outlet } from 'react-router-dom'
 import logo from '@/assets/logo.png'
 import { useMockAuth } from '@/auth'
 import { useTheme } from '@/theme'
 const NAV = [
   { to: '/admin', label: 'Workspace', Icon: LayoutGrid, end: true },
+  { to: '/admin/deadlines', label: 'Deadlines', Icon: CalendarClock, end: false },
 ] as const
 
 export function AdminLayout() {

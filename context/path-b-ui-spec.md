@@ -205,9 +205,16 @@ When all videos completed → batch `status: completed`, `creditsDebited: true`,
 
 ## 7. Admin UI
 
-- Create batch with **credit allotment** (`creditCost`).
-- Pipeline summary: counts with client / SMM / editor.
-- Deadlines on SMM/Editor tasks.
+| Route | Purpose |
+|-------|---------|
+| `/admin` | Workspace — live pipeline counts, batch list, clients table |
+| `/admin/deadlines` | SMM/Editor due dates (workspace store) |
+| `/admin/clients/:id` | Client detail — batches, kanban, credits, create batch |
+
+- Create batch with **credit allotment** (`creditCost`) via `CreateBatchFolderModal`.
+- Pipeline: `adminPipeline.ts` derives counts and batch rows from active workspace data.
+- Deadlines: `listAdminDeadlineTasks` → `setVideoDeadline` on tickets.
+- Credits: available balance, reserved on active batches, debited flag on completed batches.
 
 ---
 
@@ -297,57 +304,77 @@ When implementing UI, filter by `batch.demoStage` or batch id in Storybook/dev p
 
 ## 11. Component checklist
 
-### Shared (build once)
+**State:** Epics 0–7 complete. Path B boards + modals only; legacy Path A UI removed.
 
-| Component | Purpose |
-|-----------|---------|
-| `NumberedClipsModal` | Sidebar 1…n + player + sync |
-| `DeliverableSummaryPanel` | Raw / clip / video / thumb / title |
-| `DeliverableReadinessStrip` | Three checkmarks + CTA |
-| `QaCommentWorkspace` | Player + thread + sold styling |
-| `DriveSyncButton` | Manifest reload + version bump |
+### Shared
 
-### Client
+| Component | Status | Path |
+|-----------|--------|------|
+| `NumberedClipsModal` | Shipped | `frontend/src/components/path-b/NumberedClipsModal.tsx` |
+| `DeliverableSummaryPanel` | Shipped | `frontend/src/components/path-b/DeliverableSummaryPanel.tsx` |
+| `DeliverableReadinessStrip` | Shipped | `frontend/src/components/path-b/DeliverableReadinessStrip.tsx` |
+| `QaCommentWorkspace` | Shipped | `frontend/src/components/path-b/QaCommentWorkspace.tsx` |
+| `DriveSyncButton` | Shipped | `frontend/src/components/path-b/DriveSyncButton.tsx` (+ `DriveSyncMeta`, `useDriveManifestSync`) |
+| `pathBStateMachine` | Shipped | `frontend/src/lib/pathBStateMachine.ts` — canonical transitions in `adminWorkspaceStore` |
 
-| Component | Status |
-|-----------|--------|
-| `ClientBoard` | Exists |
-| `ClientBatchIntakeCard` | Exists — hide ideas |
-| `ClientUnifiedQaModal` | Replace thumbnail + final modals |
-| `ClientClipReviewModal` | Extend from `ClientCardDetailModal` / clips shell |
-
-### Editor
+### Client (`/client/board`, `/client/all`)
 
 | Component | Status |
 |-----------|--------|
-| `EditorBatchWorkspaceModal` | Exists — add submit deliverables + split |
-| `EditorQaFixModal` | Exists — sold comments |
-| Per-card production | Merge thumb/title into workspace |
+| `ClientBoard` | Shipped |
+| `ClientBatchIntakeCard` | Shipped — podcast / clips-ready only |
+| `ClientCardDetailModal` | Shipped — routes clip → `NumberedClipsModal`, deliverable → `ClientUnifiedQaModal` |
+| `ClientUnifiedQaModal` | Shipped |
+| `ClientVideoKanban` | Shipped |
 
-### SMM
+**Removed (Path A):** `ClientThumbnailReviewModal`, `ClientFinalVideoReviewModal`, `ClientFinalReviewPanel`, idea/text/thumbnail routes redirect to board.
+
+### Editor (`/editor/board`, `/editor/completed`)
 
 | Component | Status |
 |-----------|--------|
-| `SmmFindClipsModal` | Exists |
-| `SmmVideoQaModal` | Exists — align with §3.3 |
-| `SmmScheduleBatchModal` | Exists |
-| `SmmClientRevisionPanel` | New — triage client comments |
+| `EditorPathBVideoKanban` | Shipped |
+| `NumberedClipsModal` | Shipped — pre-split + submit deliverables on board |
+| `EditorProductionModal` | Shipped |
+| `EditorQaFixModal` | Shipped |
+
+**Removed:** `EditorBatchWorkspaceModal`, `EditorVideosDriveModal`, `EditorThumbnailsModal`, `EditorVideoTitleModal`, `EditorVideoKanban` (3-column), `EditorOverview`.
+
+### SMM (`/smm/board`, `/smm/completed`)
+
+| Component | Status |
+|-----------|--------|
+| `SmmPathBVideoKanban` | Shipped |
+| `SmmFindClipsModal` / `SmmFindClipsPanel` | Shipped |
+| `SmmVideoQaModal` | Shipped |
+| `SmmProductionModal` | Shipped |
+| `SmmClientRevisionModal` | Shipped |
+| `SmmScheduleBatchModal` | Shipped — schedule + batch complete + credits |
+
+**Removed:** `SmmBatchDetailModal`, `SmmVideoQaWorkspace`, `SmmBatchBoard`, `SmmPublishAttestModal`, `SmmTitlesHandoffPanel`, `SmmOverview`.
+
+### Admin (`/admin`, `/admin/clients/:id`, `/admin/deadlines`)
+
+| Component | Status |
+|-----------|--------|
+| `AdminWorkspace` | Shipped — pipeline + clients table |
+| `AdminClientDetail` | Shipped |
+| `AdminPipelineOverview` | Shipped |
+| `CreateBatchFolderModal` | Shipped |
+
+**Removed:** `AdminOverview`, `AdminBatchBoard`, `AdminClients` (standalone), static pipeline mocks.
 
 ---
 
 ## 12. Implementation order
 
-1. `pathBDemoScenarios.ts` + refresh `adminWorkspace.ts` seeds (this document §10).
-2. `NumberedClipsModal` + manifest aliases for all demo batch ids.
-3. Split-on-submit in `adminWorkspaceStore` (create n tickets from manifest clip count).
-4. `DeliverableSummaryPanel` + readiness + Drive sync/version/sold comments.
-5. `QaCommentWorkspace` for SMM + client.
-6. Remove deprecated client review kinds (`text`, `thumbnail` separate, `idea`).
-7. Batch completion + credit deduction when all videos `done`.
+Build epics 0–7 are complete. Next step: **fix mode** in [`test-ui.md`](./test-ui.md).
 
 ---
 
 ## 13. Acceptance criteria (Path B v1)
+
+Prototype build targets — verify in fix mode:
 
 - [ ] Client can submit podcast or clips-ready Drive link only.
 - [ ] Pre-split batch shows exactly **one** kanban card; clips modal lists `1…n` with playback.
@@ -357,4 +384,4 @@ When implementing UI, filter by `batch.demoStage` or batch id in Storybook/dev p
 - [ ] Client QA is one screen for video + thumbnail + title; reject returns to SMM only.
 - [ ] Post-fix path: editor/SMM → **SMM QA** → client (never skip SMM).
 - [ ] All videos completed → batch completes → credits debited once.
-- [ ] Demo login can walk every `demoStage` in §10 without manual state edits.
+- [ ] Demo login can walk every `demoStage` in §10; live actions update state via `adminWorkspaceStore` (Epic 6).

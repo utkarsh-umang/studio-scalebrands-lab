@@ -6,7 +6,7 @@ import { useTheme } from '@/theme'
 
 const NAV = [
   { to: '/client/board', label: 'Board', Icon: LayoutGrid, end: true },
-  { to: '/client/all', label: 'All work', Icon: Layers },
+  { to: '/client/all', label: 'Our work', Icon: Layers },
 ] as const
 
 export function ClientLayout() {

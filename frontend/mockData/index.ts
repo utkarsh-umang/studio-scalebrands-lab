@@ -38,10 +38,6 @@ export {
   type TextBatchDetail,
 } from './clientDashboard'
 export {
-  MOCK_ADMIN_CLIENTS,
-  MOCK_ADMIN_DEADLINE_TASKS,
-  MOCK_ADMIN_PIPELINE_ITEMS,
-  MOCK_ADMIN_PIPELINE_SUMMARY,
   type AdminClientAccount,
   type AdminDeadlineTask,
   type AdminPipelineItem,

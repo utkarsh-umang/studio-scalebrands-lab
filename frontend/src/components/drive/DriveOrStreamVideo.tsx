@@ -17,7 +17,7 @@ type Props = {
  * and fell back to the Drive `/preview` iframe on error. That backend path is
  * gone — we always render the iframe now. The wrapper is kept (rather than
  * inlining everywhere) so callers like `EditorQaFixModal`, `SmmVideoQaModal`,
- * and `ClientFinalVideoReviewModal` keep their existing import shape.
+ * and `ClientUnifiedQaModal` keep a consistent import shape.
  */
 export function DriveOrStreamVideo({ driveFileId, fileName, layout = 'portrait' }: Props) {
   return (

@@ -24,15 +24,15 @@ When **all epics are Done**, stop building and switch to **fix mode** using `tes
 | Epic | Name | Status |
 |------|------|--------|
 | 0 | Foundation | Done |
-| 1 | Shared UI kit | ⬜ |
-| 2 | Client portal | ⬜ |
-| 3 | Editor portal | ⬜ |
-| 4 | SMM portal | ⬜ |
-| 5 | Admin | ⬜ |
-| 6 | Store & state machine | ⬜ |
-| 7 | Cleanup | ⬜ |
+| 1 | Shared UI kit | Done |
+| 2 | Client portal | Done |
+| 3 | Editor portal | Done |
+| 4 | SMM portal | Done |
+| 5 | Admin | Done |
+| 6 | Store & state machine | Done |
+| 7 | Cleanup | Done |
 
-**Build phase complete when:** every row above is **Done**.
+**Build phase complete when:** every row above is **Done** — **all epics Done; switch to fix mode.**
 
 ---
 

@@ -18,6 +18,36 @@ task frontend:run
 
 Dev server: http://localhost:5173
 
+## Path B prototype (mock data)
+
+Build spec: [`context/path-b-ui-spec.md`](../context/path-b-ui-spec.md) · Epics: [`context/path-b-build-plan.md`](../context/path-b-build-plan.md)
+
+Password for all demo accounts: `demo1234`
+
+| Role | Email |
+|------|--------|
+| Client | `client@scalebrandslab.demo` |
+| Editor | `editor@scalebrandslab.demo` |
+| SMM | `smm@scalebrandslab.demo` |
+| Admin | `admin@scalebrandslab.demo` |
+
+Primary demo client **c-1** (TechWithTim) has staged batches on `/client/board`:
+
+| Batch ID | Stage | What to check |
+|----------|--------|----------------|
+| `b-new` | intake | Intake card only |
+| `b-identifying` | clip ID | In progress, no kanban cards |
+| `b-clips` | clip review | One gate card → clips modal |
+| `b-clips-ready` | clips-ready | One gate card |
+| `b-editing` | pre-split | Clips modal + editor submit deliverables |
+| `b-pipeline` | mixed | Five post-split cards (QA, fix, client, missing assets) |
+| `b-schedule` | scheduling | Scheduling column |
+| `b-archive` | completed | `/client/all` + credits debited |
+
+Catalog: `mockData/pathBDemoScenarios.ts` · Seeds: `mockData/adminWorkspace.ts` · Drive manifests alias to `b-204` via `src/lib/driveMedia.ts`.
+
+**Fix mode** (after build): [`context/test-ui.md`](../context/test-ui.md) — walk flows and log UI issues.
+
 ## Generate API Client
 
 Requires the backend to be running on port 8000. From repo root:

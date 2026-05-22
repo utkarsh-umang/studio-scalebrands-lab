@@ -1,7 +1,8 @@
 import { ExternalLink } from 'lucide-react'
 import type { AdminBatchFolder, AdminVideoTicket } from '@mockData/index'
 import { DeliverableVideoThumbnailTitleBlock } from '@/components/drive/DeliverableVideoThumbnailTitleBlock'
-import { QaCommentThread } from '@/components/drive/QaCommentThread'
+import { QaCommentWorkspaceThread } from '@/components/path-b/QaCommentWorkspaceThread'
+import type { BatchDriveManifest } from '@/lib/driveMedia'
 import {
   deliverableIndexForTicket,
   getMediaEntry,
@@ -14,6 +15,7 @@ type Props = {
   batch: AdminBatchFolder
   clientName: string
   ticket: AdminVideoTicket
+  manifest?: BatchDriveManifest
   /** When manifest has no video file yet (prototype fallback) */
   fallbackVideoSrc?: string
   onResubmitted?: () => void
@@ -23,6 +25,7 @@ export function EditorQaFixPanel({
   batch,
   clientName,
   ticket,
+  manifest,
   fallbackVideoSrc,
   onResubmitted,
 }: Props) {
@@ -30,8 +33,12 @@ export function EditorQaFixPanel({
   const { resubmitEditorVideoQa } = useAdminWorkspace()
 
   const index = deliverableIndexForTicket(ticket)
-  const videoEntry = getMediaEntry(batch.id, 'videos', index)
-  const thumbEntry = getMediaEntry(batch.id, 'thumbnails', index)
+  const videoEntry =
+    manifest?.videos.find((v) => v.index === index) ??
+    getMediaEntry(batch.id, 'videos', index)
+  const thumbEntry =
+    manifest?.thumbnails.find((t) => t.index === index) ??
+    getMediaEntry(batch.id, 'thumbnails', index)
   const fromSlot = activeCommentsForSlot(ticket.qaCommentHistory, 'video')
   const history =
     fromSlot.length > 0
@@ -83,7 +90,7 @@ export function EditorQaFixPanel({
         displayVideoTitle={ticket.title}
       />
 
-      <QaCommentThread comments={history} heading="QA thread (video)" />
+      <QaCommentWorkspaceThread comments={history} />
 
       <div className="flex flex-wrap gap-2 pt-1">
         <button

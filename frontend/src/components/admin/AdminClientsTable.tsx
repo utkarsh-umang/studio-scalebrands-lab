@@ -4,6 +4,7 @@ import type { AdminClientProfile } from '@mockData/index'
 type Row = {
   client: AdminClientProfile
   activeBatchNumber: number | null
+  reservedCredits?: number
 }
 
 type Props = {
@@ -32,6 +33,11 @@ export function AdminClientsTable({ rows, viewOnly }: Props) {
               Credits
             </th>
             {!viewOnly && (
+              <th className="text-muted-foreground px-5 py-3 text-xs font-semibold">
+                Reserved
+              </th>
+            )}
+            {!viewOnly && (
               <th className="text-muted-foreground px-5 py-3 text-right text-xs font-semibold">
                 Actions
               </th>
@@ -47,14 +53,14 @@ export function AdminClientsTable({ rows, viewOnly }: Props) {
           {rows.length === 0 ? (
             <tr>
               <td
-                colSpan={viewOnly ? 4 : 4}
+                colSpan={viewOnly ? 4 : 5}
                 className="text-muted-foreground px-5 py-8 text-center text-sm"
               >
                 —
               </td>
             </tr>
           ) : (
-            rows.map(({ client, activeBatchNumber }) => (
+            rows.map(({ client, activeBatchNumber, reservedCredits = 0 }) => (
               <tr key={client.id} className="hover:bg-muted/20">
                 <td className="text-foreground px-5 py-4 font-medium">
                   {client.displayName}
@@ -62,9 +68,30 @@ export function AdminClientsTable({ rows, viewOnly }: Props) {
                 <td className="text-foreground px-5 py-4 tabular-nums">
                   {viewOnly ? '—' : (activeBatchNumber ?? '—')}
                 </td>
-                <td className="text-foreground px-5 py-4 tabular-nums">
-                  {client.credits}
+                <td className="px-5 py-4">
+                  <span className="text-foreground font-semibold tabular-nums">
+                    {client.credits}
+                  </span>
+                  <span className="text-muted-foreground block text-[10px]">
+                    Available balance
+                  </span>
                 </td>
+                {!viewOnly && (
+                  <td className="text-muted-foreground px-5 py-4 tabular-nums text-xs">
+                    {reservedCredits > 0 ? (
+                      <>
+                        <span className="text-foreground font-medium">
+                          {reservedCredits}
+                        </span>
+                        <span className="block text-[10px]">
+                          On active batches until complete
+                        </span>
+                      </>
+                    ) : (
+                      '—'
+                    )}
+                  </td>
+                )}
                 {!viewOnly && (
                   <td className="px-5 py-4 text-right">
                     <button

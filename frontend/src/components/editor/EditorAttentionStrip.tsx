@@ -1,6 +1,13 @@
-import { FolderOpen, Image, Pencil, Video } from 'lucide-react'
+import { FolderOpen, Film, Wrench } from 'lucide-react'
 import type { EditorAttentionItem } from '@/lib/editorBoard'
 import { useTheme } from '@/theme'
+
+const kindLabel: Record<EditorAttentionItem['kind'], string> = {
+  submit_deliverables: 'Submit deliverables folder',
+  pre_split_gate: 'Open clips & submit folder',
+  qa_fix: 'Fix QA feedback',
+  production: 'Finish production',
+}
 
 type Props = {
   items: EditorAttentionItem[]
@@ -22,7 +29,7 @@ export function EditorAttentionStrip({ items, onOpen }: Props) {
       </p>
       <ul className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         {items.map((item) => (
-          <li key={`${item.batchId}-${item.kind}`}>
+          <li key={`${item.batchId}-${item.kind}-${item.videoId ?? ''}`}>
             <button
               type="button"
               onClick={() => {
@@ -30,26 +37,20 @@ export function EditorAttentionStrip({ items, onOpen }: Props) {
               }}
               className="border-border hover:border-primary/35 bg-muted/30 flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left text-xs transition-colors sm:w-auto"
             >
-              {item.kind === 'share_videos_drive' ? (
-                <FolderOpen
+              {item.kind === 'qa_fix' ? (
+                <Wrench
                   className="size-3.5 shrink-0"
                   style={{ color: theme.colors.primary }}
                   aria-hidden
                 />
-              ) : item.kind === 'qa_fix' ? (
-                <Video
-                  className="size-3.5 shrink-0"
-                  style={{ color: theme.colors.primary }}
-                  aria-hidden
-                />
-              ) : item.kind === 'thumbnails_ready' ? (
-                <Image
+              ) : item.kind === 'production' ? (
+                <Film
                   className="size-3.5 shrink-0"
                   style={{ color: theme.colors.primary }}
                   aria-hidden
                 />
               ) : (
-                <Pencil
+                <FolderOpen
                   className="size-3.5 shrink-0"
                   style={{ color: theme.colors.primary }}
                   aria-hidden
@@ -57,13 +58,7 @@ export function EditorAttentionStrip({ items, onOpen }: Props) {
               )}
               <span className="min-w-0">
                 <span className="text-foreground block font-semibold">
-                  {item.kind === 'share_videos_drive'
-                    ? 'Share videos folder'
-                    : item.kind === 'qa_fix'
-                      ? 'Fix QA feedback'
-                      : item.kind === 'thumbnails_ready'
-                        ? 'Send thumbnails to client'
-                        : 'Set video titles'}
+                  {kindLabel[item.kind]}
                   {item.count != null && item.count > 1 ? ` (${item.count})` : ''}
                 </span>
                 <span className="text-muted-foreground block truncate text-[10px]">

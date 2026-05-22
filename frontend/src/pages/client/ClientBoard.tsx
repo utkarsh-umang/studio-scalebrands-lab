@@ -8,6 +8,7 @@ import { ClientBatchIntakeCard } from '@/components/client/ClientBatchIntakeCard
 import { ClientVideoKanban } from '@/components/client/ClientVideoKanban'
 import {
   batchNeedsClientIntake,
+  clientReservedCredits,
   filterVideosForClientKanban,
   listClientAttention,
   toClientVideoCard,
@@ -62,6 +63,11 @@ export function ClientBoard() {
     return filterVideosForClientKanban(selectedBatch, raw).map(toClientVideoCard)
   }, [selectedBatch, getVideosForBatch])
 
+  const reservedCredits = useMemo(
+    () => clientReservedCredits(clientBatches),
+    [clientBatches],
+  )
+
   const attention = useMemo(() => {
     if (!clientProfileId) return []
     const clientBatchIds = new Set(
@@ -91,7 +97,11 @@ export function ClientBoard() {
 
   return (
     <>
-      <ClientPageTitleRow title="Your board" credits={client.credits} />
+      <ClientPageTitleRow
+        title="Your board"
+        credits={client.credits}
+        reservedCredits={reservedCredits}
+      />
 
       <ClientAttentionStrip
         items={attention}

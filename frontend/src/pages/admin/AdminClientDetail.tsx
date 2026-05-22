@@ -15,6 +15,7 @@ import { DecommissionClientModal } from '@/components/admin/DecommissionClientMo
 import { TopUpCreditsModal } from '@/components/admin/TopUpCreditsModal'
 import { useTheme } from '@/theme'
 import { guidelinesSourceLabel } from '@mockData/index'
+import { clientReservedCredits } from '@/lib/clientBoard'
 import { formatDate } from '@/pages/client/clientPageUtils'
 import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
 
@@ -61,9 +62,23 @@ export function AdminClientDetail() {
     () => allBatches.filter((b) => b.status === 'active'),
     [allBatches],
   )
+
   const completedBatches = useMemo(
     () => allBatches.filter((b) => b.status === 'completed'),
     [allBatches],
+  )
+
+  const reservedCredits = useMemo(
+    () => clientReservedCredits(activeBatches),
+    [activeBatches],
+  )
+
+  const creditsDebitedTotal = useMemo(
+    () =>
+      completedBatches
+        .filter((b) => b.creditsDebited)
+        .reduce((sum, b) => sum + b.creditCost, 0),
+    [completedBatches],
   )
 
   const selectedBatchId =
@@ -130,8 +145,22 @@ export function AdminClientDetail() {
             <h1 className="text-foreground truncate text-2xl font-bold tracking-tight">
               {client.displayName}
             </h1>
-            <p className="text-muted-foreground mt-0.5 text-sm tabular-nums">
-              {client.credits} credits
+            <p className="text-muted-foreground mt-0.5 text-sm">
+              <span className="text-foreground font-semibold tabular-nums">
+                {client.credits}
+              </span>{' '}
+              credits available
+              {reservedCredits > 0 ? (
+                <span className="text-muted-foreground">
+                  {' '}
+                  · {reservedCredits} reserved on active batches
+                </span>
+              ) : null}
+              {creditsDebitedTotal > 0 ? (
+                <span className="text-muted-foreground block text-xs">
+                  {creditsDebitedTotal} credits debited from completed batches
+                </span>
+              ) : null}
             </p>
           </div>
         </div>
@@ -411,8 +440,16 @@ export function AdminClientDetail() {
             )}
           </div>
           <p className="text-muted-foreground text-xs">
-            {selectedBatch.creditCost} credits for this batch — debited when
-            every clip reaches Done
+            {selectedBatch.creditCost} credits for this batch
+            {selectedBatch.creditsDebited
+              ? ' · debited at batch complete'
+              : ' · debited when every deliverable is scheduled'}
+            {selectedBatch.demoStage ? (
+              <span className="text-muted-foreground/80">
+                {' '}
+                · demo: {selectedBatch.demoStage.replace(/_/g, ' ')}
+              </span>
+            ) : null}
           </p>
           <AdminVideoKanban
             tickets={batchTickets}
@@ -445,6 +482,9 @@ export function AdminClientDetail() {
                   <th className="text-muted-foreground px-5 py-3 text-xs font-semibold">
                     Credits
                   </th>
+                  <th className="text-muted-foreground px-5 py-3 text-xs font-semibold">
+                    Debited
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-border divide-y">
@@ -464,6 +504,9 @@ export function AdminClientDetail() {
                     </td>
                     <td className="text-foreground px-5 py-3 tabular-nums">
                       {batch.creditCost}
+                    </td>
+                    <td className="text-muted-foreground px-5 py-3 text-xs">
+                      {batch.creditsDebited ? 'Yes' : '—'}
                     </td>
                   </tr>
                 ))}
