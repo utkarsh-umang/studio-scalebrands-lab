@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { ExternalLink } from 'lucide-react'
 import { ClipsReviewPanel } from '@/components/drive/ClipsReviewPanel'
 import { StudioModalShell } from '@/components/StudioModalShell'
@@ -24,6 +24,8 @@ type Props = {
   onDeliverablesDriveUrlChange?: (url: string) => void
   onSubmitDeliverables?: () => void
   submitDeliverablesDisabled?: boolean
+  /** Shown above the clips panel (client in-progress states). */
+  statusBanner?: ReactNode
 }
 
 export function NumberedClipsModal({
@@ -40,6 +42,7 @@ export function NumberedClipsModal({
   onDeliverablesDriveUrlChange,
   onSubmitDeliverables,
   submitDeliverablesDisabled = false,
+  statusBanner,
 }: Props) {
   const { manifest, syncing, error, sync } = useDriveManifestSync(batchId, resetKey)
   const [driveDraft, setDriveDraft] = useState(deliverablesDriveUrl)
@@ -120,18 +123,26 @@ export function NumberedClipsModal({
       onClose={onClose}
       headerAside={headerAside}
       headerMeta={<DriveSyncMeta manifest={manifest} errorMessage={error} />}
+      bodyScroll={false}
       footer={editorFooter ?? undefined}
     >
       {error && !manifest ? (
-        <p className="text-destructive mb-3 text-xs leading-relaxed">{error}</p>
+        <p className="text-destructive mb-3 shrink-0 text-xs leading-relaxed">{error}</p>
       ) : null}
 
-      <div className="border-border flex min-h-[min(52vh,480px)] flex-col overflow-hidden rounded-xl border md:min-h-[480px]">
+      {statusBanner ? (
+        <div className="border-primary/25 bg-primary/5 text-foreground mb-3 shrink-0 rounded-xl border px-4 py-3 text-sm leading-relaxed">
+          {statusBanner}
+        </div>
+      ) : null}
+
+      <div className="border-border flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border md:min-h-[min(52vh,480px)]">
         <ClipsReviewPanel
           batchId={batchId}
           manifest={manifest}
           clipsFolderUrl={clipsFolderUrl}
-          readOnly={readOnly && !showClientFooter}
+          className="h-full min-h-[min(48vh,420px)] md:min-h-[min(52vh,480px)]"
+          readOnly={readOnly}
           sidebarPosition="left"
           onApprove={showClientFooter ? onApproveAll : undefined}
           onReject={showClientFooter ? onRejectClips : undefined}

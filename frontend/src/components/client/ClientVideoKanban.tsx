@@ -3,6 +3,7 @@ import type { AdminBatchFolder } from '@mockData/index'
 import {
   CLIENT_BOARD_COLUMNS,
   batchNeedsClientIntake,
+  clientCardStatusHint,
   type ClientBoardColumn,
   type ClientVideoCard,
 } from '@/lib/clientBoard'
@@ -97,7 +98,7 @@ export function ClientVideoKanban({ batch, videos, onOpenVideo }: Props) {
                         )}
                         {card.clientColumn !== 'in_review' && (
                           <p className="text-muted-foreground mt-1 text-[10px]">
-                            With Scale Brands
+                            {clientCardStatusHint(card)}
                           </p>
                         )}
                       </div>

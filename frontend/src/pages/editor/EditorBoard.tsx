@@ -6,9 +6,10 @@ import { EditorBatchFolderRow } from '@/components/editor/EditorBatchFolderRow'
 import { EditorPathBVideoKanban } from '@/components/editor/EditorPathBVideoKanban'
 import { EditorProductionModal } from '@/components/editor/EditorProductionModal'
 import { EditorQaFixModal } from '@/components/editor/EditorQaFixModal'
-import { NumberedClipsModal } from '@/components/path-b'
+import { FindClipsModal, NumberedClipsModal } from '@/components/path-b'
 import {
   batchAwaitingClips,
+  batchNeedsEditorFindClips,
   batchReadyForEditorWork,
   filterVideosForEditorKanban,
   listEditorAttention,
@@ -50,6 +51,7 @@ export function EditorBoard() {
   }, [batches, clientIds])
 
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null)
+  const [findClipsOpen, setFindClipsOpen] = useState(false)
   const [clipsModalOpen, setClipsModalOpen] = useState(false)
   const [deliverablesDriveDraft, setDeliverablesDriveDraft] = useState('')
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null)
@@ -108,7 +110,9 @@ export function EditorBoard() {
         items={attention}
         onOpen={(item) => {
           setSelectedBatchId(item.batchId)
-          if (item.kind === 'pre_split_gate' || item.kind === 'submit_deliverables') {
+          if (item.kind === 'find_clips') {
+            setFindClipsOpen(true)
+          } else if (item.kind === 'pre_split_gate' || item.kind === 'submit_deliverables') {
             setClipsModalOpen(true)
           } else if (item.kind === 'qa_fix' && item.videoId) {
             setActiveVideoId(item.videoId)
@@ -143,21 +147,24 @@ export function EditorBoard() {
             </p>
           </div>
 
-          {batchAwaitingClips(selectedBatch) ? (
-            <p className="text-muted-foreground border-border rounded-xl border border-dashed px-4 py-8 text-center text-sm">
-              Waiting on clip identification or client clip approval. Your kanban fills in after
-              clips are ready.
-            </p>
-          ) : batchReadyForEditorWork(selectedBatch) ? (
+          {batchNeedsEditorFindClips(selectedBatch) || batchReadyForEditorWork(selectedBatch) ? (
             <EditorPathBVideoKanban
               batch={selectedBatch}
               videos={batchVideos}
+              onFindClips={() => {
+                setFindClipsOpen(true)
+              }}
               onOpenGate={() => {
                 setDeliverablesDriveDraft(selectedBatch.editorDeliverablesDriveUrl ?? '')
                 setClipsModalOpen(true)
               }}
               onOpenVideo={setActiveVideoId}
             />
+          ) : batchAwaitingClips(selectedBatch) ? (
+            <p className="text-muted-foreground border-border rounded-xl border border-dashed px-4 py-8 text-center text-sm">
+              Waiting on client clip approval. Your deliverables kanban appears after clips are
+              approved.
+            </p>
           ) : (
             <p className="text-muted-foreground text-sm">This batch is not ready for deliverables yet.</p>
           )}
@@ -165,6 +172,18 @@ export function EditorBoard() {
       ) : (
         <p className="text-muted-foreground mt-6 text-sm">No active batches assigned to you yet.</p>
       )}
+
+      {selectedBatch && batchNeedsEditorFindClips(selectedBatch) ? (
+        <FindClipsModal
+          batch={selectedBatch}
+          clientName={clientName}
+          role="editor"
+          open={findClipsOpen}
+          onClose={() => {
+            setFindClipsOpen(false)
+          }}
+        />
+      ) : null}
 
       {selectedBatch && clipsModalOpen && selectedBatch.clipsFolderUrl?.trim() ? (
         <NumberedClipsModal

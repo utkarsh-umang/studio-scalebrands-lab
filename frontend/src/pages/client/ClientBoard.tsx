@@ -60,7 +60,9 @@ export function ClientBoard() {
   const batchVideos = useMemo(() => {
     if (!selectedBatch) return []
     const raw = getVideosForBatch(selectedBatch.id)
-    return filterVideosForClientKanban(selectedBatch, raw).map(toClientVideoCard)
+    return filterVideosForClientKanban(selectedBatch, raw).map((v) =>
+      toClientVideoCard(v, selectedBatch),
+    )
   }, [selectedBatch, getVideosForBatch])
 
   const reservedCredits = useMemo(

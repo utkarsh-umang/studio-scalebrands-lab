@@ -14,6 +14,9 @@ export type ClientBoardColumn =
 /** Path B v1 — client-facing review surfaces only. */
 export type ClientReviewKind = 'clip' | 'final'
 
+/** Pre-split status cards (no client approve/reject on these). */
+export type ClientGateKind = 'clip_identification' | 'clips_in_production'
+
 export const CLIENT_BOARD_COLUMNS: {
   id: ClientBoardColumn
   label: string
@@ -44,6 +47,7 @@ export const CLIENT_BOARD_COLUMNS: {
 export type ClientVideoCard = AdminVideoTicket & {
   clientColumn: ClientBoardColumn
   reviewKind: ClientReviewKind | null
+  clientGateKind: ClientGateKind | null
 }
 
 function reviewKindFromStage(stageLabel: string): ClientReviewKind | null {
@@ -90,11 +94,58 @@ export function deriveClientColumn(
   return 'in_progress'
 }
 
-export function toClientVideoCard(ticket: AdminVideoTicket): ClientVideoCard {
+export function clientGateKindFromVideo(
+  video: AdminVideoTicket,
+  batch: AdminBatchFolder,
+): ClientGateKind | null {
+  if (reviewKindFromStage(video.stageLabel)) return null
+  if (!isPreSplitGateTicket(video)) return null
+
+  const stage = video.stageLabel.toLowerCase()
+  if (
+    stage.includes('clip identification') ||
+    stage.includes('identifying') ||
+    batch.clipReviewPhase === 'smm_identifying'
+  ) {
+    return 'clip_identification'
+  }
+
+  if (
+    batch.intakePath === 'clips_ready' &&
+    batch.clipReviewPhase === 'approved' &&
+    (stage.includes('deliverables') ||
+      stage.includes('production') ||
+      stage.includes('awaiting'))
+  ) {
+    return 'clips_in_production'
+  }
+
+  return null
+}
+
+export function clientCardStatusHint(card: ClientVideoCard): string {
+  if (card.clientColumn === 'in_review' && card.reviewKind) {
+    return 'Action needed'
+  }
+  switch (card.clientGateKind) {
+    case 'clip_identification':
+      return 'Identifying clips from your footage'
+    case 'clips_in_production':
+      return 'Editing your submitted clips'
+    default:
+      return 'With Scale Brands'
+  }
+}
+
+export function toClientVideoCard(
+  ticket: AdminVideoTicket,
+  batch: AdminBatchFolder,
+): ClientVideoCard {
   return {
     ...ticket,
     clientColumn: deriveClientColumn(ticket.owner, ticket.stageLabel),
     reviewKind: reviewKindFromStage(ticket.stageLabel),
+    clientGateKind: clientGateKindFromVideo(ticket, batch),
   }
 }
 
@@ -150,7 +201,11 @@ export function filterVideosForClientKanban(
       batch.clipReviewPhase !== 'approved'
     ) {
       out = out.filter((v) => {
-        if (v.stageLabel.toLowerCase().includes('clip review')) return true
+        const stage = v.stageLabel.toLowerCase()
+        if (stage.includes('clip review')) return true
+        if (stage.includes('clip identification') || stage.includes('identifying')) {
+          return true
+        }
         return v.owner === 'client'
       })
     }

@@ -1,7 +1,8 @@
-import { Film, FolderOpen, Wrench } from 'lucide-react'
+import { Film, FolderOpen, Scissors, Wrench } from 'lucide-react'
 import type { AdminBatchFolder } from '@mockData/index'
 import {
   EDITOR_PATH_B_COLUMNS,
+  batchNeedsEditorFindClips,
   editorBatchKanbanPhase,
   editorNeedsProductionWork,
   videoEditorQaReturn,
@@ -13,6 +14,7 @@ import { useTheme } from '@/theme'
 type Props = {
   batch: AdminBatchFolder
   videos: EditorPathBVideoCard[]
+  onFindClips: () => void
   onOpenGate: () => void
   onOpenVideo: (videoId: string) => void
 }
@@ -20,12 +22,14 @@ type Props = {
 export function EditorPathBVideoKanban({
   batch,
   videos,
+  onFindClips,
   onOpenGate,
   onOpenVideo,
 }: Props) {
   const { theme } = useTheme()
   const primary = theme.colors.primary
   const phase = editorBatchKanbanPhase(batch)
+  const showFindClips = batchNeedsEditorFindClips(batch)
   const showSetupGate = phase === 'pre_split' && videoNeedsEditorVideosSubmit(batch)
 
   function cardsInColumn(colId: (typeof EDITOR_PATH_B_COLUMNS)[number]['id']) {
@@ -41,6 +45,7 @@ export function EditorPathBVideoKanban({
       {EDITOR_PATH_B_COLUMNS.map((col) => {
         const columnCards = cardsInColumn(col.id)
         let count = columnCards.length
+        if (col.id === 'setup' && showFindClips) count += 1
         if (col.id === 'setup' && showSetupGate) count += 1
 
         return (
@@ -56,6 +61,37 @@ export function EditorPathBVideoKanban({
               <p className="text-muted-foreground mt-0.5 text-[10px] leading-snug">{col.hint}</p>
             </div>
             <ul className="flex min-h-[200px] flex-1 flex-col gap-2 p-2">
+              {col.id === 'setup' && showFindClips ? (
+                <li>
+                  <button
+                    type="button"
+                    onClick={onFindClips}
+                    className="border-border bg-background hover:border-primary/35 group w-full rounded-lg border p-3 text-left shadow-sm transition-colors"
+                  >
+                    <div className="flex items-start gap-2">
+                      <Scissors
+                        className="size-3.5 shrink-0"
+                        style={{ color: primary }}
+                        aria-hidden
+                      />
+                      <div>
+                        <p className="text-foreground text-xs font-medium leading-snug">
+                          Find clips
+                        </p>
+                        <p className="text-muted-foreground mt-1 text-[10px]">
+                          Submit numbered clips folder for client review
+                        </p>
+                        <span
+                          className="mt-1.5 inline-block rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide"
+                          style={{ background: `${primary}14`, color: primary }}
+                        >
+                          Open
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+                </li>
+              ) : null}
               {col.id === 'setup' && showSetupGate ? (
                 <li>
                   <button
@@ -87,7 +123,8 @@ export function EditorPathBVideoKanban({
                   </button>
                 </li>
               ) : null}
-              {columnCards.length === 0 && !(col.id === 'setup' && showSetupGate) ? (
+              {columnCards.length === 0 &&
+              !(col.id === 'setup' && (showFindClips || showSetupGate)) ? (
                 <li className="text-muted-foreground px-2 py-6 text-center text-[11px]">—</li>
               ) : null}
               {columnCards.map((card) => {

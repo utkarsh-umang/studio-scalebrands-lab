@@ -36,12 +36,12 @@ Primary demo client **c-1** (TechWithTim) has staged batches on `/client/board`:
 | Batch ID | Stage | What to check |
 |----------|--------|----------------|
 | `b-new` | intake | Intake card only |
-| `b-identifying` | clip ID | In progress, no kanban cards |
-| `b-clips` | clip review | One gate card → clips modal |
-| `b-clips-ready` | clips-ready | One gate card |
+| `b-identifying` | clip ID | SMM + Editor: Find clips; client in-progress card |
+| `b-clips` | clip review | In review → clips modal (approve/reject) |
+| `b-clips-ready` | clips-ready | In progress → read-only clips + production banner |
 | `b-editing` | pre-split | Clips modal + editor submit deliverables |
 | `b-pipeline` | mixed | Five post-split cards (QA, fix, client, missing assets) |
-| `b-schedule` | scheduling | Scheduling column |
+| `b-schedule` | scheduling | Per-video go-live (`v-sc-1` done, `v-sc-2`/`v-sc-3` pending) |
 | `b-archive` | completed | `/client/all` + credits debited |
 
 Catalog: `mockData/pathBDemoScenarios.ts` · Seeds: `mockData/adminWorkspace.ts` · Drive manifests alias to `b-204` via `src/lib/driveMedia.ts`.

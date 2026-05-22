@@ -37,10 +37,14 @@ export function ClientAllWork() {
     if (!clientProfileId) return []
     return videos
       .filter((v) => v.clientId === clientProfileId)
-      .map(toClientVideoCard)
+      .map((v) => {
+        const batch = batches.find((b) => b.id === v.batchId)
+        return batch ? toClientVideoCard(v, batch) : null
+      })
+      .filter((v): v is NonNullable<typeof v> => v !== null)
       .filter((v) => v.owner === 'done' || v.clientColumn === 'completed')
       .sort((a, b) => a.title.localeCompare(b.title))
-  }, [clientProfileId, videos])
+  }, [clientProfileId, videos, batches])
 
   const reservedCredits = useMemo(
     () => clientReservedCredits(activeBatches),
@@ -139,7 +143,9 @@ export function ClientAllWork() {
         ) : (
           <ul className="space-y-3">
             {completedBatches.map((batch) => {
-              const batchCards = getVideosForBatch(batch.id).map(toClientVideoCard)
+              const batchCards = getVideosForBatch(batch.id).map((v) =>
+                toClientVideoCard(v, batch),
+              )
               const doneCount = batchCards.filter((c) => c.owner === 'done').length
               return (
                 <li

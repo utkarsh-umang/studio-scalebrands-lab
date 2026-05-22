@@ -124,9 +124,23 @@ export type EditorAttentionItem = {
   batchId: string
   batchTitle: string
   clientName: string
-  kind: 'submit_deliverables' | 'qa_fix' | 'production' | 'pre_split_gate'
+  kind: 'find_clips' | 'submit_deliverables' | 'qa_fix' | 'production' | 'pre_split_gate'
   videoId?: string
   count?: number
+}
+
+/** Same rules as SMM — podcast path before clips folder is linked. */
+export function batchNeedsEditorFindClips(batch: AdminBatchFolder): boolean {
+  if (batch.status !== 'active') return false
+  if (batch.intakePath === 'clips_ready') return false
+  const source = batch.sourceMediaUrl?.trim() || batch.footageUrl?.trim()
+  if (!source) return false
+  if (batch.clipsFolderUrl?.trim()) return false
+  return (
+    !batch.clipReviewPhase ||
+    batch.clipReviewPhase === 'smm_identifying' ||
+    batch.clipReviewPhase === 'with_smm'
+  )
 }
 
 export function listEditorAttention(
@@ -140,6 +154,16 @@ export function listEditorAttention(
     if (batch.status !== 'active') continue
     const clientName = clientNameById.get(batch.clientId) ?? 'Client'
     const batchVideos = videos.filter((v) => v.batchId === batch.id)
+
+    if (batchNeedsEditorFindClips(batch)) {
+      items.push({
+        batchId: batch.id,
+        batchTitle: batch.title,
+        clientName,
+        kind: 'find_clips',
+      })
+      continue
+    }
 
     const phase = editorBatchKanbanPhase(batch)
 
@@ -187,6 +211,7 @@ export function batchSubtitle(
   batch: AdminBatchFolder,
   videos: AdminVideoTicket[],
 ): string {
+  if (batchNeedsEditorFindClips(batch)) return 'Find clips — submit numbered folder'
   if (batchAwaitingClips(batch)) return 'Waiting — clips not approved yet'
   if (!batchReadyForEditorWork(batch)) return 'Not ready for deliverables'
   if (videoNeedsEditorVideosSubmit(batch, videos)) return 'Share videos Drive link'
@@ -203,6 +228,7 @@ export function editorBatchPhaseLabel(
 ): string {
   const vs = videos.filter((v) => v.batchId === batch.id)
   if (batch.status === 'completed') return 'Completed — see archive'
+  if (batchNeedsEditorFindClips(batch)) return 'Your turn — find clips'
   if (batchAwaitingClips(batch)) return 'Waiting on clips / client'
   if (!batchReadyForEditorWork(batch)) return 'Not ready'
   if (!batch.editorDeliverablesDriveUrl?.trim())

@@ -15,6 +15,7 @@ import type { DeliverableSidebarRow } from '@/lib/deliverableSidebar'
 import { buildClientFinalReviewSidebarRows } from '@/lib/deliverableSidebar'
 import { videoNeedsClientFinalReview } from '@/lib/clientBoard'
 import { deliverableIndexForTicket, getMediaEntry } from '@/lib/driveMedia'
+import { readinessForDeliverable } from '@/lib/pathBDeliverables'
 import { flagsToQaComments } from '@/lib/qaComments'
 import type { VideoReviewFeedback } from '@/components/VideoDeliverableReviewPanel'
 
@@ -80,6 +81,11 @@ export function ClientUnifiedQaModal({
     manifest?.thumbnails.find((t) => t.index === deliverableIndex) ??
     getMediaEntry(batch.id, 'thumbnails', deliverableIndex)
 
+  const readiness = useMemo(
+    () => readinessForDeliverable(batch.id, deliverableIndex, qaTicket, manifest),
+    [batch.id, deliverableIndex, qaTicket, manifest],
+  )
+
   const headerAside = folderUrl ? (
     <div className="flex flex-wrap items-center justify-end gap-2">
       <DriveSyncButton
@@ -108,6 +114,7 @@ export function ClientUnifiedQaModal({
       onClose={onClose}
       headerAside={headerAside}
       headerMeta={<DriveSyncMeta manifest={manifest} errorMessage={error} />}
+      bodyScroll={view === 'qa' && canAct}
     >
       {!folderUrl ? (
         <p className="text-muted-foreground text-sm leading-relaxed">
@@ -175,6 +182,8 @@ export function ClientUnifiedQaModal({
                   deliverableIndex={deliverableIndex}
                   ticket={qaTicket}
                   manifest={manifest}
+                  readiness={readiness}
+                  defaultOpenSections={['video', 'thumbnail', 'title']}
                   onSyncDrive={() => {
                     void sync()
                   }}
@@ -189,7 +198,6 @@ export function ClientUnifiedQaModal({
                   videoDriveFileId={videoEntry?.driveFileId}
                   videoFileName={videoEntry?.name}
                   fallbackVideoSrc={SAMPLE_VIDEO_SRC}
-                  showPackagePreview
                   thumbnailDriveFileId={thumbEntry?.driveFileId}
                   thumbnailFileName={thumbEntry?.name}
                   displayVideoTitle={

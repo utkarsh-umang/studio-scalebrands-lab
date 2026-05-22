@@ -77,12 +77,20 @@ export type QaComment = {
   deprecated: boolean
 }
 
-/** Recorded when SMM marks a batch complete after scheduling all videos */
+/** Per-video go-live set by SMM (no publish URL collected). */
+export type VideoScheduleRecord = {
+  platform: string
+  goLiveAt: string
+  scheduledAt: string
+}
+
+/** Recorded when every video in the batch is scheduled / done */
 export type BatchScheduleRecord = {
   platform: string
   goLiveAt: string
   completedAt: string
-  videoPublishLinks: Record<string, string | undefined>
+  /** @deprecated v1 — publish links no longer collected */
+  videoPublishLinks?: Record<string, string | undefined>
 }
 
 export type AdminBatchFolder = {
@@ -160,6 +168,8 @@ export type AdminVideoTicket = {
   qaCommentHistory?: QaComment[]
   /** Per-video demo stage inside a mixed batch (e.g. b-pipeline) */
   demoStage?: PathBDemoStage
+  /** Set when SMM schedules this deliverable on a platform */
+  videoSchedule?: VideoScheduleRecord
 }
 
 export type StaffMember = {
@@ -420,6 +430,19 @@ export const MOCK_ADMIN_VIDEO_TICKETS: AdminVideoTicket[] = [
   doneTicket('v-arch-3', 'b-archive', 'c-1', 'Build in Public — ep. 3', 3),
   doneTicket('v-arch-4', 'b-archive', 'c-1', 'Build in Public — ep. 4', 4),
 
+  // b-identifying — client sees in-progress identification (no approve yet)
+  {
+    id: 'v-identifying-gate',
+    batchId: 'b-identifying',
+    clientId: 'c-1',
+    title: 'Team is identifying your clips',
+    owner: 'smm',
+    stageLabel: 'Clip identification',
+    deadlineRole: 'smm',
+    deadlineAt: '2026-05-22T18:00:00.000Z',
+    demoStage: 'clips_identifying',
+  },
+
   // b-clips — single gate card (clip client review)
   {
     id: 'v-clips-gate',
@@ -438,7 +461,7 @@ export const MOCK_ADMIN_VIDEO_TICKETS: AdminVideoTicket[] = [
     id: 'v-clips-ready-gate',
     batchId: 'b-clips-ready',
     clientId: 'c-1',
-    title: 'Batch — August Clips Pack',
+    title: 'Production in progress',
     owner: 'editor',
     stageLabel: 'Awaiting deliverables folder',
     deadlineRole: 'editor',
@@ -604,21 +627,26 @@ export const MOCK_ADMIN_VIDEO_TICKETS: AdminVideoTicket[] = [
     ],
   },
 
-  // b-schedule — client-approved; SMM schedules
+  // b-schedule — client-approved; SMM schedules per video (v-sc-1 already scheduled)
   {
     id: 'v-sc-1',
     batchId: 'b-schedule',
     clientId: 'c-1',
     deliverableIndex: 1,
     title: 'Product launch teaser',
-    owner: 'scheduling',
-    stageLabel: 'Scheduling',
+    owner: 'done',
+    stageLabel: 'Scheduled',
     deadlineRole: null,
     deadlineAt: null,
     editorPhase: 'handed_off',
     editorPublishTitle: 'We built something. Here is what it does.',
     releasedToClientFinalVideoReview: true,
-    demoStage: 'scheduling',
+    demoStage: 'completed',
+    videoSchedule: {
+      platform: 'YouTube Shorts',
+      goLiveAt: '2026-05-20T17:00:00.000Z',
+      scheduledAt: '2026-05-14T10:00:00.000Z',
+    },
   },
   {
     id: 'v-sc-2',

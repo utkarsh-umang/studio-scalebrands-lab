@@ -4,6 +4,8 @@ type Props = {
   videoReady: boolean
   thumbnailReady: boolean
   titleReady: boolean
+  /** When false, checklist is hidden (status shown on deliverable accordions). */
+  showChecklist?: boolean
   ctaLabel?: string
   onCta?: () => void
   ctaDisabled?: boolean
@@ -38,12 +40,15 @@ export function DeliverableReadinessStrip({
   videoReady,
   thumbnailReady,
   titleReady,
+  showChecklist = true,
   ctaLabel = 'Send to SMM QA',
   onCta,
   ctaDisabled = false,
   className = '',
 }: Props) {
   const allReady = videoReady && thumbnailReady && titleReady
+
+  if (!showChecklist && !onCta) return null
 
   return (
     <div
@@ -52,11 +57,19 @@ export function DeliverableReadinessStrip({
         className,
       ].join(' ')}
     >
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <CheckItem label="Video" ready={videoReady} />
-        <CheckItem label="Thumbnail" ready={thumbnailReady} />
-        <CheckItem label="Title" ready={titleReady} />
-      </div>
+      {showChecklist ? (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <CheckItem label="Video" ready={videoReady} />
+          <CheckItem label="Thumbnail" ready={thumbnailReady} />
+          <CheckItem label="Title" ready={titleReady} />
+        </div>
+      ) : (
+        <p className="text-muted-foreground text-xs leading-relaxed">
+          {allReady
+            ? 'All deliverables are ready — you can send this video to the next step.'
+            : 'Expand missing sections above, upload to Drive, sync, then continue.'}
+        </p>
+      )}
       {onCta ? (
         <button
           type="button"

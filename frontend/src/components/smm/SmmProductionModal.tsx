@@ -11,7 +11,7 @@ import {
 import { useDriveManifestSync } from '@/hooks/useDriveManifestSync'
 import { deliverableIndexForTicket } from '@/lib/driveMedia'
 import { readinessForDeliverable } from '@/lib/pathBDeliverables'
-import { smmNeedsAssetPrep } from '@/lib/smmBoard'
+import { smmCanEditEditorDeliverable, smmNeedsAssetPrep } from '@/lib/smmBoard'
 import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
 
 type Props = {
@@ -43,7 +43,9 @@ export function SmmProductionModal({
 
   if (!open) return null
 
-  const canReturnToQa = smmNeedsAssetPrep(ticket, batch) && readiness.allReady
+  const smmOwnedPrep = smmNeedsAssetPrep(ticket, batch)
+  const editorAssist = smmCanEditEditorDeliverable(ticket, batch)
+  const canReturnToQa = smmOwnedPrep && readiness.allReady
   const folderUrl = batch.editorDeliverablesDriveUrl?.trim() ?? ''
 
   return (
@@ -76,11 +78,22 @@ export function SmmProductionModal({
       headerMeta={<DriveSyncMeta manifest={manifest} errorMessage={error} />}
     >
       <div className="space-y-4">
+        {editorAssist ? (
+          <p className="text-muted-foreground border-border bg-muted/15 rounded-xl border px-3 py-2.5 text-xs leading-relaxed">
+            This video is with the editor. You can set the publish title here and upload
+            thumbnails to the deliverables folder on Drive. The editor sends the package to SMM QA
+            when all three deliverables are ready.
+          </p>
+        ) : null}
+
         <DeliverableSummaryPanel
           batch={batch}
           deliverableIndex={index}
           ticket={ticket}
           manifest={manifest}
+          readiness={readiness}
+          autoExpandMissing
+          defaultOpenSections={['video']}
           titleEditable
           onSaveTitle={(title) => {
             saveVideoPublishTitle(ticket.id, title)
@@ -91,17 +104,20 @@ export function SmmProductionModal({
           driveSyncing={syncing}
         />
 
-        <DeliverableReadinessStrip
-          videoReady={readiness.videoReady}
-          thumbnailReady={readiness.thumbnailReady}
-          titleReady={readiness.titleReady}
-          ctaLabel="Return to SMM QA"
-          ctaDisabled={!canReturnToQa}
-          onCta={() => {
-            sendEditorDeliverableToSmmQa(ticket.id)
-            onClose()
-          }}
-        />
+        {smmOwnedPrep ? (
+          <DeliverableReadinessStrip
+            videoReady={readiness.videoReady}
+            thumbnailReady={readiness.thumbnailReady}
+            titleReady={readiness.titleReady}
+            showChecklist={false}
+            ctaLabel="Return to SMM QA"
+            ctaDisabled={!canReturnToQa}
+            onCta={() => {
+              sendEditorDeliverableToSmmQa(ticket.id)
+              onClose()
+            }}
+          />
+        ) : null}
       </div>
     </StudioModalShell>
   )

@@ -11,6 +11,8 @@ type Props = {
   /** Second line under subtitle (e.g. last synced from Drive) */
   headerMeta?: ReactNode
   children: ReactNode
+  /** When false, body fills remaining height; children manage their own scroll regions. */
+  bodyScroll?: boolean
   /** Optional footer bar (e.g. primary action) pinned under the scrollable body */
   footer?: ReactNode
 }
@@ -23,6 +25,7 @@ export function StudioModalShell({
   headerAside,
   headerMeta,
   children,
+  bodyScroll = true,
   footer,
 }: Props) {
   return (
@@ -68,7 +71,13 @@ export function StudioModalShell({
           </div>
         </div>
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-6 pb-6 pt-5">
-          <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-y-contain">
+          <div
+            className={
+              bodyScroll
+                ? 'min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-y-contain'
+                : 'flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden'
+            }
+          >
             {children}
           </div>
           {footer ? (

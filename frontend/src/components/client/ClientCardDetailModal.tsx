@@ -3,8 +3,15 @@ import { NumberedClipsModal } from '@/components/path-b'
 import type { ClientVideoCard } from '@/lib/clientBoard'
 import { clientBatchKanbanPhase } from '@/lib/clientBoard'
 import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
+import { ClientClipIdentificationStatusModal } from './ClientClipIdentificationStatusModal'
 import { ClientUnifiedQaModal } from './ClientUnifiedQaModal'
 import type { VideoReviewFeedback } from '@/components/VideoDeliverableReviewPanel'
+
+const CLIP_IDENTIFICATION_PREVIEW_BANNER =
+  'Preview only — our team is still finalizing clip identification. You will approve the full clip list when it is ready for your review.'
+
+const CLIPS_IN_PRODUCTION_BANNER =
+  'Our team is working on these clips now. You will review finished videos, thumbnails, and titles here when they are ready.'
 
 type Props = {
   card: ClientVideoCard | null
@@ -32,6 +39,45 @@ export function ClientCardDetailModal({
   const batchTickets = batch ? getVideosForBatch(batch.id) : []
 
   if (!card || !batch) return null
+
+  if (card.clientGateKind === 'clip_identification') {
+    if (batch.clipsFolderUrl?.trim()) {
+      return (
+        <NumberedClipsModal
+          open
+          batchId={batchId}
+          batchTitle={batchTitle}
+          clipsFolderUrl={batch.clipsFolderUrl}
+          mode="view"
+          resetKey={card.id}
+          onClose={onClose}
+          statusBanner={CLIP_IDENTIFICATION_PREVIEW_BANNER}
+        />
+      )
+    }
+    return (
+      <ClientClipIdentificationStatusModal
+        batch={batch}
+        batchTitle={batchTitle}
+        onClose={onClose}
+      />
+    )
+  }
+
+  if (card.clientGateKind === 'clips_in_production' && batch.clipsFolderUrl?.trim()) {
+    return (
+      <NumberedClipsModal
+        open
+        batchId={batchId}
+        batchTitle={batchTitle}
+        clipsFolderUrl={batch.clipsFolderUrl}
+        mode="view"
+        resetKey={card.id}
+        onClose={onClose}
+        statusBanner={CLIPS_IN_PRODUCTION_BANNER}
+      />
+    )
+  }
 
   if (card.reviewKind === 'clip' && batch.clipsFolderUrl?.trim()) {
     return (

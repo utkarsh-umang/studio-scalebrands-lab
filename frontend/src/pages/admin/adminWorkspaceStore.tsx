@@ -115,9 +115,8 @@ type AdminWorkspaceContextValue = {
     videoId: string,
     route: 'editor' | 'smm_assets',
   ) => void
-  scheduleBatch: (batchId: string, input: ScheduleBatchInput) => void
-  /** Moves `scheduling` → done if needed, then closes batch + debits credits when every deliverable is done. */
-  smmFinalizeBatchPublish: (batchId: string) => void
+  /** Marks one video scheduled (scheduling → done). Debits batch credits when all deliverables are done. */
+  scheduleVideo: (videoId: string, input: ScheduleVideoInput) => void
   submitEditorVideosDrive: (batchId: string, driveUrl: string) => void
   sendEditorDeliverableToSmmQa: (videoId: string) => void
   saveVideoPublishTitle: (videoId: string, title: string) => void
@@ -133,18 +132,10 @@ export type SubmitSmmQaInput = {
   generalNote?: string
 }
 
-export type ScheduleBatchVideoInput = {
-  videoId: string
-  publishLink?: string
-}
-
-export type ScheduleBatchInput = {
+export type ScheduleVideoInput = {
   platform: string
   goLiveDate: string
   goLiveTime: string
-  videos: ScheduleBatchVideoInput[]
-  /** SMM attests every video in the batch is scheduled on the platform */
-  allVideosScheduled: boolean
 }
 
 const AdminWorkspaceContext = createContext<AdminWorkspaceContextValue | null>(
@@ -768,65 +759,44 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
     )
   }, [videos])
 
-  const scheduleBatch = useCallback((batchId: string, input: ScheduleBatchInput) => {
-    if (!input.allVideosScheduled) return
-    const now = new Date().toISOString().slice(0, 10)
-    const goLiveAt = new Date(`${input.goLiveDate}T${input.goLiveTime}`).toISOString()
-    const linkByVideoId = Object.fromEntries(
-      input.videos.map((v) => [v.videoId, v.publishLink?.trim() || undefined]),
-    )
+  const scheduleVideo = useCallback(
+    (videoId: string, input: ScheduleVideoInput) => {
+      const target = videos.find((v) => v.id === videoId)
+      if (!target || target.owner !== 'scheduling') return
 
-    setVideos((prev) =>
-      prev.map((v) => {
-        if (v.batchId !== batchId) return v
-        if (v.owner !== 'scheduling') return v
-        return { ...v, ...videoStateFromDemoStage('completed') }
-      }),
-    )
-    setBatches((prev) =>
-      prev.map((b) =>
-        b.id === batchId
-          ? {
-              ...b,
-              updatedAt: now,
-              batchSchedule: {
-                platform: input.platform,
-                goLiveAt,
-                completedAt: now,
-                videoPublishLinks: linkByVideoId,
-              },
-            }
-          : b,
-      ),
-    )
-  }, [])
-
-  const smmFinalizeBatchPublish = useCallback(
-    (batchId: string) => {
+      const goLiveAt = new Date(`${input.goLiveDate}T${input.goLiveTime}`).toISOString()
+      const scheduledAt = new Date().toISOString()
+      const batchId = target.batchId
       const batchSnapshot = batches.find((b) => b.id === batchId)
-      if (
-        !batchSnapshot ||
-        batchSnapshot.status !== 'active' ||
-        batchSnapshot.creditsDebited
-      )
-        return
+      if (!batchSnapshot) return
 
       setVideos((prevVideos) => {
         const nextVideos = prevVideos.map((v) => {
-          if (v.batchId !== batchId) return v
-          if (v.owner === 'scheduling') {
-            return { ...v, ...videoStateFromDemoStage('completed') }
+          if (v.id !== videoId) return v
+          if (v.owner !== 'scheduling') return v
+          return {
+            ...v,
+            ...videoStateFromDemoStage('completed', { stageLabel: 'Scheduled' }),
+            videoSchedule: {
+              platform: input.platform.trim(),
+              goLiveAt,
+              scheduledAt,
+            },
           }
-          return v
         })
 
-        const bv = nextVideos.filter((v) => v.batchId === batchId)
+        const batchDeliverables = nextVideos.filter(
+          (v) =>
+            v.batchId === batchId &&
+            v.deliverableIndex != null &&
+            v.deliverableIndex > 0,
+        )
         const allDone =
-          bv.length > 0 && bv.every((v) => v.owner === 'done')
+          batchDeliverables.length > 0 &&
+          batchDeliverables.every((v) => v.owner === 'done')
 
-        if (allDone) {
+        if (allDone && !batchSnapshot.creditsDebited) {
           const now = new Date().toISOString().slice(0, 10)
-          const goLiveAt = new Date().toISOString()
           setBatches((prev) =>
             prev.map((b) => {
               if (b.id !== batchId) return b
@@ -837,13 +807,11 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
                   completedAt: now,
                   updatedAt: now,
                   creditsDebited: true,
-                  batchSchedule:
-                    b.batchSchedule ?? {
-                      platform: 'Social channels',
-                      goLiveAt,
-                      completedAt: now,
-                      videoPublishLinks: {},
-                    },
+                  batchSchedule: {
+                    platform: input.platform.trim(),
+                    goLiveAt,
+                    completedAt: now,
+                  },
                 },
                 batchDemoStageAfterScheduleComplete(),
               )
@@ -859,12 +827,19 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
                 : c,
             ),
           )
+        } else {
+          const now = new Date().toISOString().slice(0, 10)
+          setBatches((prev) =>
+            prev.map((b) =>
+              b.id === batchId ? { ...b, updatedAt: now } : b,
+            ),
+          )
         }
 
         return nextVideos
       })
     },
-    [batches],
+    [videos, batches],
   )
 
   const applyClientVideoDecision = useCallback(
@@ -994,8 +969,7 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
       submitSmmQaReview,
       appendSmmQaComment,
       smmTriageClientRevision,
-      scheduleBatch,
-      smmFinalizeBatchPublish,
+      scheduleVideo,
       submitEditorVideosDrive,
       sendEditorDeliverableToSmmQa,
       saveVideoPublishTitle,
@@ -1026,8 +1000,7 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
       submitSmmQaReview,
       appendSmmQaComment,
       smmTriageClientRevision,
-      scheduleBatch,
-      smmFinalizeBatchPublish,
+      scheduleVideo,
       submitEditorVideosDrive,
       sendEditorDeliverableToSmmQa,
       saveVideoPublishTitle,

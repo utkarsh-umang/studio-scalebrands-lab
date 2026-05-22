@@ -81,6 +81,9 @@ export function EditorProductionModal({
           deliverableIndex={index}
           ticket={ticket}
           manifest={manifest}
+          readiness={readiness}
+          autoExpandMissing
+          defaultOpenSections={['video']}
           titleEditable
           onSaveTitle={(title) => {
             saveVideoPublishTitle(ticket.id, title)
@@ -95,6 +98,7 @@ export function EditorProductionModal({
           videoReady={readiness.videoReady}
           thumbnailReady={readiness.thumbnailReady}
           titleReady={readiness.titleReady}
+          showChecklist={false}
           ctaLabel="Send to SMM QA"
           ctaDisabled={!canSendSmm}
           onCta={

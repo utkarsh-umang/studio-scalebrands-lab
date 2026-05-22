@@ -55,6 +55,7 @@ export function EditorQaFixModal({ batch, clientName, card, open, onClose }: Pro
         ) : null
       }
       headerMeta={<DriveSyncMeta manifest={manifest} errorMessage={error} />}
+      bodyScroll={false}
     >
       <EditorQaFixPanel
         batch={batch}

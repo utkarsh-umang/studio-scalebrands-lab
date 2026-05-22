@@ -79,6 +79,7 @@ export function SmmVideoQaModal({
         ) : null
       }
       headerMeta={<DriveSyncMeta manifest={manifest} errorMessage={error} />}
+      bodyScroll={false}
     >
       {!canAct ? (
         <p className="text-muted-foreground text-sm">

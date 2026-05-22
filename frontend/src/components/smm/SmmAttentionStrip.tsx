@@ -19,8 +19,12 @@ function itemLabel(item: SmmAttentionItem): string {
       return item.count && item.count > 1
         ? `Client revisions (${item.count})`
         : 'Client revisions'
+    case 'editor_deliverable':
+      return item.count && item.count > 1
+        ? `Title / thumb (${item.count})`
+        : 'Title or thumbnail'
     case 'schedule':
-      return 'Schedule batch'
+      return 'Set go-live'
     default:
       return 'Action needed'
   }

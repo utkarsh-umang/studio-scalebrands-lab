@@ -6,6 +6,7 @@ import { DeliverableSummaryPanel, DriveSyncButton, DriveSyncMeta } from '@/compo
 import { SmmClientRevisionPanel } from '@/components/smm/SmmClientRevisionPanel'
 import { useDriveManifestSync } from '@/hooks/useDriveManifestSync'
 import { deliverableIndexForTicket } from '@/lib/driveMedia'
+import { readinessForDeliverable } from '@/lib/pathBDeliverables'
 import { videoNeedsSmmClientRevision } from '@/lib/smmBoard'
 import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
 
@@ -33,6 +34,10 @@ export function SmmClientRevisionModal({
   )
 
   const index = deliverableIndexForTicket(ticket)
+  const readiness = useMemo(
+    () => readinessForDeliverable(batch.id, index, ticket, manifest),
+    [batch.id, index, ticket, manifest],
+  )
   const clientComments = useMemo(
     () =>
       (ticket.qaCommentHistory ?? []).filter(
@@ -85,7 +90,8 @@ export function SmmClientRevisionModal({
             deliverableIndex={index}
             ticket={ticket}
             manifest={manifest}
-            titleEditable={false}
+            readiness={readiness}
+            defaultOpenSections={['video', 'thumbnail', 'title']}
             onSyncDrive={() => {
               void sync()
             }}

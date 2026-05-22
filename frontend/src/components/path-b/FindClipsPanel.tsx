@@ -4,19 +4,26 @@ import type { AdminBatchFolder } from '@mockData/index'
 import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
 import { useTheme } from '@/theme'
 
+export type FindClipsPanelRole = 'smm' | 'editor'
+
 type Props = {
   batch: AdminBatchFolder
   clientName: string
+  role?: FindClipsPanelRole
   onSubmitted?: () => void
 }
 
-export function SmmFindClipsPanel({ batch, clientName, onSubmitted }: Props) {
+export function FindClipsPanel({
+  batch,
+  clientName,
+  role = 'smm',
+  onSubmitted,
+}: Props) {
   const { theme } = useTheme()
   const { submitSmmClipsFolder } = useAdminWorkspace()
   const [clipsFolderUrl, setClipsFolderUrl] = useState(batch.clipsFolderUrl ?? '')
 
-  const rawUrl =
-    batch.sourceMediaUrl?.trim() || batch.footageUrl?.trim() || ''
+  const rawUrl = batch.sourceMediaUrl?.trim() || batch.footageUrl?.trim() || ''
   const primary = theme.colors.primary
 
   function handleSubmit(e: React.FormEvent) {
@@ -28,11 +35,18 @@ export function SmmFindClipsPanel({ batch, clientName, onSubmitted }: Props) {
 
   return (
     <div className="space-y-4">
-        <p className="text-muted-foreground text-sm leading-relaxed">
-          For <span className="text-foreground font-medium">{clientName}</span>: open the
-          client&apos;s raw footage in a new tab, cut clips in your usual tools, then upload
-          cuts to Drive and paste the folder link below.
+      <p className="text-muted-foreground text-sm leading-relaxed">
+        For <span className="text-foreground font-medium">{clientName}</span>: open the
+        client&apos;s raw footage, cut clips in your usual tools, then upload numbered cuts to
+        Drive and paste the folder link below.
+      </p>
+
+      {role === 'editor' ? (
+        <p className="text-muted-foreground border-border bg-muted/15 rounded-xl border px-3 py-2.5 text-xs leading-relaxed">
+          Clip identification may be done by you or your SMM — your CSM coordinates who owns this
+          step per batch. Submitting here uses the same workflow as the SMM board.
         </p>
+      ) : null}
 
       {rawUrl ? (
         <a
@@ -53,14 +67,14 @@ export function SmmFindClipsPanel({ batch, clientName, onSubmitted }: Props) {
 
       <form onSubmit={handleSubmit} className="space-y-3">
         <label
-          htmlFor="clips-folder-url-panel"
+          htmlFor={`clips-folder-url-${role}`}
           className="text-muted-foreground flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.12em]"
         >
           <FolderOpen className="size-3" aria-hidden />
           Clips folder (Drive)
         </label>
         <input
-          id="clips-folder-url-panel"
+          id={`clips-folder-url-${role}`}
           type="url"
           value={clipsFolderUrl}
           onChange={(e) => {

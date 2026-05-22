@@ -3,11 +3,11 @@ import type { AdminBatchFolder } from '@mockData/index'
 import {
   SMM_PATH_B_COLUMNS,
   batchNeedsSmmFindClips,
-  batchReadyForScheduling,
   smmBatchKanbanPhase,
   smmCardActionable,
+  smmCanEditEditorDeliverable,
   videoNeedsSmmClientRevision,
-  videoNeedsSmmQa,
+  videoNeedsSmmSchedule,
   type SmmPathBVideoCard,
 } from '@/lib/smmBoard'
 import { useTheme } from '@/theme'
@@ -17,7 +17,6 @@ type Props = {
   videos: SmmPathBVideoCard[]
   onFindClips: () => void
   onViewClips: () => void
-  onScheduleBatch: () => void
   onOpenVideo: (videoId: string) => void
 }
 
@@ -26,7 +25,6 @@ export function SmmPathBVideoKanban({
   videos,
   onFindClips,
   onViewClips,
-  onScheduleBatch,
   onOpenVideo,
 }: Props) {
   const { theme } = useTheme()
@@ -34,8 +32,6 @@ export function SmmPathBVideoKanban({
   const phase = smmBatchKanbanPhase(batch)
   const showFindClips = batchNeedsSmmFindClips(batch)
   const showViewClips = phase === 'pre_split' && Boolean(batch.clipsFolderUrl?.trim())
-  const showScheduleGate = batchReadyForScheduling(batch, videos)
-
   function cardsInColumn(colId: (typeof SMM_PATH_B_COLUMNS)[number]['id']) {
     return videos.filter((c) => c.pathBColumn === colId)
   }
@@ -47,8 +43,6 @@ export function SmmPathBVideoKanban({
         let count = columnCards.length
         if (col.id === 'identify' && showFindClips) count += 1
         if (col.id === 'identify' && showViewClips) count += 1
-        if (col.id === 'schedule' && showScheduleGate) count += 1
-
         return (
           <div
             key={col.id}
@@ -109,43 +103,18 @@ export function SmmPathBVideoKanban({
                   </button>
                 </li>
               ) : null}
-              {col.id === 'schedule' && showScheduleGate ? (
-                <li>
-                  <button
-                    type="button"
-                    onClick={onScheduleBatch}
-                    className="border-border bg-background hover:border-primary/35 w-full rounded-lg border p-3 text-left shadow-sm transition-colors"
-                  >
-                    <div className="flex items-start gap-2">
-                      <CalendarClock
-                        className="size-3.5 shrink-0"
-                        style={{ color: primary }}
-                        aria-hidden
-                      />
-                      <div>
-                        <p className="text-foreground text-xs font-medium leading-snug">
-                          Schedule batch
-                        </p>
-                        <p className="text-muted-foreground mt-1 text-[10px]">
-                          Mark videos published · debit {batch.creditCost} credit
-                          {batch.creditCost === 1 ? '' : 's'}
-                        </p>
-                      </div>
-                    </div>
-                  </button>
-                </li>
-              ) : null}
               {columnCards.length === 0 &&
-              !(col.id === 'identify' && (showFindClips || showViewClips)) &&
-              !(col.id === 'schedule' && showScheduleGate) ? (
+              !(col.id === 'identify' && (showFindClips || showViewClips)) ? (
                 <li className="text-muted-foreground px-2 py-6 text-center text-[11px]">—</li>
               ) : null}
               {columnCards.map((card) => {
                 const actionable = smmCardActionable(card, batch)
+                const needsSchedule = videoNeedsSmmSchedule(card)
+                const needsEditorAssist = smmCanEditEditorDeliverable(card, batch)
                 const Icon = videoNeedsSmmClientRevision(card)
                   ? MessageSquareWarning
-                  : videoNeedsSmmQa(card)
-                    ? Film
+                  : needsSchedule
+                    ? CalendarClock
                     : Film
                 return (
                   <li key={card.id}>
@@ -173,14 +142,24 @@ export function SmmPathBVideoKanban({
                             #{card.deliverableIndex} · {card.title}
                           </p>
                           <p className="text-muted-foreground mt-1 text-[10px]">
-                            {card.stageLabel}
+                            {card.videoSchedule
+                              ? `${card.videoSchedule.platform} · ${new Date(card.videoSchedule.goLiveAt).toLocaleDateString()}`
+                              : card.stageLabel}
                           </p>
                           {actionable ? (
                             <span
                               className="mt-1.5 inline-block rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide"
                               style={{ background: `${primary}14`, color: primary }}
                             >
-                              Open
+                              {needsSchedule
+                                ? 'Set go-live'
+                                : needsEditorAssist
+                                  ? 'Edit title / thumb'
+                                  : 'Open'}
+                            </span>
+                          ) : card.owner === 'done' ? (
+                            <span className="text-muted-foreground mt-1.5 inline-block text-[9px] font-semibold uppercase tracking-wide">
+                              Scheduled
                             </span>
                           ) : null}
                         </div>

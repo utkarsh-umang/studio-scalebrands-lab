@@ -1,8 +1,9 @@
-import { FolderOpen, Film, Wrench } from 'lucide-react'
+import { FolderOpen, Film, Scissors, Wrench } from 'lucide-react'
 import type { EditorAttentionItem } from '@/lib/editorBoard'
 import { useTheme } from '@/theme'
 
 const kindLabel: Record<EditorAttentionItem['kind'], string> = {
+  find_clips: 'Find clips',
   submit_deliverables: 'Submit deliverables folder',
   pre_split_gate: 'Open clips & submit folder',
   qa_fix: 'Fix QA feedback',
@@ -37,7 +38,13 @@ export function EditorAttentionStrip({ items, onOpen }: Props) {
               }}
               className="border-border hover:border-primary/35 bg-muted/30 flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left text-xs transition-colors sm:w-auto"
             >
-              {item.kind === 'qa_fix' ? (
+              {item.kind === 'find_clips' ? (
+                <Scissors
+                  className="size-3.5 shrink-0"
+                  style={{ color: theme.colors.primary }}
+                  aria-hidden
+                />
+              ) : item.kind === 'qa_fix' ? (
                 <Wrench
                   className="size-3.5 shrink-0"
                   style={{ color: theme.colors.primary }}

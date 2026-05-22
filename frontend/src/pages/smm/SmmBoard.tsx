@@ -8,17 +8,19 @@ import { SmmClientRevisionModal } from '@/components/smm/SmmClientRevisionModal'
 import { SmmFindClipsModal } from '@/components/smm/SmmFindClipsModal'
 import { SmmPathBVideoKanban } from '@/components/smm/SmmPathBVideoKanban'
 import { SmmProductionModal } from '@/components/smm/SmmProductionModal'
-import { SmmScheduleBatchModal } from '@/components/smm/SmmScheduleBatchModal'
+import { SmmScheduleVideoModal } from '@/components/smm/SmmScheduleVideoModal'
 import { SmmVideoQaModal } from '@/components/smm/SmmVideoQaModal'
 import {
   batchNeedsSmmFindClips,
   filterVideosForSmmKanban,
   listSmmAttention,
   smmBatchKanbanPhase,
+  smmCanEditEditorDeliverable,
   smmNeedsAssetPrep,
   toSmmPathBVideoCard,
   videoNeedsSmmClientRevision,
   videoNeedsSmmQa,
+  videoNeedsSmmSchedule,
 } from '@/lib/smmBoard'
 import { resolveSmmStaffId } from '@/lib/smmSession'
 import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
@@ -55,7 +57,7 @@ export function SmmBoard() {
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null)
   const [findClipsOpen, setFindClipsOpen] = useState(false)
   const [clipsViewOpen, setClipsViewOpen] = useState(false)
-  const [scheduleOpen, setScheduleOpen] = useState(false)
+  const [scheduleVideoId, setScheduleVideoId] = useState<string | null>(null)
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null)
   const [revisionThenProductionId, setRevisionThenProductionId] = useState<string | null>(
     null,
@@ -86,6 +88,11 @@ export function SmmBoard() {
   const revisionProductionCard = useMemo(
     () => batchVideos.find((v) => v.id === revisionThenProductionId) ?? null,
     [batchVideos, revisionThenProductionId],
+  )
+
+  const scheduleCard = useMemo(
+    () => batchVideos.find((v) => v.id === scheduleVideoId) ?? null,
+    [batchVideos, scheduleVideoId],
   )
 
   if (!user || user.role !== 'employee' || user.employeeKind !== 'smm') {
@@ -124,8 +131,9 @@ export function SmmBoard() {
           setSelectedBatchId(item.batchId)
           if (item.kind === 'find_clips') setFindClipsOpen(true)
           else if (item.kind === 'view_clips') setClipsViewOpen(true)
-          else if (item.kind === 'schedule') setScheduleOpen(true)
-          else if (item.videoId) setActiveVideoId(item.videoId)
+          else if (item.kind === 'schedule' && item.videoId) {
+            setScheduleVideoId(item.videoId)
+          } else if (item.videoId) setActiveVideoId(item.videoId)
         }}
       />
 
@@ -169,10 +177,15 @@ export function SmmBoard() {
             onViewClips={() => {
               setClipsViewOpen(true)
             }}
-            onScheduleBatch={() => {
-              setScheduleOpen(true)
+            onOpenVideo={(videoId) => {
+              const card = batchVideos.find((v) => v.id === videoId)
+              if (!card || !selectedBatch) return
+              if (videoNeedsSmmSchedule(card)) {
+                setScheduleVideoId(videoId)
+              } else {
+                setActiveVideoId(videoId)
+              }
             }}
-            onOpenVideo={setActiveVideoId}
           />
         </section>
       ) : (
@@ -204,14 +217,14 @@ export function SmmBoard() {
         />
       ) : null}
 
-      {selectedBatch ? (
-        <SmmScheduleBatchModal
+      {selectedBatch && scheduleCard && videoNeedsSmmSchedule(scheduleCard) ? (
+        <SmmScheduleVideoModal
           batch={selectedBatch}
           clientName={clientName}
-          videos={getVideosForBatch(selectedBatch.id)}
-          open={scheduleOpen}
+          ticket={scheduleCard}
+          open={scheduleVideoId === scheduleCard.id}
           onClose={() => {
-            setScheduleOpen(false)
+            setScheduleVideoId(null)
           }}
         />
       ) : null}
@@ -245,7 +258,11 @@ export function SmmBoard() {
 
       {(activeCard || revisionProductionCard) &&
       selectedBatch &&
-      smmNeedsAssetPrep(activeCard ?? revisionProductionCard!, selectedBatch) ? (
+      (smmNeedsAssetPrep(activeCard ?? revisionProductionCard!, selectedBatch) ||
+        smmCanEditEditorDeliverable(
+          activeCard ?? revisionProductionCard!,
+          selectedBatch,
+        )) ? (
         <SmmProductionModal
           batch={selectedBatch}
           clientName={clientName}

@@ -28,7 +28,7 @@ export const SMM_PATH_B_COLUMNS: {
   {
     id: 'schedule',
     label: 'Schedule',
-    hint: 'Client-approved — mark published',
+    hint: 'Set go-live per video',
   },
 ]
 
@@ -82,6 +82,31 @@ export function smmNeedsAssetPrep(
   return !readiness.allReady
 }
 
+/** SMM may set title (and sync thumb on Drive) while editor still owns production. */
+export function smmCanEditEditorDeliverable(
+  video: AdminVideoTicket,
+  batch: AdminBatchFolder,
+): boolean {
+  if (video.owner !== 'editor') return false
+  const stage = video.stageLabel.toLowerCase()
+  if (stage.includes('qa flagged')) return false
+  if (
+    !stage.includes('production') &&
+    !stage.includes('thumbnail') &&
+    !stage.includes('title')
+  ) {
+    return false
+  }
+  const manifest = getManifestForBatch(batch.id)
+  const index = video.deliverableIndex ?? 1
+  const readiness = readinessForDeliverable(batch.id, index, video, manifest)
+  return !readiness.titleReady || !readiness.thumbnailReady
+}
+
+export function videoNeedsSmmSchedule(video: AdminVideoTicket): boolean {
+  return video.owner === 'scheduling'
+}
+
 export function smmCardActionable(
   video: AdminVideoTicket,
   batch: AdminBatchFolder,
@@ -89,7 +114,9 @@ export function smmCardActionable(
   return (
     videoNeedsSmmQa(video) ||
     videoNeedsSmmClientRevision(video) ||
-    smmNeedsAssetPrep(video, batch)
+    smmNeedsAssetPrep(video, batch) ||
+    smmCanEditEditorDeliverable(video, batch) ||
+    videoNeedsSmmSchedule(video)
   )
 }
 
@@ -102,7 +129,8 @@ export function deriveSmmPathBColumn(
   if (
     videoNeedsSmmQa(video) ||
     videoNeedsSmmClientRevision(video) ||
-    smmNeedsAssetPrep(video, batch)
+    smmNeedsAssetPrep(video, batch) ||
+    smmCanEditEditorDeliverable(video, batch)
   ) {
     return 'your_queue'
   }
@@ -123,8 +151,8 @@ export function toSmmPathBVideoCard(
   }
 }
 
-/** Raw-footage path: client shared source; SMM has not submitted clips folder yet. */
-export function batchNeedsSmmFindClips(batch: AdminBatchFolder): boolean {
+/** Podcast path — team still identifying / uploading numbered clips folder. */
+export function batchNeedsClipIdentification(batch: AdminBatchFolder): boolean {
   if (batch.status !== 'active') return false
   if (batch.intakePath === 'clips_ready') return false
   const source = batch.sourceMediaUrl?.trim() || batch.footageUrl?.trim()
@@ -135,6 +163,11 @@ export function batchNeedsSmmFindClips(batch: AdminBatchFolder): boolean {
     batch.clipReviewPhase === 'smm_identifying' ||
     batch.clipReviewPhase === 'with_smm'
   )
+}
+
+/** Raw-footage path: client shared source; SMM has not submitted clips folder yet. */
+export function batchNeedsSmmFindClips(batch: AdminBatchFolder): boolean {
+  return batchNeedsClipIdentification(batch)
 }
 
 export function batchReadyForScheduling(
@@ -174,7 +207,13 @@ export function smmBatchFolderHint(
   const rev = batchVideos.filter(videoNeedsSmmClientRevision).length
   if (qa > 0) return `${qa} in SMM QA`
   if (rev > 0) return `${rev} client revision${rev === 1 ? '' : 's'}`
-  if (batchReadyForScheduling(batch, videos)) return 'Ready to schedule'
+  const toSchedule = batchVideos.filter((v) => v.owner === 'scheduling').length
+  if (toSchedule > 0) {
+    return `${toSchedule} to schedule`
+  }
+  const allDone =
+    batchVideos.length > 0 && batchVideos.every((v) => v.owner === 'done')
+  if (allDone) return 'All videos scheduled'
   return `${batchVideos.length} deliverable${batchVideos.length === 1 ? '' : 's'}`
 }
 
@@ -182,7 +221,13 @@ export type SmmAttentionItem = {
   batchId: string
   batchTitle: string
   clientName: string
-  kind: 'find_clips' | 'video_qa' | 'client_revision' | 'schedule' | 'view_clips'
+  kind:
+    | 'find_clips'
+    | 'video_qa'
+    | 'client_revision'
+    | 'editor_deliverable'
+    | 'schedule'
+    | 'view_clips'
   videoId?: string
   count?: number
 }
@@ -218,16 +263,17 @@ export function listSmmAttention(
       })
     }
 
-    if (batchReadyForScheduling(batch, videos)) {
+    const batchVideos = filterVideosForSmmKanban(batch, videos)
+
+    for (const ticket of batchVideos.filter((v) => v.owner === 'scheduling')) {
       items.push({
         batchId: batch.id,
         batchTitle: batch.title,
         clientName,
         kind: 'schedule',
+        videoId: ticket.id,
       })
     }
-
-    const batchVideos = filterVideosForSmmKanban(batch, videos)
     const qaTickets = batchVideos.filter(videoNeedsSmmQa)
     if (qaTickets.length > 0) {
       items.push({
@@ -249,6 +295,20 @@ export function listSmmAttention(
         kind: 'client_revision',
         videoId: revisionTickets[0]?.id,
         count: revisionTickets.length,
+      })
+    }
+
+    const editorAssist = batchVideos.filter((v) =>
+      smmCanEditEditorDeliverable(v, batch),
+    )
+    if (editorAssist.length > 0) {
+      items.push({
+        batchId: batch.id,
+        batchTitle: batch.title,
+        clientName,
+        kind: 'editor_deliverable',
+        videoId: editorAssist[0]?.id,
+        count: editorAssist.length,
       })
     }
   }

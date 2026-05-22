@@ -13,6 +13,8 @@ type Props = {
   readOnly?: boolean
   /** Default: list on the right. */
   sidebarPosition?: 'left' | 'right'
+  /** Fill parent height (numbered clips modal). */
+  className?: string
   onApprove?: () => void
   onReject?: (note: string) => void
 }
@@ -23,6 +25,7 @@ export function ClipsReviewPanel({
   clipsFolderUrl,
   readOnly = false,
   sidebarPosition = 'right',
+  className = '',
   onApprove,
   onReject,
 }: Props) {
@@ -74,7 +77,11 @@ export function ClipsReviewPanel({
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+    <div
+      className={['flex min-h-0 flex-1 flex-col overflow-hidden', className]
+        .filter(Boolean)
+        .join(' ')}
+    >
       {manifest && manifest.unmapped.length > 0 && (
         <ul className="text-destructive/90 mb-3 max-h-20 shrink-0 overflow-y-auto text-left text-[11px]">
           {manifest.unmapped.map((u) => (
@@ -87,21 +94,26 @@ export function ClipsReviewPanel({
 
       <div
         className={[
-          'flex min-h-0 flex-1 flex-col gap-3 overflow-hidden md:gap-4',
+          'flex min-h-0 flex-1 flex-col gap-3 overflow-hidden md:min-h-[280px] md:gap-4',
           sidebarPosition === 'right' ? 'md:flex-row-reverse' : 'md:flex-row',
         ].join(' ')}
       >
-        <aside className="border-border bg-muted/15 flex max-h-[min(28vh,220px)] shrink-0 flex-col rounded-xl border md:max-h-none md:w-56 md:bg-transparent">
+        <aside
+          className={[
+            'border-border bg-muted/15 flex min-h-0 shrink-0 flex-col overflow-hidden rounded-xl border',
+            'h-[min(36vh,240px)] md:h-auto md:w-56 md:self-stretch md:bg-transparent',
+          ].join(' ')}
+          aria-label="Clip list"
+        >
           {rejectMode ? (
-            <p className="text-muted-foreground border-border shrink-0 border-b px-3 py-2 text-[10px] font-semibold uppercase tracking-wide md:border-0 md:px-0 md:pb-2 md:pt-2">
+            <p className="text-muted-foreground border-border shrink-0 border-b px-3 py-2 text-[10px] font-semibold uppercase tracking-wide">
               Mark clips to replace
             </p>
           ) : null}
           <ul
-            className={[
-              'min-h-0 flex-1 space-y-1 overflow-y-auto p-2 md:px-0 md:pb-0',
-              rejectMode ? '' : 'md:pt-0',
-            ].join(' ')}
+            className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-y-contain p-2"
+            role="listbox"
+            aria-label="Numbered clips"
           >
             {clips.map((c) => {
               const active = resolvedSelected !== null && c.index === resolvedSelected
@@ -153,11 +165,13 @@ export function ClipsReviewPanel({
           </ul>
         </aside>
 
-        <main className="min-h-0 flex-1 overflow-y-auto pr-1">
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden md:min-h-0">
           {selected ? (
-            <div className="space-y-3">
-              <p className="text-foreground text-sm font-semibold">{selected.name}</p>
-              <DriveVideoPreview driveFileId={selected.driveFileId} fileName={selected.name} />
+            <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-y-contain pr-1">
+              <p className="text-foreground shrink-0 text-sm font-semibold">{selected.name}</p>
+              <div className="min-h-0 shrink-0">
+                <DriveVideoPreview driveFileId={selected.driveFileId} fileName={selected.name} />
+              </div>
             </div>
           ) : (
             <p className="text-muted-foreground text-center text-sm md:text-left">

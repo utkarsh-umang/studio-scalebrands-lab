@@ -50,8 +50,8 @@ export const PATH_B_DEMO_SCENARIOS: PathBDemoScenario[] = [
     batchTitle: 'May Podcast — identifying',
     clientId: PATH_B_DEMO_CLIENT_ID,
     clientBoardExpectation:
-      'Batch visible; in progress. No cards until team uploads clips folder.',
-    videoTicketIds: [],
+      'In progress: one card “Team is identifying your clips” → status modal (source link). If clips folder exists: read-only preview + banner.',
+    videoTicketIds: ['v-identifying-gate'],
     loginHint: 'SMM/Editor: upload clips folder on b-identifying',
   },
   {
@@ -70,7 +70,7 @@ export const PATH_B_DEMO_SCENARIOS: PathBDemoScenario[] = [
     batchTitle: 'August Clips Pack',
     clientId: PATH_B_DEMO_CLIENT_ID,
     clientBoardExpectation:
-      'Clips-ready intake submitted; one gate card; team prepares deliverables.',
+      'In progress: “Production in progress” → numbered clips modal (read-only) + team-working banner.',
     videoTicketIds: ['v-clips-ready-gate'],
     loginHint: 'client@scalebrandslab.demo',
   },
@@ -99,9 +99,10 @@ export const PATH_B_DEMO_SCENARIOS: PathBDemoScenario[] = [
     batchId: 'b-schedule',
     batchTitle: 'Product Launch Series',
     clientId: PATH_B_DEMO_CLIENT_ID,
-    clientBoardExpectation: 'Cards in scheduling / ready to mark completed.',
+    clientBoardExpectation:
+      'Schedule column: v-sc-1 already scheduled; v-sc-2 and v-sc-3 need per-video go-live (no publish URL).',
     videoTicketIds: ['v-sc-1', 'v-sc-2', 'v-sc-3'],
-    loginHint: 'SMM: schedule modal',
+    loginHint: 'SMM: Set go-live on each scheduling card',
   },
   {
     stage: 'completed',

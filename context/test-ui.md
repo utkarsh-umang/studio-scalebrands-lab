@@ -52,12 +52,12 @@ Password for all: `demo1234`
 | Batch | Title | Use in flows |
 |-------|-------|----------------|
 | `b-new` | July Deep Dive | Intake, empty kanban |
-| `b-identifying` | May Podcast — identifying | SMM find clips |
+| `b-identifying` | May Podcast — identifying | Client in-progress card; SMM find clips |
 | `b-clips` | June Podcast | Client clip approval (`v-clips-gate`) |
-| `b-clips-ready` | August Clips Pack | Clips-ready gate (`v-clips-ready-gate`) |
+| `b-clips-ready` | August Clips Pack | Client read-only clips + production banner |
 | `b-editing` | April B-Roll Pack | Pre-split gate (`v-editing-gate`) |
 | `b-pipeline` | Q2 Tech Breakdown | Post-split matrix (5 videos) |
-| `b-schedule` | Product Launch Series | Scheduling (`v-sc-1` … `v-sc-3`) |
+| `b-schedule` | Product Launch Series | Per-video go-live (`v-sc-1` scheduled, `v-sc-2`/`v-sc-3` pending) |
 | `b-archive` | March Compilation | Completed / credits debited |
 
 **`b-pipeline` videos**
@@ -91,9 +91,9 @@ Run these once when you enter fix mode. Do not click Approve / Reject / Submit.
 | 3 | — | Batch folder tabs switch | ⬜ | |
 | 4 | `b-new` | Intake card (podcast vs clips-ready; no ideas) | ⬜ | |
 | 5 | `b-new` | Zero kanban cards | ⬜ | |
-| 6 | `b-identifying` | No kanban cards | ⬜ | |
+| 6 | `b-identifying` | In progress: one card → identifying status modal (source link) | ⬜ | |
 | 7 | `b-clips` | One card → clip modal → sidebar 1…n + player → close | ⬜ | |
-| 8 | `b-clips-ready` | One gate card | ⬜ | |
+| 8 | `b-clips-ready` | In progress card → read-only clips modal + team-working banner | ⬜ | |
 | 9 | `b-editing` | One gate card (not multiple videos) | ⬜ | |
 | 10 | `b-pipeline` | Five cards; open each modal → close | ⬜ | |
 | 11 | `b-schedule` | Scheduling cards visible | ⬜ | |
@@ -104,16 +104,17 @@ Run these once when you enter fix mode. Do not click Approve / Reject / Submit.
 | Step | Batch | Open / check | OK? | Issue # |
 |------|-------|--------------|-----|---------|
 | 13 | `b-editing` | Gate → clips modal → submit deliverables control visible → close | ⬜ | |
-| 14 | `b-pipeline` | `v-p-2` QA fix; `v-p-4` missing thumb; `v-p-5` missing title | ⬜ | |
+| 13b | `b-identifying` | Setup column → **Find clips** (editor parity with SMM) | ⬜ | |
+| 14 | `b-pipeline` | `v-p-2` QA fix; `v-p-4` missing thumb; `v-p-5` missing title (+ SMM can edit title on `v-p-5`) | ⬜ | |
 | 15 | `/editor/completed` | Archive loads | ⬜ | |
 
 ### C — SMM (`/smm/board`)
 
 | Step | Batch | Open / check | OK? | Issue # |
 |------|-------|--------------|-----|---------|
-| 16 | `b-identifying` | Find clips / upload UI | ⬜ | |
+| 16 | `b-identifying` | Find clips / upload UI (SMM) | ⬜ | |
 | 17 | `b-pipeline` | `v-p-1` SMM QA workspace | ⬜ | |
-| 18 | `b-schedule` | Schedule modal | ⬜ | |
+| 18 | `b-schedule` | Per-video “Set go-live” on scheduling cards (no publish URL) | ⬜ | |
 | 19 | `/smm/completed` | Archive loads | ⬜ | |
 
 ### D — Admin
