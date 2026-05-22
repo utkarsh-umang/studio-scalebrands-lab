@@ -2,7 +2,7 @@
 
 **Status:** Source of truth for frontend build (prototype → production)  
 **Scope:** Raw-footage / clips-ready intake only (no idea-first path in v1)  
-**Related:** [`problem-context.md`](./problem-context.md) (roles & high-level pipeline)
+**Related:** [`problem-context.md`](./problem-context.md) · [`path-b-build-plan.md`](./path-b-build-plan.md) (build epics only) · [`test-ui.md`](./test-ui.md) (fix mode — after all epics done)
 
 ---
 
