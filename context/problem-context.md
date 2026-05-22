@@ -24,22 +24,25 @@ Studio is the single platform that replaces all of this.
 ## Roles
 
 ### 1. Client
-An external customer who has purchased a content plan. They interact with the platform to initiate content requests, review intermediate outputs, and give final approvals.
+An external customer who has purchased a content plan. They interact with the platform to initiate content requests, approve clips or ideas, and perform a single unified QA review of the final video, thumbnail, and video title before scheduling.
 
 ### 2. Employee — Editor
-An internal team member responsible for video editing and thumbnail creation. They receive approved clips or raw footage and produce the final edited video and thumbnail, then submit for SMM QA.
+An internal team member responsible for **video creation and editing only**. The Editor dashboard also surfaces clip identification and thumbnail creation so the team can coordinate who owns each step; assignment of that work is managed offline (see CSM coordination below).
 
 ### 3. Employee — Social Media Manager (SMM)
-An internal team member who handles clip identification, idea research, text creation (thumbnail title + video title), QA of the Editor's work, and final scheduling once the client approves.
+An internal team member who handles idea research, internal video QA, client revision routing, and final scheduling. Like the Editor, the SMM dashboard surfaces clip identification and thumbnail creation. The SMM may also supply the thumbnail and/or video title, or those may be produced by the Editor — whichever the internal team agrees on offline.
 
 ### 4. Admin
 An internal operator who manages platform configuration: creating client accounts, setting credits, monitoring overall pipeline health, and assigning deadlines.
+
+### Internal coordination (offline — CSM)
+A Client Success Manager (CSM) coordinates **offline** which internal team member performs clip identification and thumbnail creation for a given batch. Studio exposes both steps on **SMM and Editor** screens; the platform does not enforce a single owner for those tasks. The Editor role in the product is strictly scoped to video editing responsibility.
 
 ---
 
 ## Content Pipeline Overview
 
-There are two parallel entry points into a content batch. Both converge at the Text Creation step.
+There are two parallel entry points into a content batch. Both converge at **internal production**, then **SMM internal QA**, then a **unified client QA** screen.
 
 ```
 PATH A — Idea-First
@@ -48,38 +51,46 @@ START
   → Client Approval of Ideas
       NO → back to Research
       YES → Client Records the Video (offline)
-          → Client Sends Footage → converges at TEXT CREATION directly
-          (clip identification skipped — ideas were already locked in)
+          → Client Sends Footage
+          → converges at INTERNAL PRODUCTION
+          (client clip approval skipped — ideas were already locked in)
 
 PATH B — Raw Footage First
 START
   → Client Sends Raw Footage
-  → SMM: Find Clips from Existing Material
+  → Clip Identification (SMM and/or Editor — see CSM coordination)
   → Client Approval of Clips
-      NO → back to Clip Finding
-      YES → converges at TEXT CREATION
+      NO → back to Clip Identification
+      YES → converges at INTERNAL PRODUCTION
 
-── SHARED PIPELINE (after convergence) ──
+── INTERNAL PRODUCTION (SMM + Editor; ownership per batch is offline) ──
 
-TEXT CREATION (SMM: thumbnail title + video title)
-  → Client Approval
-      NO → back to Text Creation (SMM redoes)
+Clip Identification (shown on SMM + Editor screens; Path A may skip)
+  +
+VIDEO (Editor — required)
+  +
+THUMBNAIL (SMM and/or Editor — required)
+  +
+VIDEO TITLE (SMM and/or Editor — required)
+
+  → All three deliverables present
+  → SMM: Internal Video QA
+      NO (flags raised) → back to production (Editor and/or SMM resolve per CSM)
       YES ↓
 
-VIDEO EDITING + THUMBNAIL CREATION (Editor)
-  → SMM Video Audit / QA
-      NO (flags raised) → back to Video Editing (Editor resolves)
+── CLIENT QA (single screen: video + thumbnail + title) ──
+
+CLIENT QA
+      NO → revisions routed via SMM only → internal production → SMM QA → Client QA again
       YES ↓
 
-CLIENT FINAL APPROVAL
-      NO → back to SMM Video Audit (SMM re-reviews / re-raises)
-      YES ↓
-
-VIDEO SCHEDULING (SMM marks date, time, platform, link)
+VIDEO SCHEDULING (SMM: date, time, platform, link; mark completed)
   → Credits Deducted from Client
 
 TERMINUS → Repeat Process (next batch)
 ```
+
+**Gate before client QA:** A batch may enter client QA only when (1) the edited **video** is submitted by the Editor, (2) a **thumbnail** is submitted (by SMM or Editor), (3) a **video title** is submitted (by SMM or Editor), and (4) the SMM has completed internal QA on the video.
 
 ---
 
@@ -94,7 +105,7 @@ TERMINUS → Repeat Process (next batch)
 
 #### Create a New Video Batch
 1. Client provides a link to raw footage.
-2. SMM identifies clips and raises them for client approval.
+2. SMM and/or Editor identify clips (offline CSM decides who leads); clips are raised for client approval.
 3. Client can **Approve** or **Reject** each clip (rejection requires a reason).
 
 #### Request a New Batch Idea
@@ -104,17 +115,11 @@ TERMINUS → Repeat Process (next batch)
    - **Approve** the ideas list → proceeds to shooting phase
    - **Reject** and request more ideas, optionally providing a reason
 
-#### Thumbnail Title + Video Title Review
-- Client reviews the text assets produced by SMM.
-- Can **Approve** → moves to editing step
-- Can **Reject** with a written reason → SMM redoes the text
-
-#### Final Thumbnail + Video Review
-- Client reviews the completed video and thumbnail.
-- Can **Approve** → video moves to upload/scheduling
-- Can **Reject** with either:
-  - A timestamp-based flag on the video (QA comment at a specific point in the video)
-  - A general written note
+#### Unified Client QA (video + thumbnail + title)
+- Single review screen for the final **video**, **thumbnail**, and **video title** together.
+- Can **Approve** → SMM may schedule and mark the batch completed
+- Can **Reject** with feedback (e.g. timestamp-based flags on the video and/or general notes covering any of the three assets)
+- Revisions are **not** sent directly to the Editor by the client; all revision requests flow **via SMM**, who coordinates internal rework before the package returns to client QA
 
 #### Our Work
 - A read-only view of all videos that have been scheduled with Scale Brands Lab.
@@ -139,50 +144,68 @@ TERMINUS → Repeat Process (next batch)
 
 ### Employee Dashboard — Editor
 
-#### Task Queue
-- Receive assigned tasks: either raw footage (for clip creation) or approved clips (for full editing).
-- For each task: create the edited video and thumbnail.
-- Submit completed work to SMM for QA.
+#### Clip Identification (shared with SMM)
+- Clip identification appears on the Editor screen as well as the SMM screen.
+- Who performs identification for a given batch is decided offline by the CSM; the platform does not assign a single owner.
 
-#### QA Resolution
-- If SMM raises QA flags (with timestamps or general notes), Editor receives them and resolves the issues.
-- Resubmit to SMM for re-review after resolution.
+#### Video Editing
+- Primary Editor responsibility: create and edit the final **video** only.
+- Submit the video when ready for internal SMM QA (thumbnail and video title may still be in progress by either role).
+
+#### Thumbnail Creation (shared with SMM)
+- Thumbnail creation appears on the Editor screen as well as the SMM screen.
+- Editor may supply the thumbnail when agreed offline; otherwise the SMM supplies it.
+
+#### Video Title (shared with SMM)
+- Video title entry appears on the Editor screen as well as the SMM screen.
+- Editor may supply the title when agreed offline; otherwise the SMM supplies it.
+
+#### Internal QA follow-up
+- When SMM raises internal QA flags on the video, Editor resolves video issues and resubmits.
+- Thumbnail/title changes from internal or client revision cycles are coordinated through SMM, not directly from the client to the Editor.
 
 ---
 
 ### Employee Dashboard — Social Media Manager
 
-#### Clip Identification (Raw Footage Path)
-- When raw footage is received from a client, identify the best clips.
-- Raise the identified clips for client approval.
+#### Clip Identification (shared with Editor)
+- When raw footage is received, identify clips (or support Editor-led identification per CSM).
+- Raise identified clips for client approval on the raw-footage path.
 
 #### Idea Research (New Batch Path)
 - When a client requests new batch ideas (or rejects a previous list), research and compile a list of video ideas.
 - Can be prompt-assisted internally.
 - Submit the ideas list for client approval.
 
-#### Thumbnail Title + Video Title Creation
-- Once clips are approved or raw footage is confirmed, create the thumbnail title and video title.
-- Prompt-assisted internally.
-- Submit to client for approval.
-- If rejected, redo the text based on the client's feedback and resubmit.
+#### Thumbnail Creation (shared with Editor)
+- Thumbnail creation appears on the SMM screen as well as the Editor screen.
+- SMM may supply the thumbnail when agreed offline; otherwise the Editor supplies it.
 
-#### Video + Thumbnail QA
-- Review the Editor's completed video and thumbnail.
-- Can raise flags with timestamps or general notes.
-- Once satisfied, approve and send to the client for final review.
+#### Video Title (shared with Editor)
+- Video title entry appears on the SMM screen as well as the Editor screen.
+- SMM may supply the title when agreed offline; otherwise the Editor supplies it.
+
+#### Internal Video QA
+- QA the Editor’s **video** before the batch is eligible for client QA.
+- Can raise flags with timestamps or general notes on the video.
+- Client QA is unlocked only when video, thumbnail, and video title are all present **and** internal video QA is approved.
+
+#### Client revision routing
+- All client revision requests are received and triaged by SMM.
+- SMM coordinates rework with Editor and/or internal thumbnail/title owners, then re-runs internal QA as needed before sending back to unified client QA.
 
 #### Video Scheduling
-- Once a client approves the final video:
-  - Mark the video as scheduled with the date, time, and target platform.
+- Once a client approves the unified QA package:
+  - Schedule the video with date, time, and target platform.
   - Add the published link if available.
+  - Mark the batch **completed**.
   - Deduct the appropriate number of credits from the client's account.
 
 ---
 
 ## Task Status Lifecycle
 
-Each piece of content moves through a defined set of statuses. A task is always owned by exactly one role at a time.
+Each piece of content moves through a defined set of statuses. A task is always owned by exactly one role at a time for workflow routing; clip identification and thumbnail ownership may be shared in the UI while CSM assigns work offline.
 
 ```
 ── PATH A (Idea-First) ──
@@ -190,33 +213,32 @@ IDEA_RESEARCH (SMM)
   → IDEA_REVIEW (client)
       REJECTED → back to IDEA_RESEARCH
       APPROVED → CLIENT_RECORDING (offline — client shoots video)
-          → CLIENT_SENDS_FOOTAGE → joins shared pipeline at TEXT_CREATION directly
-          (no clip identification needed — ideas were already approved)
+          → CLIENT_SENDS_FOOTAGE → joins shared pipeline at INTERNAL_PRODUCTION
+          (client clip review skipped — ideas were already approved)
 
 ── PATH B (Raw Footage First) ──
 RAW_FOOTAGE_RECEIVED
-  → CLIP_IDENTIFICATION (SMM)
+  → CLIP_IDENTIFICATION (SMM and/or Editor — both screens; CSM offline)
   → CLIP_REVIEW (client)
       REJECTED → back to CLIP_IDENTIFICATION
-      APPROVED → joins shared pipeline
+      APPROVED → joins shared pipeline at INTERNAL_PRODUCTION
 
-── SHARED PIPELINE ──
-TEXT_CREATION (SMM)
-  → TEXT_REVIEW (client)
-      REJECTED → back to TEXT_CREATION
-      APPROVED ↓
+── INTERNAL PRODUCTION ──
+INTERNAL_PRODUCTION
+  → Video submitted (Editor)
+  → Thumbnail submitted (SMM and/or Editor)
+  → Video title submitted (SMM and/or Editor)
+  → SMM_INTERNAL_QA (SMM — video only)
+      QA_FLAGGED → back to INTERNAL_PRODUCTION (SMM coordinates fixes)
+      QA_APPROVED → eligible for client QA when all three deliverables exist
 
-EDITING_IN_PROGRESS (Editor)
-  → SMM_QA (SMM)
-      QA_FLAGGED → back to EDITING_IN_PROGRESS (Editor resolves flags)
-      QA_APPROVED ↓
-
-CLIENT_FINAL_REVIEW (client)
-      CLIENT_REJECTED → back to SMM_QA (SMM re-reviews / re-raises with Editor)
+── CLIENT QA ──
+CLIENT_QA (client — video + thumbnail + title, one screen)
+      CLIENT_REJECTED → REVISION_VIA_SMM (SMM) → INTERNAL_PRODUCTION → SMM_INTERNAL_QA → CLIENT_QA
       CLIENT_APPROVED ↓
 
 SCHEDULING (SMM — date, time, platform, link)
-  → SCHEDULED + credits deducted
+  → COMPLETED + credits deducted
 ```
 
 ---
@@ -228,10 +250,13 @@ SCHEDULING (SMM — date, time, platform, link)
 | Client | External account with credits, linked to multiple batches |
 | Batch | A unit of work — one content cycle from idea/footage to final delivery |
 | Task | A step within a Batch, assigned to a role, with a status and optional deadline |
-| Clip | A candidate short-form clip surfaced by SMM from raw footage |
-| TextAsset | Thumbnail title + video title pair, linked to a Batch |
-| QAFlag | A timestamp-based or general note raised by SMM during QA |
-| ScheduledVideo | A finalized, approved video with platform, date/time, and link |
+| Clip | A candidate short-form clip surfaced from raw footage (SMM and/or Editor) |
+| VideoAsset | Final edited video, submitted by Editor |
+| ThumbnailAsset | Thumbnail image, submitted by SMM and/or Editor |
+| VideoTitle | Title copy for the short, submitted by SMM and/or Editor |
+| QAFlag | A timestamp-based or general note raised by SMM during internal video QA or surfaced from client revision |
+| ClientQAPackage | Unified client review bundle: VideoAsset + ThumbnailAsset + VideoTitle |
+| ScheduledVideo | A client-approved, completed video with platform, date/time, and link |
 | Credit | A balance unit assigned to a client by Admin upon payment |
 
 ---
@@ -243,16 +268,17 @@ SCHEDULING (SMM — date, time, platform, link)
 | View own batch status | ✓ | | | ✓ |
 | Approve / Reject clips | ✓ | | | |
 | Approve / Reject ideas | ✓ | | | |
-| Approve / Reject text assets | ✓ | | | |
-| Approve / Reject final video | ✓ | | | |
+| Unified QA (video + thumbnail + title) | ✓ | | | |
 | View scheduled work | ✓ | | | ✓ |
-| Identify clips from footage | | | ✓ | |
+| Clip identification (UI) | | ✓ | ✓ | |
 | Research + submit ideas | | | ✓ | |
-| Create text assets | | | ✓ | |
-| Perform video + thumbnail QA | | | ✓ | |
-| Schedule videos + deduct credits | | | ✓ | |
-| Edit + create thumbnails | | ✓ | | |
-| Resolve QA flags | | ✓ | | |
+| Submit / edit video | | ✓ | | |
+| Submit thumbnail (UI) | | ✓ | ✓ | |
+| Submit video title (UI) | | ✓ | ✓ | |
+| Internal video QA | | | ✓ | |
+| Triage client revisions | | | ✓ | |
+| Schedule videos + mark completed + deduct credits | | | ✓ | |
+| Resolve internal video QA flags (video) | | ✓ | | |
 | Create client accounts | | | | ✓ |
 | Set client credits | | | | ✓ |
 | View pipeline overview | | | | ✓ |
@@ -274,3 +300,4 @@ SCHEDULING (SMM — date, time, platform, link)
 - Payment processing (credits are set manually by Admin after offline payment)
 - Automated platform publishing (scheduling is manual entry with optional link)
 - Multi-language support
+- In-platform assignment of clip identification or thumbnail ownership (handled offline by CSM)
