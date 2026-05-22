@@ -3,6 +3,8 @@
 **Platform URL:** studio.scalebrandslab.com  
 **Purpose:** Internal + client-facing platform for managing the end-to-end video editing lifecycle — from raw footage intake to final delivery and scheduling.
 
+**Path B UI & demo data:** See [`path-b-ui-spec.md`](./path-b-ui-spec.md) for screen-level spec and staged mock catalog.
+
 ---
 
 ## Problem Being Solved

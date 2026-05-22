@@ -51,6 +51,7 @@ function reviewKindFromStage(stageLabel: string): ClientReviewKind | null {
   if (s.includes('idea')) return 'idea'
   if (s.includes('text review')) return 'text'
   if (s.includes('thumbnail review')) return 'thumbnail'
+  if (s.includes('client qa')) return 'final'
   if (s.includes('final')) return 'final'
   return null
 }

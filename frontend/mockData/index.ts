@@ -56,6 +56,15 @@ export {
   type DriveUnmappedEntry,
 } from './driveManifests'
 export {
+  PATH_B_DEMO_CLIENT_ID,
+  PATH_B_DEMO_SCENARIOS,
+  PATH_B_PIPELINE_VIDEO_DEMOS,
+  getPathBDemoScenario,
+  getPathBDemoStageLabel,
+  type PathBDemoScenario,
+  type PathBDemoStage,
+} from './pathBDemoScenarios'
+export {
   ADMIN_KANBAN_COLUMNS,
   MOCK_ADMIN_BATCH_FOLDERS,
   MOCK_ADMIN_CLIENT_PROFILES,

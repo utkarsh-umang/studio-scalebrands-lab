@@ -23,6 +23,13 @@ const MANIFEST_ALIASES: Record<string, string> = {
   'b-ed-qa-client': 'b-204',
   'b-ed-thumbs': 'b-204',
   'b-ed-titles': 'b-204',
+  /** Path B demo batches (context/path-b-ui-spec.md) */
+  'b-clips': 'b-204',
+  'b-clips-ready': 'b-204',
+  'b-editing': 'b-204',
+  'b-pipeline': 'b-204',
+  'b-schedule': 'b-204',
+  'b-identifying': 'b-204',
 }
 
 export function getManifestForBatch(batchId: string): BatchDriveManifest | undefined {

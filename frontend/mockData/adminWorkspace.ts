@@ -1,6 +1,9 @@
 /**
  * Admin workspace — clients, batch folders, video tickets (frontend prototype).
+ * Path B demo batches: see pathBDemoScenarios.ts and context/path-b-ui-spec.md §10.
  */
+
+import type { PathBDemoStage } from './pathBDemoScenarios'
 
 export type BrandGuidelinesSource = 'internal' | 'client' | 'google_doc'
 
@@ -112,6 +115,8 @@ export type AdminBatchFolder = {
    * Set when the editor shares the link after uploading finals.
    */
   editorDeliverablesDriveUrl?: string
+  /** Ties row to Path B demo catalog (dev / Storybook) */
+  demoStage?: PathBDemoStage
 }
 
 /** Editor-facing workflow column on the deliverables board. */
@@ -153,6 +158,8 @@ export type AdminVideoTicket = {
   releasedToClientFinalVideoReview?: boolean
   /** Full QA thread; older entries marked deprecated on re-upload */
   qaCommentHistory?: QaComment[]
+  /** Per-video demo stage inside a mixed batch (e.g. b-pipeline) */
+  demoStage?: PathBDemoStage
 }
 
 export type StaffMember = {
@@ -243,14 +250,8 @@ const DRIVE_EDITOR_ROOT =
   'https://drive.google.com/drive/folders/1lnwiGh3b-UQ5PYwPvWmvpRxOcRpSjFkV'
 
 /**
- * Five active batches — one per major pipeline stage — plus one completed archive.
- *
- * b-new      : batch created, client hasn't submitted their source link yet
- * b-clips    : clips uploaded by SMM, client needs to approve them
- * b-editing  : clips approved, editor working on videos (no deliverables folder yet)
- * b-pipeline : deliverables folder shared; 5 videos spanning every mid-pipeline stage
- * b-schedule : all videos approved and titled, SMM ready to schedule
- * b-archive  : completed cycle
+ * Path B demo batches (client c-1) — one row per major UI stage.
+ * Index: pathBDemoScenarios.ts
  */
 export const MOCK_ADMIN_BATCH_FOLDERS: AdminBatchFolder[] = [
   {
@@ -265,11 +266,28 @@ export const MOCK_ADMIN_BATCH_FOLDERS: AdminBatchFolder[] = [
     intakePath: 'source_media',
     creditCost: 5,
     creditsDebited: false,
+    demoStage: 'intake_pending',
+  },
+  {
+    id: 'b-identifying',
+    clientId: 'c-1',
+    batchNumber: 20,
+    title: 'May Podcast — identifying',
+    status: 'active',
+    videoCount: 0,
+    createdAt: '2026-05-15',
+    updatedAt: '2026-05-15',
+    intakePath: 'source_media',
+    sourceMediaUrl: 'https://www.youtube.com/watch?v=example-techwithtim-may-podcast',
+    clipReviewPhase: 'smm_identifying',
+    creditCost: 5,
+    creditsDebited: false,
+    demoStage: 'clips_identifying',
   },
   {
     id: 'b-clips',
     clientId: 'c-1',
-    batchNumber: 20,
+    batchNumber: 21,
     title: 'June Podcast',
     status: 'active',
     videoCount: 0,
@@ -281,14 +299,31 @@ export const MOCK_ADMIN_BATCH_FOLDERS: AdminBatchFolder[] = [
     clipReviewPhase: 'awaiting_client',
     creditCost: 5,
     creditsDebited: false,
+    demoStage: 'clip_client_review',
+  },
+  {
+    id: 'b-clips-ready',
+    clientId: 'c-1',
+    batchNumber: 22,
+    title: 'August Clips Pack',
+    status: 'active',
+    videoCount: 0,
+    createdAt: '2026-05-14',
+    updatedAt: '2026-05-14',
+    intakePath: 'clips_ready',
+    clipsFolderUrl: DRIVE_CLIPS,
+    clipReviewPhase: 'approved',
+    creditCost: 4,
+    creditsDebited: false,
+    demoStage: 'clips_ready_intake',
   },
   {
     id: 'b-editing',
     clientId: 'c-1',
-    batchNumber: 21,
+    batchNumber: 23,
     title: 'April B-Roll Pack',
     status: 'active',
-    videoCount: 3,
+    videoCount: 0,
     createdAt: '2026-05-11',
     updatedAt: '2026-05-14',
     intakePath: 'source_media',
@@ -297,11 +332,12 @@ export const MOCK_ADMIN_BATCH_FOLDERS: AdminBatchFolder[] = [
     clipReviewPhase: 'approved',
     creditCost: 3,
     creditsDebited: false,
+    demoStage: 'pre_split_production',
   },
   {
     id: 'b-pipeline',
     clientId: 'c-1',
-    batchNumber: 22,
+    batchNumber: 24,
     title: 'Q2 Tech Breakdown',
     status: 'active',
     videoCount: 5,
@@ -314,11 +350,12 @@ export const MOCK_ADMIN_BATCH_FOLDERS: AdminBatchFolder[] = [
     creditCost: 5,
     creditsDebited: false,
     editorDeliverablesDriveUrl: DRIVE_EDITOR_ROOT,
+    demoStage: 'production',
   },
   {
     id: 'b-schedule',
     clientId: 'c-1',
-    batchNumber: 23,
+    batchNumber: 25,
     title: 'Product Launch Series',
     status: 'active',
     videoCount: 3,
@@ -331,6 +368,7 @@ export const MOCK_ADMIN_BATCH_FOLDERS: AdminBatchFolder[] = [
     creditCost: 3,
     creditsDebited: false,
     editorDeliverablesDriveUrl: DRIVE_EDITOR_ROOT,
+    demoStage: 'scheduling',
   },
   {
     id: 'b-archive',
@@ -344,6 +382,7 @@ export const MOCK_ADMIN_BATCH_FOLDERS: AdminBatchFolder[] = [
     completedAt: '2026-04-01',
     creditCost: 4,
     creditsDebited: true,
+    demoStage: 'completed',
     batchSchedule: {
       platform: 'Instagram + YouTube + LinkedIn',
       goLiveAt: '2026-04-01T12:00:00.000Z',
@@ -381,45 +420,46 @@ export const MOCK_ADMIN_VIDEO_TICKETS: AdminVideoTicket[] = [
   doneTicket('v-arch-3', 'b-archive', 'c-1', 'Build in Public — ep. 3', 3),
   doneTicket('v-arch-4', 'b-archive', 'c-1', 'Build in Public — ep. 4', 4),
 
-  // b-editing — editor working on videos, no deliverables folder yet
+  // b-clips — single gate card (clip client review)
   {
-    id: 'v-ed-1',
-    batchId: 'b-editing',
+    id: 'v-clips-gate',
+    batchId: 'b-clips',
     clientId: 'c-1',
-    deliverableIndex: 1,
-    title: 'B-Roll 1 — skyline',
-    owner: 'editor',
-    stageLabel: 'Videos in progress',
-    deadlineRole: 'editor',
-    deadlineAt: '2026-05-18T18:00:00.000Z',
-    editorPhase: 'videos',
-  },
-  {
-    id: 'v-ed-2',
-    batchId: 'b-editing',
-    clientId: 'c-1',
-    deliverableIndex: 2,
-    title: 'B-Roll 2 — hands on keyboard',
-    owner: 'editor',
-    stageLabel: 'Videos in progress',
-    deadlineRole: 'editor',
-    deadlineAt: '2026-05-18T18:00:00.000Z',
-    editorPhase: 'videos',
-  },
-  {
-    id: 'v-ed-3',
-    batchId: 'b-editing',
-    clientId: 'c-1',
-    deliverableIndex: 3,
-    title: 'B-Roll 3 — workshop',
-    owner: 'editor',
-    stageLabel: 'Videos in progress',
-    deadlineRole: 'editor',
-    deadlineAt: '2026-05-18T18:00:00.000Z',
-    editorPhase: 'videos',
+    title: 'Clip approval',
+    owner: 'client',
+    stageLabel: 'Clip review',
+    deadlineRole: null,
+    deadlineAt: null,
+    demoStage: 'clip_client_review',
   },
 
-  // b-pipeline — 5 videos spanning every mid-pipeline stage simultaneously
+  // b-clips-ready — single gate card (skipped identification)
+  {
+    id: 'v-clips-ready-gate',
+    batchId: 'b-clips-ready',
+    clientId: 'c-1',
+    title: 'Batch — August Clips Pack',
+    owner: 'editor',
+    stageLabel: 'Awaiting deliverables folder',
+    deadlineRole: 'editor',
+    deadlineAt: '2026-05-20T18:00:00.000Z',
+    demoStage: 'clips_ready_intake',
+  },
+
+  // b-editing — pre-split: one batch card only
+  {
+    id: 'v-editing-gate',
+    batchId: 'b-editing',
+    clientId: 'c-1',
+    title: 'Batch — April B-Roll Pack',
+    owner: 'editor',
+    stageLabel: 'Awaiting deliverables folder',
+    deadlineRole: 'editor',
+    deadlineAt: '2026-05-18T18:00:00.000Z',
+    demoStage: 'pre_split_production',
+  },
+
+  // b-pipeline — post-split: five videos, one stage each
   {
     id: 'v-p-1',
     batchId: 'b-pipeline',
@@ -431,7 +471,22 @@ export const MOCK_ADMIN_VIDEO_TICKETS: AdminVideoTicket[] = [
     deadlineRole: 'smm',
     deadlineAt: '2026-05-16T17:00:00.000Z',
     editorPhase: 'videos',
+    editorPublishTitle: 'REST vs GraphQL in 60 seconds',
+    assetVersions: { video: 1, thumbnail: 1 },
     releasedToClientFinalVideoReview: false,
+    demoStage: 'smm_qa',
+    qaCommentHistory: [
+      {
+        id: 'qc-p-1a',
+        slot: 'video',
+        assetVersion: 1,
+        kind: 'general',
+        authorRole: 'smm',
+        body: 'Check pacing on the middle section before release.',
+        createdAt: '2026-05-15T09:00:00.000Z',
+        deprecated: false,
+      },
+    ],
   },
   {
     id: 'v-p-2',
@@ -444,8 +499,11 @@ export const MOCK_ADMIN_VIDEO_TICKETS: AdminVideoTicket[] = [
     deadlineRole: 'editor',
     deadlineAt: '2026-05-16T18:00:00.000Z',
     editorPhase: 'videos',
+    editorPublishTitle: 'Auth patterns you should know',
+    assetVersions: { video: 2, thumbnail: 1 },
     lastRevisionRequestedBy: 'smm',
     releasedToClientFinalVideoReview: false,
+    demoStage: 'editor_fix',
     qaCommentHistory: [
       {
         id: 'qc-p-2a',
@@ -453,8 +511,18 @@ export const MOCK_ADMIN_VIDEO_TICKETS: AdminVideoTicket[] = [
         assetVersion: 1,
         kind: 'general',
         authorRole: 'smm',
-        body: 'Tighten the cold open — brand sting feels late by two beats.',
+        body: 'Tighten the cold open — brand sting feels late (@1:03).',
         createdAt: '2026-05-15T11:00:00.000Z',
+        deprecated: true,
+      },
+      {
+        id: 'qc-p-2b',
+        slot: 'video',
+        assetVersion: 2,
+        kind: 'general',
+        authorRole: 'smm',
+        body: 'Re-check the hook after re-upload — audio ducking still heavy.',
+        createdAt: '2026-05-16T08:00:00.000Z',
         deprecated: false,
       },
     ],
@@ -466,11 +534,14 @@ export const MOCK_ADMIN_VIDEO_TICKETS: AdminVideoTicket[] = [
     deliverableIndex: 3,
     title: 'Rate limits explained',
     owner: 'client',
-    stageLabel: 'Final video review',
+    stageLabel: 'Client QA',
     deadlineRole: null,
     deadlineAt: null,
     editorPhase: 'videos',
+    editorPublishTitle: 'Why rate limits exist',
+    assetVersions: { video: 1, thumbnail: 1 },
     releasedToClientFinalVideoReview: true,
+    demoStage: 'client_qa',
   },
   {
     id: 'v-p-4',
@@ -478,12 +549,15 @@ export const MOCK_ADMIN_VIDEO_TICKETS: AdminVideoTicket[] = [
     clientId: 'c-1',
     deliverableIndex: 4,
     title: 'API versioning patterns',
-    owner: 'client',
-    stageLabel: 'Thumbnail review',
-    deadlineRole: null,
-    deadlineAt: null,
+    owner: 'editor',
+    stageLabel: 'Production — thumbnail',
+    deadlineRole: 'editor',
+    deadlineAt: '2026-05-17T12:00:00.000Z',
     editorPhase: 'thumbnails',
-    releasedToClientFinalVideoReview: true,
+    editorPublishTitle: 'API versioning without breaking clients',
+    assetVersions: { video: 1 },
+    releasedToClientFinalVideoReview: false,
+    demoStage: 'production',
   },
   {
     id: 'v-p-5',
@@ -492,14 +566,16 @@ export const MOCK_ADMIN_VIDEO_TICKETS: AdminVideoTicket[] = [
     deliverableIndex: 5,
     title: 'WebSockets vs polling',
     owner: 'editor',
-    stageLabel: 'Video titles',
+    stageLabel: 'Production — title',
     deadlineRole: 'editor',
     deadlineAt: '2026-05-17T18:00:00.000Z',
     editorPhase: 'titles',
-    releasedToClientFinalVideoReview: true,
+    assetVersions: { video: 1, thumbnail: 1 },
+    releasedToClientFinalVideoReview: false,
+    demoStage: 'production',
   },
 
-  // b-schedule — all approved and titled, SMM ready to schedule
+  // b-schedule — client-approved; SMM schedules
   {
     id: 'v-sc-1',
     batchId: 'b-schedule',
@@ -507,12 +583,13 @@ export const MOCK_ADMIN_VIDEO_TICKETS: AdminVideoTicket[] = [
     deliverableIndex: 1,
     title: 'Product launch teaser',
     owner: 'scheduling',
-    stageLabel: 'Titles prep',
+    stageLabel: 'Scheduling',
     deadlineRole: null,
     deadlineAt: null,
-    editorPhase: 'titles',
+    editorPhase: 'handed_off',
     editorPublishTitle: 'We built something. Here is what it does.',
     releasedToClientFinalVideoReview: true,
+    demoStage: 'scheduling',
   },
   {
     id: 'v-sc-2',
@@ -521,12 +598,13 @@ export const MOCK_ADMIN_VIDEO_TICKETS: AdminVideoTicket[] = [
     deliverableIndex: 2,
     title: 'Feature walkthrough',
     owner: 'scheduling',
-    stageLabel: 'Titles prep',
+    stageLabel: 'Scheduling',
     deadlineRole: null,
     deadlineAt: null,
-    editorPhase: 'titles',
+    editorPhase: 'handed_off',
     editorPublishTitle: 'The one feature that saves you an hour a day',
     releasedToClientFinalVideoReview: true,
+    demoStage: 'scheduling',
   },
   {
     id: 'v-sc-3',
@@ -535,12 +613,13 @@ export const MOCK_ADMIN_VIDEO_TICKETS: AdminVideoTicket[] = [
     deliverableIndex: 3,
     title: 'Customer story',
     owner: 'scheduling',
-    stageLabel: 'Titles prep',
+    stageLabel: 'Scheduling',
     deadlineRole: null,
     deadlineAt: null,
-    editorPhase: 'titles',
+    editorPhase: 'handed_off',
     editorPublishTitle: 'How one team cut review time by 60%',
     releasedToClientFinalVideoReview: true,
+    demoStage: 'scheduling',
   },
 ]
 
