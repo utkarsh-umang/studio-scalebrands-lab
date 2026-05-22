@@ -43,7 +43,7 @@ export function EditorQaFixPanel({
   const backToClient = ticket.lastRevisionRequestedBy === 'client'
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-1">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <p className="text-foreground text-sm font-semibold">

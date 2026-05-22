@@ -3,6 +3,11 @@ import { ExternalLink } from 'lucide-react'
 import type { AdminBatchFolder, AdminVideoTicket } from '@mockData/index'
 import { DriveVideoPreview } from '@/components/drive/DriveVideoPreview'
 import { DeliverableAccordion, type DeliverableAccordionStatus } from '@/components/path-b/DeliverableAccordion'
+import {
+  deliverablePortraitPlayerBoxClass,
+  qaPortraitChromeClass,
+  qaPortraitVideoInnerClass,
+} from '@/lib/qaVideoPortrait'
 import { DriveSyncButton } from '@/components/path-b/DriveSyncButton'
 import type { BatchDriveManifest } from '@/lib/driveMedia'
 import {
@@ -60,7 +65,7 @@ export function DeliverableSummaryPanel({
   onSyncDrive,
   driveSyncing = false,
   readiness,
-  defaultOpenSections = ['video'],
+  defaultOpenSections = [],
   autoExpandMissing = false,
   className = '',
 }: Props) {
@@ -232,6 +237,17 @@ export function DeliverableSummaryPanel({
       >
         {thumbEntry ? (
           <div className="space-y-3">
+            <div className={qaPortraitChromeClass}>
+              <div className="flex w-full flex-col items-center">
+                <div className={deliverablePortraitPlayerBoxClass} dir="ltr">
+                  <img
+                    src={driveThumbnailUrl(thumbEntry.driveFileId)}
+                    alt={thumbEntry.name}
+                    className={qaPortraitVideoInnerClass}
+                  />
+                </div>
+              </div>
+            </div>
             <a
               href={driveFileViewUrl(thumbEntry.driveFileId)}
               target="_blank"
@@ -241,11 +257,6 @@ export function DeliverableSummaryPanel({
               Open in Drive
               <ExternalLink className="size-3" aria-hidden />
             </a>
-            <img
-              src={driveThumbnailUrl(thumbEntry.driveFileId)}
-              alt={thumbEntry.name}
-              className="max-h-[min(40vh,360px)] w-auto max-w-full rounded-lg border object-contain"
-            />
           </div>
         ) : (
           <p className="text-muted-foreground text-sm">

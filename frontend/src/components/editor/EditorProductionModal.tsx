@@ -82,8 +82,7 @@ export function EditorProductionModal({
           ticket={ticket}
           manifest={manifest}
           readiness={readiness}
-          autoExpandMissing
-          defaultOpenSections={['video']}
+          defaultOpenSections={[]}
           titleEditable
           onSaveTitle={(title) => {
             saveVideoPublishTitle(ticket.id, title)

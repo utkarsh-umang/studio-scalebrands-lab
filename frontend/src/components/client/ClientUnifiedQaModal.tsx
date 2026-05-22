@@ -114,7 +114,7 @@ export function ClientUnifiedQaModal({
       onClose={onClose}
       headerAside={headerAside}
       headerMeta={<DriveSyncMeta manifest={manifest} errorMessage={error} />}
-      bodyScroll={view === 'qa' && canAct}
+      bodyScroll
     >
       {!folderUrl ? (
         <p className="text-muted-foreground text-sm leading-relaxed">
@@ -126,8 +126,8 @@ export function ClientUnifiedQaModal({
           Nothing is in your review queue for this batch right now.
         </p>
       ) : (
-        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
-          <div className="flex min-h-0 flex-col gap-3 overflow-hidden md:flex-row md:gap-4">
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3 md:flex-row md:gap-4">
             <DeliverableSidebarList
               rows={rows.map((row) => ({
                 index: row.index,
@@ -142,7 +142,7 @@ export function ClientUnifiedQaModal({
               }}
             />
 
-            <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto pr-1">
+            <main className="flex min-w-0 flex-1 flex-col gap-4 pr-1">
               <div className="flex gap-2">
                 <button
                   type="button"
@@ -183,7 +183,7 @@ export function ClientUnifiedQaModal({
                   ticket={qaTicket}
                   manifest={manifest}
                   readiness={readiness}
-                  defaultOpenSections={['video', 'thumbnail', 'title']}
+                  defaultOpenSections={[]}
                   onSyncDrive={() => {
                     void sync()
                   }}

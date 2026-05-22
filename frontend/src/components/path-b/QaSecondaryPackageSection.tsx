@@ -5,6 +5,7 @@ import {
 } from '@/lib/driveMedia'
 import {
   qaPortraitChromeClass,
+  qaPortraitPlayerBoxClass,
   qaPortraitVideoInnerClass,
 } from '@/lib/qaVideoPortrait'
 import type { AppTheme } from '@/theme/types'
@@ -57,10 +58,7 @@ export function QaSecondaryPackageSection({
             style={{ boxShadow: `0 12px 40px -12px ${primary}18` }}
           >
             <div className="flex w-full flex-col items-center">
-              <div
-                className="relative mx-auto flex aspect-[9/16] h-[min(36vh,320px)] max-w-[min(280px,100%)] w-fit shrink-0 items-center justify-center overflow-hidden rounded-lg bg-black/80"
-                dir="ltr"
-              >
+              <div className={qaPortraitPlayerBoxClass} dir="ltr">
                 {thumbnailDriveFileId && thumbSrc ? (
                   <img
                     src={thumbSrc}
@@ -68,7 +66,7 @@ export function QaSecondaryPackageSection({
                     className={qaPortraitVideoInnerClass}
                   />
                 ) : (
-                  <div className="text-muted-foreground flex h-full w-full flex-col items-center justify-center gap-2 px-4 text-center text-xs leading-relaxed">
+                  <div className="text-muted-foreground absolute inset-0 flex flex-col items-center justify-center gap-2 px-4 text-center text-xs leading-relaxed">
                     <ImageIcon className="size-7 opacity-70" aria-hidden />
                     <p>{THUMB_MISSING_COPY}</p>
                   </div>

@@ -143,7 +143,7 @@ export function QaCommentWorkspace({
     <div className={`flex min-h-0 flex-col gap-4 ${className}`.trim()}>
       <p className="text-foreground sr-only">{heading}</p>
 
-      <div className="flex min-h-0 flex-col gap-4 md:min-h-[min(52vh,480px)] md:flex-row md:gap-5">
+      <div className="flex min-h-0 flex-col gap-4 md:flex-row md:gap-5">
         <div className="flex min-h-0 shrink-0 flex-col md:w-[58%] md:max-w-[58%]">
           <p className="text-muted-foreground mb-2 text-[10px] font-semibold uppercase tracking-wide">
             Video
@@ -156,11 +156,11 @@ export function QaCommentWorkspace({
           </div>
         </div>
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 md:max-h-[min(52vh,480px)]">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
           <p className="text-foreground shrink-0 text-xs font-semibold uppercase tracking-wide">
             Comment thread
           </p>
-          <div className="min-h-[min(28vh,240px)] flex-1 overflow-y-auto overscroll-y-contain pr-1 md:min-h-0">
+          <div className="max-h-[min(36vh,320px)] overflow-y-auto overscroll-y-contain pr-1 md:max-h-[min(44vh,400px)]">
             <QaCommentWorkspaceThread comments={comments} />
           </div>
 

@@ -16,6 +16,10 @@
 export const qaPortraitPlayerBoxClass =
   'relative mx-auto aspect-[9/16] h-[min(76vh,720px)] max-w-[min(480px,min(100%,92vw))] w-fit shrink-0 overflow-hidden rounded-lg bg-black'
 
+/** Portrait preview inside deliverable accordions (fits modal scroll, same frame as QA video). */
+export const deliverablePortraitPlayerBoxClass =
+  'relative mx-auto aspect-[9/16] h-[min(48vh,480px)] max-w-[min(360px,min(100%,92vw))] w-fit shrink-0 overflow-hidden rounded-lg bg-black'
+
 /** Native `<video>` inside the portrait box — absolute-fill so flex quirks can't offset it */
 export const qaPortraitVideoInnerClass =
   'absolute inset-0 block h-full w-full object-contain object-center'

@@ -91,7 +91,7 @@ export function SmmClientRevisionModal({
             ticket={ticket}
             manifest={manifest}
             readiness={readiness}
-            defaultOpenSections={['video', 'thumbnail', 'title']}
+            defaultOpenSections={[]}
             onSyncDrive={() => {
               void sync()
             }}
