@@ -37,3 +37,4 @@ openapi.json
 
 **/secrets/
 *.json
+.cursor
