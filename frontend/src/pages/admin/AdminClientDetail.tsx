@@ -13,9 +13,6 @@ import { ClientCredentialsModal } from '@/components/admin/ClientCredentialsModa
 import { CreateBatchFolderModal } from '@/components/admin/CreateBatchFolderModal'
 import { DecommissionClientModal } from '@/components/admin/DecommissionClientModal'
 import { TopUpCreditsModal } from '@/components/admin/TopUpCreditsModal'
-import { useAdminBatchVideosQuery } from '@/hooks/api/admin/useAdminBatchVideosQuery'
-import { useAdminClientBatchesQuery } from '@/hooks/api/admin/useAdminClientBatchesQuery'
-import { useAdminClientQuery } from '@/hooks/api/admin/useAdminClientQuery'
 import { useAdminStaffQuery } from '@/hooks/api/admin/useAdminStaffQuery'
 import {
   useCreateBatchMutation,
@@ -26,6 +23,7 @@ import {
 } from '@/hooks/api/admin/useAdminMutations'
 import { useTheme } from '@/theme'
 import { guidelinesSourceLabel } from '@mockData/index'
+import { clientReservedCredits } from '@/lib/clientBoard'
 import { formatDate } from '@/pages/client/clientPageUtils'
 import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
 
@@ -43,9 +41,13 @@ export function AdminClientDetail() {
   const primary = theme.colors.primary
   const secondary = theme.colors.secondary
 
-  const { setVideoDeadline } = useAdminWorkspace()
-  const clientQuery = useAdminClientQuery(clientId)
-  const batchesQuery = useAdminClientBatchesQuery(clientId)
+  const {
+    getClient,
+    getBatchesForClient,
+    getVideosForBatch,
+    setVideoDeadline,
+    isWorkspaceLoading,
+  } = useAdminWorkspace()
   const staffQuery = useAdminStaffQuery()
   const topUpMutation = useTopUpCreditsMutation(clientId ?? '')
   const decommissionMutation = useDecommissionClientMutation(clientId ?? '')
@@ -72,12 +74,10 @@ export function AdminClientDetail() {
   const [draftSummary, setDraftSummary] = useState('')
   const [draftGoogleDocUrl, setDraftGoogleDocUrl] = useState('')
 
-  const client = clientQuery.data?.client
-  const allBatches = batchesQuery.data ?? []
+  const client = clientId ? getClient(clientId) : undefined
+  const allBatches = clientId ? getBatchesForClient(clientId) : []
   const smmStaff = staffQuery.data?.smmStaff ?? []
   const editorStaff = staffQuery.data?.editorStaff ?? []
-  const reservedCredits = clientQuery.data?.reservedCredits ?? 0
-  const creditsDebitedTotal = clientQuery.data?.creditsDebitedTotal ?? 0
 
   const activeBatches = useMemo(
     () => allBatches.filter((b) => b.status === 'active'),
@@ -96,8 +96,22 @@ export function AdminClientDetail() {
   const selectedBatch =
     activeBatches.find((b) => b.id === selectedBatchId) ?? activeBatches[0]
 
-  const videosQuery = useAdminBatchVideosQuery(clientId, selectedBatch?.id)
-  const batchTickets = videosQuery.data ?? []
+  const batchTickets = selectedBatch
+    ? getVideosForBatch(selectedBatch.id)
+    : []
+
+  const reservedCredits = useMemo(
+    () => clientReservedCredits(activeBatches),
+    [activeBatches],
+  )
+
+  const creditsDebitedTotal = useMemo(
+    () =>
+      completedBatches
+        .filter((b) => b.creditsDebited)
+        .reduce((sum, b) => sum + b.creditCost, 0),
+    [completedBatches],
+  )
 
   useEffect(() => {
     if (!client) return
@@ -111,7 +125,7 @@ export function AdminClientDetail() {
     return <Navigate to="/admin" replace />
   }
 
-  if (clientQuery.isLoading) {
+  if (isWorkspaceLoading && !client) {
     return (
       <p className="text-muted-foreground text-sm">Loading client…</p>
     )

@@ -1,5 +1,6 @@
 """Admin API request/response schemas (B1)."""
 
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
@@ -10,6 +11,7 @@ from app.models.enums import (
     BatchStatus,
     BrandGuidelinesSource,
     ClientAccountStatus,
+    EditorWorkflowPhase,
     EmployeeKind,
     PipelineStage,
     VideoPipelineOwner,
@@ -165,6 +167,18 @@ class AdminBatchFolderResponse(CamelModel):
     demo_stage: PipelineStage | None = None
 
 
+class QaCommentDto(CamelModel):
+    id: str
+    slot: str
+    asset_version: int
+    kind: str
+    author_role: str
+    at_seconds: int | None = None
+    body: str
+    created_at: str
+    deprecated: bool = False
+
+
 class AdminVideoTicketResponse(CamelModel):
     id: UUID
     batch_id: UUID
@@ -175,8 +189,16 @@ class AdminVideoTicketResponse(CamelModel):
     deadline_role: str | None = None
     deadline_at: str | None = None
     deliverable_index: int | None = None
+    editor_workflow_phase: EditorWorkflowPhase | None = None
     editor_publish_title: str | None = None
     released_to_client_final_review: bool = False
+    last_revision_requested_by: str | None = None
+    asset_versions: dict[str, Any] | None = None
+    qa_flags: list[dict[str, Any]] | None = None
+    qa_general_note: str | None = None
+    qa_comment_history: list[QaCommentDto] = Field(default_factory=list)
+    video_schedule: dict[str, Any] | None = None
+    demo_stage: PipelineStage | None = None
 
 
 class AdminPipelineSummaryResponse(CamelModel):

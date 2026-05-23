@@ -22,8 +22,14 @@ import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
 
 export function EditorBoard() {
   const { user } = useMockAuth()
-  const { clients, batches, videos, getVideosForBatch, submitEditorVideosDrive } =
-    useAdminWorkspace()
+  const {
+    clients,
+    batches,
+    videos,
+    getVideosForBatch,
+    submitEditorVideosDrive,
+    isWorkspaceLoading,
+  } = useAdminWorkspace()
 
   const editorStaffId = resolveEditorStaffId(user)
 
@@ -80,6 +86,10 @@ export function EditorBoard() {
 
   if (!user || user.role !== 'employee' || user.employeeKind !== 'editor') {
     return <Navigate to="/login" replace />
+  }
+
+  if (isWorkspaceLoading && assignedClients.length === 0) {
+    return <p className="text-muted-foreground text-sm">Loading your board…</p>
   }
 
   if (!editorStaffId) {

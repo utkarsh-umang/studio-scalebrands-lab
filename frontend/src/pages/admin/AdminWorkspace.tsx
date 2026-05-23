@@ -4,15 +4,21 @@ import { Link, useNavigate } from 'react-router-dom'
 import { AdminClientsTable } from '@/components/admin/AdminClientsTable'
 import { AdminPipelineOverview } from '@/components/admin/AdminPipelineOverview'
 import { ProvisionClientModal } from '@/components/admin/ProvisionClientModal'
-import { useAdminClientsQuery } from '@/hooks/api/admin/useAdminClientsQuery'
 import { useAdminPipelineQuery } from '@/hooks/api/admin/useAdminPipelineQuery'
 import { useProvisionClientMutation } from '@/hooks/api/admin/useAdminMutations'
+import { clientReservedCredits } from '@/lib/clientBoard'
+import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
 import { useTheme } from '@/theme'
 
 export function AdminWorkspace() {
   const { theme } = useTheme()
   const navigate = useNavigate()
-  const { data: clientRows = [], isLoading: clientsLoading } = useAdminClientsQuery()
+  const {
+    clients,
+    batches,
+    getActiveBatchNumber,
+    isWorkspaceLoading,
+  } = useAdminWorkspace()
   const { data: pipeline, isLoading: pipelineLoading } = useAdminPipelineQuery()
   const provisionMutation = useProvisionClientMutation()
   const [provisionOpen, setProvisionOpen] = useState(false)
@@ -20,20 +26,13 @@ export function AdminWorkspace() {
   const primary = theme.colors.primary
   const secondary = theme.colors.secondary
 
-  const activeRows = useMemo(
-    () => clientRows.filter((row) => row.client.accountStatus === 'active'),
-    [clientRows],
+  const activeClients = useMemo(
+    () => clients.filter((c) => c.accountStatus === 'active'),
+    [clients],
   )
-  const decommissionedRows = useMemo(
-    () =>
-      clientRows
-        .filter((row) => row.client.accountStatus === 'decommissioned')
-        .map((row) => ({
-          client: row.client,
-          activeBatchNumber: null as number | null,
-          reservedCredits: 0,
-        })),
-    [clientRows],
+  const decommissionedClients = useMemo(
+    () => clients.filter((c) => c.accountStatus === 'decommissioned'),
+    [clients],
   )
 
   const pipelineSummary = pipeline?.summary ?? {
@@ -42,6 +41,33 @@ export function AdminWorkspace() {
     withEditor: 0,
   }
   const pipelineItems = pipeline?.items ?? []
+
+  const activeRows = useMemo(
+    () =>
+      activeClients.map((client) => {
+        const clientBatches = batches.filter(
+          (b) => b.clientId === client.id && b.status === 'active',
+        )
+        return {
+          client,
+          activeBatchNumber: getActiveBatchNumber(client.id),
+          reservedCredits: clientReservedCredits(clientBatches),
+        }
+      }),
+    [activeClients, batches, getActiveBatchNumber],
+  )
+
+  const decommissionedRows = useMemo(
+    () =>
+      decommissionedClients.map((client) => ({
+        client,
+        activeBatchNumber: null as number | null,
+        reservedCredits: 0,
+      })),
+    [decommissionedClients],
+  )
+
+  const loading = isWorkspaceLoading || pipelineLoading
 
   return (
     <>
@@ -76,7 +102,7 @@ export function AdminWorkspace() {
         </div>
       </div>
 
-      {clientsLoading || pipelineLoading ? (
+      {loading ? (
         <p className="text-muted-foreground text-sm">Loading workspace…</p>
       ) : (
         <AdminPipelineOverview summary={pipelineSummary} items={pipelineItems} />
@@ -84,7 +110,7 @@ export function AdminWorkspace() {
 
       <section className="space-y-3">
         <h2 className="text-foreground text-sm font-semibold">Clients</h2>
-        {clientsLoading ? (
+        {loading ? (
           <p className="text-muted-foreground text-sm">Loading clients…</p>
         ) : (
           <AdminClientsTable rows={activeRows} />

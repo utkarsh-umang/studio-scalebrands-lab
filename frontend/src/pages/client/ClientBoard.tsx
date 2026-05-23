@@ -19,8 +19,14 @@ import { Navigate, useSearchParams } from 'react-router-dom'
 
 export function ClientBoard() {
   const { user } = useMockAuth()
-  const { clients, batches, videos, getBatchesForClient, getVideosForBatch } =
-    useAdminWorkspace()
+  const {
+    clients,
+    batches,
+    videos,
+    getBatchesForClient,
+    getVideosForBatch,
+    isWorkspaceLoading,
+  } = useAdminWorkspace()
 
   const clientProfileId = resolveClientProfileId(user)
   const client = clientProfileId
@@ -89,10 +95,14 @@ export function ClientBoard() {
     return <Navigate to="/login" replace />
   }
 
+  if (isWorkspaceLoading && !client) {
+    return <p className="text-muted-foreground text-sm">Loading your board…</p>
+  }
+
   if (!client) {
     return (
       <p className="text-muted-foreground text-sm">
-        Client account not linked to this login (prototype).
+        Client account not linked to this login.
       </p>
     )
   }

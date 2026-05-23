@@ -2,16 +2,20 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { useAuth } from '@/auth'
+import { useAdminStaffQuery } from '@/hooks/api/admin/useAdminStaffQuery'
+import { useAdminWorkspaceQuery } from '@/hooks/api/workspace/useAdminWorkspaceQuery'
+import { useClientWorkspaceQuery } from '@/hooks/api/workspace/useClientWorkspaceQuery'
+import { useEditorWorkspaceQuery } from '@/hooks/api/workspace/useEditorWorkspaceQuery'
+import { useSmmWorkspaceQuery } from '@/hooks/api/workspace/useSmmWorkspaceQuery'
+import { workspaceQueryKeys } from '@/hooks/api/workspace/workspaceQueryKeys'
 import {
-  MOCK_ADMIN_BATCH_FOLDERS,
-  MOCK_ADMIN_CLIENT_PROFILES,
-  MOCK_ADMIN_VIDEO_TICKETS,
-  MOCK_STAFF_EDITORS,
-  MOCK_STAFF_SMM,
   type AdminBatchFolder,
   type AdminClientProfile,
   type AdminVideoTicket,
@@ -79,6 +83,7 @@ type AdminWorkspaceContextValue = {
   videos: AdminVideoTicket[]
   smmStaff: StaffMember[]
   editorStaff: StaffMember[]
+  isWorkspaceLoading: boolean
   getClient: (id: string) => AdminClientProfile | undefined
   getBatchesForClient: (clientId: string) => AdminBatchFolder[]
   getActiveBatchNumber: (clientId: string) => number | null
@@ -155,15 +160,62 @@ function reviewKindFromStage(stageLabel: string): ClientReviewKind | null {
 }
 
 export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
-  const [clients, setClients] = useState<AdminClientProfile[]>(() => [
-    ...MOCK_ADMIN_CLIENT_PROFILES,
-  ])
-  const [batches, setBatches] = useState<AdminBatchFolder[]>(() => [
-    ...MOCK_ADMIN_BATCH_FOLDERS,
-  ])
-  const [videos, setVideos] = useState<AdminVideoTicket[]>(() => [
-    ...MOCK_ADMIN_VIDEO_TICKETS,
-  ])
+  const { user } = useAuth()
+  const queryClient = useQueryClient()
+  const clientWorkspace = useClientWorkspaceQuery(user?.role === 'client')
+  const editorWorkspace = useEditorWorkspaceQuery(
+    user?.role === 'employee' && user.employeeKind === 'editor',
+  )
+  const smmWorkspace = useSmmWorkspaceQuery(
+    user?.role === 'employee' && user.employeeKind === 'smm',
+  )
+  const adminWorkspace = useAdminWorkspaceQuery(user?.role === 'admin')
+  const staffQuery = useAdminStaffQuery(user?.role === 'admin')
+
+  const [clients, setClients] = useState<AdminClientProfile[]>([])
+  const [batches, setBatches] = useState<AdminBatchFolder[]>([])
+  const [videos, setVideos] = useState<AdminVideoTicket[]>([])
+
+  const invalidateWorkspace = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: workspaceQueryKeys.all })
+  }, [queryClient])
+
+  useEffect(() => {
+    if (user?.role === 'client' && clientWorkspace.data) {
+      setClients([clientWorkspace.data.client])
+      setBatches(clientWorkspace.data.batches)
+      setVideos(clientWorkspace.data.videos)
+      return
+    }
+    if (user?.role === 'employee' && user.employeeKind === 'editor' && editorWorkspace.data) {
+      setClients(editorWorkspace.data.clients)
+      setBatches(editorWorkspace.data.batches)
+      setVideos(editorWorkspace.data.videos)
+      return
+    }
+    if (user?.role === 'employee' && user.employeeKind === 'smm' && smmWorkspace.data) {
+      setClients(smmWorkspace.data.clients)
+      setBatches(smmWorkspace.data.batches)
+      setVideos(smmWorkspace.data.videos)
+      return
+    }
+    if (user?.role === 'admin' && adminWorkspace.data) {
+      setClients(adminWorkspace.data.clients)
+      setBatches(adminWorkspace.data.batches)
+      setVideos(adminWorkspace.data.videos)
+    }
+  }, [user, clientWorkspace.data, editorWorkspace.data, smmWorkspace.data, adminWorkspace.data])
+
+  const isWorkspaceLoading =
+    (user?.role === 'client' && clientWorkspace.isLoading) ||
+    (user?.role === 'employee' &&
+      user.employeeKind === 'editor' &&
+      editorWorkspace.isLoading) ||
+    (user?.role === 'employee' && user.employeeKind === 'smm' && smmWorkspace.isLoading) ||
+    (user?.role === 'admin' && adminWorkspace.isLoading)
+
+  const smmStaffList = staffQuery.data?.smmStaff ?? []
+  const editorStaffList = staffQuery.data?.editorStaff ?? []
 
   const getClient = useCallback(
     (id: string) => clients.find((c) => c.id === id),
@@ -226,8 +278,8 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
 
   const provisionClient = useCallback((input: ProvisionClientInput) => {
     const now = new Date().toISOString().slice(0, 10)
-    const defaultSmm = MOCK_STAFF_SMM[0]
-    const defaultEditor = MOCK_STAFF_EDITORS[0]
+    const defaultSmm = smmStaffList[0]
+    const defaultEditor = editorStaffList[0]
     const client: AdminClientProfile = {
       id: `c-${Date.now()}`,
       loginId: input.loginId,
@@ -248,7 +300,7 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
     }
     setClients((prev) => [client, ...prev])
     return client
-  }, [])
+  }, [editorStaffList, smmStaffList])
 
   const topUpCredits = useCallback((clientId: string, amount: number) => {
     if (amount <= 0) return
@@ -282,13 +334,14 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
         return {
           ...c,
           assignedSmmId: input.smmId,
-          assignedSmmName: staffName(MOCK_STAFF_SMM, input.smmId),
+          assignedSmmName: staffName(smmStaffList, input.smmId),
           assignedEditorId: input.editorId,
-          assignedEditorName: staffName(MOCK_STAFF_EDITORS, input.editorId),
+          assignedEditorName: staffName(editorStaffList, input.editorId),
         }
       }),
     )
-  }, [])
+    invalidateWorkspace()
+  }, [editorStaffList, invalidateWorkspace, smmStaffList])
 
   const updateBrandGuidelines = useCallback(
     (input: UpdateBrandGuidelinesInput) => {
@@ -395,8 +448,9 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
       } else {
         setVideos((prev) => prev.filter((v) => v.batchId !== batchId))
       }
+      invalidateWorkspace()
     },
-    [batches],
+    [batches, invalidateWorkspace],
   )
 
   const approveBatchClips = useCallback(
@@ -946,8 +1000,9 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
       clients,
       batches,
       videos,
-      smmStaff: MOCK_STAFF_SMM,
-      editorStaff: MOCK_STAFF_EDITORS,
+      smmStaff: smmStaffList,
+      editorStaff: editorStaffList,
+      isWorkspaceLoading,
       getClient,
       getBatchesForClient,
       getActiveBatchNumber,
@@ -1005,6 +1060,9 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
       sendEditorDeliverableToSmmQa,
       saveVideoPublishTitle,
       resubmitEditorVideoQa,
+      isWorkspaceLoading,
+      smmStaffList,
+      editorStaffList,
     ],
   )
 

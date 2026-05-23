@@ -10,6 +10,7 @@ import type {
   AdminBatchFolder,
   AdminClientProfile,
   AdminVideoTicket,
+  QaComment,
   StaffMember,
 } from '@mockData/index'
 import type {
@@ -99,8 +100,38 @@ export function mapVideoTicket(api: AdminVideoTicketResponse): AdminVideoTicket 
         : null,
     deadlineAt: api.deadlineAt ?? null,
     deliverableIndex: api.deliverableIndex ?? undefined,
+    editorPhase: api.editorWorkflowPhase ?? undefined,
     editorPublishTitle: api.editorPublishTitle ?? undefined,
     releasedToClientFinalVideoReview: api.releasedToClientFinalReview,
+    lastRevisionRequestedBy:
+      api.lastRevisionRequestedBy === 'smm' ||
+      api.lastRevisionRequestedBy === 'client'
+        ? api.lastRevisionRequestedBy
+        : undefined,
+    assetVersions: api.assetVersions ?? undefined,
+    qaFlags: api.qaFlags ?? undefined,
+    qaGeneralNote: api.qaGeneralNote ?? undefined,
+    qaCommentHistory: api.qaCommentHistory?.map(
+      (c): QaComment => ({
+        id: c.id,
+        slot: c.slot as QaComment['slot'],
+        assetVersion: c.assetVersion,
+        kind: c.kind as QaComment['kind'],
+        authorRole: c.authorRole as QaComment['authorRole'],
+        atSeconds: c.atSeconds ?? undefined,
+        body: c.body,
+        createdAt: c.createdAt,
+        deprecated: c.deprecated ?? false,
+      }),
+    ),
+    demoStage: api.demoStage ?? undefined,
+    videoSchedule: api.videoSchedule
+      ? {
+          platform: String(api.videoSchedule.platform ?? ''),
+          goLiveAt: String(api.videoSchedule.goLiveAt ?? ''),
+          scheduledAt: String(api.videoSchedule.scheduledAt ?? ''),
+        }
+      : undefined,
   }
 }
 

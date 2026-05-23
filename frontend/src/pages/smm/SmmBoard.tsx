@@ -27,7 +27,8 @@ import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
 
 export function SmmBoard() {
   const { user } = useMockAuth()
-  const { clients, batches, videos, getVideosForBatch } = useAdminWorkspace()
+  const { clients, batches, videos, getVideosForBatch, isWorkspaceLoading } =
+    useAdminWorkspace()
 
   const smmStaffId = resolveSmmStaffId(user)
 
@@ -97,6 +98,10 @@ export function SmmBoard() {
 
   if (!user || user.role !== 'employee' || user.employeeKind !== 'smm') {
     return <Navigate to="/login" replace />
+  }
+
+  if (isWorkspaceLoading && assignedClients.length === 0) {
+    return <p className="text-muted-foreground text-sm">Loading your board…</p>
   }
 
   if (!smmStaffId) {

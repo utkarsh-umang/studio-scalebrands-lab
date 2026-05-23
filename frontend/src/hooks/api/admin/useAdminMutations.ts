@@ -9,11 +9,13 @@ import {
   type UpdateClientTeamRequest,
 } from '@/client'
 import { adminQueryKeys } from '@/hooks/api/admin/adminQueryKeys'
+import { workspaceQueryKeys } from '@/hooks/api/workspace/workspaceQueryKeys'
 
 function useInvalidateAdmin() {
   const queryClient = useQueryClient()
   return () => {
     void queryClient.invalidateQueries({ queryKey: adminQueryKeys.all })
+    void queryClient.invalidateQueries({ queryKey: workspaceQueryKeys.all })
   }
 }
 
