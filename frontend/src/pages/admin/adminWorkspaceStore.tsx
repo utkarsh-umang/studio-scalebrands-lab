@@ -89,24 +89,12 @@ type AdminWorkspaceContextValue = {
     opts?: { rejectNote?: string; feedback?: VideoReviewFeedback },
   ) => void
   appendClientQaComment: (videoId: string, body: string) => void
-  submitSmmQaReview: (videoId: string, input: SubmitSmmQaInput) => void
-  appendSmmQaComment: (videoId: string, body: string) => void
   smmTriageClientRevision: (
     videoId: string,
     route: 'editor' | 'smm_assets',
   ) => void
   /** Marks one video scheduled (scheduling → done). Debits batch credits when all deliverables are done. */
   scheduleVideo: (videoId: string, input: ScheduleVideoInput) => void
-  resubmitEditorVideoQa: (videoId: string) => void
-}
-
-export type SubmitSmmQaInput = {
-  action: 'approve' | 'send_back'
-  /** Path B QA workspace — plain-text send-back */
-  commentBody?: string
-  /** Legacy timestamp QA panel */
-  timestampFlags?: { atSeconds: number; note: string }[]
-  generalNote?: string
 }
 
 export type ScheduleVideoInput = {
@@ -365,107 +353,6 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
     [],
   )
 
-  const submitSmmQaReview = useCallback(
-    (videoId: string, input: SubmitSmmQaInput) => {
-      const now = new Date().toISOString().slice(0, 10)
-      const timestampFlags = input.timestampFlags ?? []
-      const generalNote = input.generalNote ?? ''
-      const commentBody = input.commentBody?.trim() ?? ''
-      const flags = timestampFlags.map((f, i) => ({
-        id: `qf-${videoId}-${Date.now()}-${i}`,
-        atSeconds: f.atSeconds,
-        note: f.note,
-      }))
-      const hasFeedback =
-        input.action === 'send_back' &&
-        (commentBody.length > 0 ||
-          flags.length > 0 ||
-          generalNote.trim().length > 0)
-
-      setVideos((prev) =>
-        prev.map((v) => {
-          if (v.id !== videoId) return v
-          const videoVersion = v.assetVersions?.video ?? 1
-          if (input.action === 'send_back') {
-            if (!hasFeedback) return v
-            const createdAt = new Date().toISOString()
-            const newComments = commentBody
-              ? [
-                  {
-                    id: `qc-smm-${Date.now()}`,
-                    slot: 'video' as const,
-                    assetVersion: videoVersion,
-                    kind: 'general' as const,
-                    authorRole: 'smm' as const,
-                    body: commentBody,
-                    createdAt,
-                    deprecated: false,
-                  },
-                ]
-              : buildQaCommentsFromFeedback(
-                  {
-                    markers: timestampFlags.map((f) => ({
-                      at: f.atSeconds,
-                      text: f.note,
-                    })),
-                    generalNote,
-                  },
-                  { slot: 'video', assetVersion: videoVersion, authorRole: 'smm' },
-                )
-            return {
-              ...v,
-              ...videoStateFromDemoStage('editor_fix'),
-              lastRevisionRequestedBy: 'smm' as const,
-              qaFlags: flags.length > 0 ? flags : undefined,
-              qaGeneralNote: generalNote.trim() || commentBody || undefined,
-              qaCommentHistory: [...(v.qaCommentHistory ?? []), ...newComments],
-            }
-          }
-          return {
-            ...v,
-            ...videoStateFromDemoStage('client_qa'),
-            qaFlags: undefined,
-            qaGeneralNote: undefined,
-          }
-        }),
-      )
-      setBatches((prev) =>
-        prev.map((b) => {
-          const video = videos.find((v) => v.id === videoId)
-          if (!video || video.batchId !== b.id) return b
-          return { ...b, updatedAt: now }
-        }),
-      )
-    },
-    [videos],
-  )
-
-  const appendSmmQaComment = useCallback((videoId: string, body: string) => {
-    const trimmed = body.trim()
-    if (!trimmed) return
-    setVideos((prev) =>
-      prev.map((v) => {
-        if (v.id !== videoId) return v
-        return {
-          ...v,
-          qaCommentHistory: [
-            ...(v.qaCommentHistory ?? []),
-            {
-              id: `qc-smm-${Date.now()}`,
-              slot: 'video' as const,
-              assetVersion: v.assetVersions?.video ?? 1,
-              kind: 'general' as const,
-              authorRole: 'smm' as const,
-              body: trimmed,
-              createdAt: new Date().toISOString(),
-              deprecated: false,
-            },
-          ],
-        }
-      }),
-    )
-  }, [])
-
   const smmTriageClientRevision = useCallback(
     (videoId: string, route: 'editor' | 'smm_assets') => {
       const now = new Date().toISOString().slice(0, 10)
@@ -499,34 +386,6 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
     },
     [videos],
   )
-
-  const resubmitEditorVideoQa = useCallback((videoId: string) => {
-    const now = new Date().toISOString().slice(0, 10)
-    setVideos((prev) =>
-      prev.map((v) => {
-        if (v.id !== videoId) return v
-        const nextVideoVersion = (v.assetVersions?.video ?? 1) + 1
-        const qaCommentHistory = (v.qaCommentHistory ?? []).map((c) =>
-          c.slot === 'video' && !c.deprecated ? { ...c, deprecated: true as const } : c,
-        )
-        return {
-          ...v,
-          ...videoStateFromDemoStage('smm_qa'),
-          qaFlags: undefined,
-          qaGeneralNote: undefined,
-          assetVersions: { ...v.assetVersions, video: nextVideoVersion },
-          qaCommentHistory,
-        }
-      }),
-    )
-    setBatches((prev) =>
-      prev.map((b) => {
-        const video = videos.find((v) => v.id === videoId)
-        if (!video || video.batchId !== b.id) return b
-        return { ...b, updatedAt: now }
-      }),
-    )
-  }, [videos])
 
   const scheduleVideo = useCallback(
     (videoId: string, input: ScheduleVideoInput) => {
@@ -732,11 +591,8 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
       setVideoOwner,
       applyClientVideoDecision,
       appendClientQaComment,
-      submitSmmQaReview,
-      appendSmmQaComment,
       smmTriageClientRevision,
       scheduleVideo,
-      resubmitEditorVideoQa,
     }),
     [
       clients,
@@ -756,11 +612,8 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
       setVideoOwner,
       applyClientVideoDecision,
       appendClientQaComment,
-      submitSmmQaReview,
-      appendSmmQaComment,
       smmTriageClientRevision,
       scheduleVideo,
-      resubmitEditorVideoQa,
       isWorkspaceLoading,
       smmStaffList,
       editorStaffList,

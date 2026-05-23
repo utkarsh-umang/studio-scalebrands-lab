@@ -14,7 +14,14 @@ from app.schemas.production import (
     SubmitToSmmQaResponse,
     UpdateProductionRequest,
 )
-from app.services import production_service
+from app.schemas.qa import (
+    AppendQaCommentRequest,
+    AppendQaCommentResponse,
+    QaTicketResponse,
+    ResubmitToSmmQaRequest,
+    SubmitSmmQaRequest,
+)
+from app.services import production_service, qa_service
 
 router = APIRouter(tags=["videos"])
 
@@ -77,4 +84,67 @@ async def submit_to_smm_qa(
         session,
         current_user,
         video_ticket_id,
+    )
+
+
+@router.post(
+    "/videos/{video_ticket_id}/smm-qa",
+    response_model=QaTicketResponse,
+)
+async def submit_smm_qa_review(
+    video_ticket_id: UUID,
+    body: SubmitSmmQaRequest,
+    current_user: Annotated[
+        CurrentUser,
+        Depends(require_roles("employee", "smm")),
+    ],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> QaTicketResponse:
+    return await qa_service.submit_smm_qa_review(
+        session,
+        current_user,
+        video_ticket_id,
+        body,
+    )
+
+
+@router.post(
+    "/videos/{video_ticket_id}/qa-comments",
+    response_model=AppendQaCommentResponse,
+)
+async def append_qa_comment(
+    video_ticket_id: UUID,
+    body: AppendQaCommentRequest,
+    current_user: Annotated[
+        CurrentUser,
+        Depends(require_roles("employee", "smm")),
+    ],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> AppendQaCommentResponse:
+    return await qa_service.append_smm_qa_comment(
+        session,
+        current_user,
+        video_ticket_id,
+        body,
+    )
+
+
+@router.post(
+    "/videos/{video_ticket_id}/resubmit-to-smm-qa",
+    response_model=QaTicketResponse,
+)
+async def resubmit_to_smm_qa(
+    video_ticket_id: UUID,
+    current_user: Annotated[
+        CurrentUser,
+        Depends(require_roles("employee", "editor")),
+    ],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    body: ResubmitToSmmQaRequest = ResubmitToSmmQaRequest(),
+) -> QaTicketResponse:
+    return await qa_service.resubmit_editor_video(
+        session,
+        current_user,
+        video_ticket_id,
+        body,
     )

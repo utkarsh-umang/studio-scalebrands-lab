@@ -1,13 +1,13 @@
 import { ExternalLink } from 'lucide-react'
 import type { AdminBatchFolder, AdminVideoTicket } from '@mockData/index'
 import { QaCommentWorkspace } from '@/components/path-b/QaCommentWorkspace'
+import { useResubmitToSmmQaMutation } from '@/hooks/api/pathB/useSmmQaMutations'
 import type { BatchDriveManifest } from '@/lib/driveMedia'
 import {
   deliverableIndexForTicket,
   getMediaEntry,
 } from '@/lib/driveMedia'
 import { activeCommentsForSlot, flagsToQaComments } from '@/lib/qaComments'
-import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
 
 type Props = {
   batch: AdminBatchFolder
@@ -26,7 +26,7 @@ export function EditorQaFixPanel({
   fallbackVideoSrc,
   onResubmitted,
 }: Props) {
-  const { resubmitEditorVideoQa } = useAdminWorkspace()
+  const resubmitToSmmQa = useResubmitToSmmQaMutation(ticket.id)
 
   const index = deliverableIndexForTicket(ticket)
   const videoEntry =
@@ -91,11 +91,18 @@ export function EditorQaFixPanel({
           <footer className="border-border border-t pt-4">
             <button
               type="button"
+              disabled={resubmitToSmmQa.isPending}
               onClick={() => {
-                resubmitEditorVideoQa(ticket.id)
-                onResubmitted?.()
+                resubmitToSmmQa.mutate(
+                  {},
+                  {
+                    onSuccess: () => {
+                      onResubmitted?.()
+                    },
+                  },
+                )
               }}
-              className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl px-6 py-2.5 text-sm font-semibold"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl px-6 py-2.5 text-sm font-semibold disabled:opacity-50"
             >
               {backToClient ? 'Resubmit to client QA' : 'Resubmit to SMM QA'}
             </button>

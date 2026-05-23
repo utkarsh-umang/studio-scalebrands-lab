@@ -2,8 +2,13 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { AppendQaCommentRequest } from '../models/AppendQaCommentRequest';
+import type { AppendQaCommentResponse } from '../models/AppendQaCommentResponse';
 import type { DeliverableDriveSyncRequest } from '../models/DeliverableDriveSyncRequest';
 import type { ProductionTicketResponse } from '../models/ProductionTicketResponse';
+import type { QaTicketResponse } from '../models/QaTicketResponse';
+import type { ResubmitToSmmQaRequest } from '../models/ResubmitToSmmQaRequest';
+import type { SubmitSmmQaRequest } from '../models/SubmitSmmQaRequest';
 import type { SubmitToSmmQaResponse } from '../models/SubmitToSmmQaResponse';
 import type { UpdateProductionRequest } from '../models/UpdateProductionRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
@@ -73,6 +78,78 @@ export class VideosService {
             path: {
                 'video_ticket_id': videoTicketId,
             },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Submit Smm Qa Review
+     * @param videoTicketId
+     * @param requestBody
+     * @returns QaTicketResponse Successful Response
+     * @throws ApiError
+     */
+    public static submitSmmQaReviewApiV1VideosVideoTicketIdSmmQaPost(
+        videoTicketId: string,
+        requestBody: SubmitSmmQaRequest,
+    ): CancelablePromise<QaTicketResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/videos/{video_ticket_id}/smm-qa',
+            path: {
+                'video_ticket_id': videoTicketId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Append Qa Comment
+     * @param videoTicketId
+     * @param requestBody
+     * @returns AppendQaCommentResponse Successful Response
+     * @throws ApiError
+     */
+    public static appendQaCommentApiV1VideosVideoTicketIdQaCommentsPost(
+        videoTicketId: string,
+        requestBody: AppendQaCommentRequest,
+    ): CancelablePromise<AppendQaCommentResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/videos/{video_ticket_id}/qa-comments',
+            path: {
+                'video_ticket_id': videoTicketId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Resubmit To Smm Qa
+     * @param videoTicketId
+     * @param requestBody
+     * @returns QaTicketResponse Successful Response
+     * @throws ApiError
+     */
+    public static resubmitToSmmQaApiV1VideosVideoTicketIdResubmitToSmmQaPost(
+        videoTicketId: string,
+        requestBody: ResubmitToSmmQaRequest = {},
+    ): CancelablePromise<QaTicketResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/videos/{video_ticket_id}/resubmit-to-smm-qa',
+            path: {
+                'video_ticket_id': videoTicketId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 422: `Validation Error`,
             },

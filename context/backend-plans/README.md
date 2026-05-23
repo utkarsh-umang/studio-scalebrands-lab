@@ -48,7 +48,7 @@
 | B4 | [`B4-smm-clips-client-clip-review.md`](./B4-smm-clips-client-clip-review.md) | Done | B3 |
 | B5 | [`B5-editor-deliverables-split.md`](./B5-editor-deliverables-split.md) | Done | B4 |
 | B6 | [`B6-production-readiness-smm-qa-queue.md`](./B6-production-readiness-smm-qa-queue.md) | Done | B5 |
-| B7 | [`B7-smm-internal-qa.md`](./B7-smm-internal-qa.md) | Storage reconciled | B6 |
+| B7 | [`B7-smm-internal-qa.md`](./B7-smm-internal-qa.md) | Done | B6 |
 | B8 | [`B8-client-qa-revision-via-smm.md`](./B8-client-qa-revision-via-smm.md) | Storage reconciled | B7 |
 | B9 | [`B9-scheduling-credits.md`](./B9-scheduling-credits.md) | Storage reconciled | B8 |
 | B10 | [`B10-deadlines-pipeline.md`](./B10-deadlines-pipeline.md) | Storage reconciled | B2 |

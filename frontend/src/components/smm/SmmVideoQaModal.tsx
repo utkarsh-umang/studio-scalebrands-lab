@@ -7,11 +7,14 @@ import {
   DriveSyncMeta,
   QaCommentWorkspace,
 } from '@/components/path-b'
+import {
+  useAppendQaCommentMutation,
+  useSubmitSmmQaMutation,
+} from '@/hooks/api/pathB/useSmmQaMutations'
 import { useDriveManifestSync } from '@/hooks/useDriveManifestSync'
 import { deliverableIndexForTicket, getMediaEntry } from '@/lib/driveMedia'
 import { activeCommentsForSlot } from '@/lib/qaComments'
 import { videoNeedsSmmQa } from '@/lib/smmBoard'
-import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
 
 type Props = {
   batch: AdminBatchFolder
@@ -28,7 +31,8 @@ export function SmmVideoQaModal({
   open,
   onClose,
 }: Props) {
-  const { submitSmmQaReview, appendSmmQaComment } = useAdminWorkspace()
+  const submitSmmQa = useSubmitSmmQaMutation(ticket.id)
+  const appendComment = useAppendQaCommentMutation(ticket.id)
   const { manifest, syncing, error, sync } = useDriveManifestSync(
     batch.id,
     open ? ticket.id : undefined,
@@ -97,15 +101,27 @@ export function SmmVideoQaModal({
           thumbnailFileName={thumbEntry?.name}
           displayVideoTitle={ticket.editorPublishTitle ?? ticket.title}
           onAddComment={(body) => {
-            appendSmmQaComment(ticket.id, body)
+            appendComment.mutate({ body })
           }}
           onApprove={() => {
-            submitSmmQaReview(ticket.id, { action: 'approve' })
-            onClose()
+            submitSmmQa.mutate(
+              { action: 'approve' },
+              {
+                onSuccess: () => {
+                  onClose()
+                },
+              },
+            )
           }}
           onRequestChanges={(body) => {
-            submitSmmQaReview(ticket.id, { action: 'send_back', commentBody: body })
-            onClose()
+            submitSmmQa.mutate(
+              { action: 'send_back', commentBody: body },
+              {
+                onSuccess: () => {
+                  onClose()
+                },
+              },
+            )
           }}
         />
       )}

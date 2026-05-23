@@ -1,7 +1,7 @@
 # Backend plan: B7 — SMM internal QA
 
 **Epic:** B7  
-**Status:** Storage reconciled  
+**Status:** Done  
 **Depends on:** [B0](./B0-auth-and-core-schema.md), [B2](./B2-read-models-boards.md), [B6](./B6-production-readiness-smm-qa-queue.md)  
 **Blocks:** B8 (client unified QA requires SMM-approved release)  
 **Index:** [`README.md`](./README.md)
