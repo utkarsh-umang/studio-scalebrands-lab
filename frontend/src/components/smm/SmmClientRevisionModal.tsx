@@ -8,7 +8,7 @@ import { useDriveManifestSync } from '@/hooks/useDriveManifestSync'
 import { deliverableIndexForTicket } from '@/lib/driveMedia'
 import { readinessForDeliverable } from '@/lib/pathBDeliverables'
 import { videoNeedsSmmClientRevision } from '@/lib/smmBoard'
-import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
+import { useClientRevisionTriageMutation } from '@/hooks/api/pathB/useClientQaMutations'
 
 type Props = {
   batch: AdminBatchFolder
@@ -27,7 +27,7 @@ export function SmmClientRevisionModal({
   onClose,
   onOpenProduction,
 }: Props) {
-  const { smmTriageClientRevision } = useAdminWorkspace()
+  const triageRevision = useClientRevisionTriageMutation()
   const { manifest, syncing, error, sync } = useDriveManifestSync(
     batch.id,
     open ? ticket.id : undefined,
@@ -101,13 +101,21 @@ export function SmmClientRevisionModal({
             ticket={ticket}
             clientComments={clientComments}
             onRouteToEditor={() => {
-              smmTriageClientRevision(ticket.id, 'editor')
-              onClose()
+              triageRevision.mutate(
+                { videoTicketId: ticket.id, body: { route: 'editor' } },
+                { onSuccess: onClose },
+              )
             }}
             onUpdateAssets={() => {
-              smmTriageClientRevision(ticket.id, 'smm_assets')
-              onClose()
-              onOpenProduction()
+              triageRevision.mutate(
+                { videoTicketId: ticket.id, body: { route: 'smm_assets' } },
+                {
+                  onSuccess: () => {
+                    onClose()
+                    onOpenProduction()
+                  },
+                },
+              )
             }}
           />
         </div>

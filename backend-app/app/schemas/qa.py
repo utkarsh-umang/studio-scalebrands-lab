@@ -1,4 +1,4 @@
-"""SMM internal QA API schemas (B7)."""
+"""SMM internal QA and client final QA API schemas (B7–B8)."""
 
 from typing import Literal
 from uuid import UUID
@@ -39,3 +39,17 @@ class QaTicketResponse(CamelModel):
 class AppendQaCommentResponse(CamelModel):
     ticket: AdminVideoTicketResponse
     comment: QaCommentDto
+
+
+class ClientQaRequest(CamelModel):
+    action: Literal["approve", "reject"]
+    comment_body: str | None = Field(default=None, alias="commentBody")
+    timestamp_flags: list[TimestampFlagInput] | None = Field(
+        default=None,
+        alias="timestampFlags",
+    )
+    general_note: str | None = Field(default=None, alias="generalNote")
+
+
+class ClientRevisionTriageRequest(CamelModel):
+    route: Literal["editor", "smm_assets"]

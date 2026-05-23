@@ -3,6 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { AppendQaCommentRequest } from '../models/AppendQaCommentRequest';
+import type { ClientRevisionTriageRequest } from '../models/ClientRevisionTriageRequest';
 import type { AppendQaCommentResponse } from '../models/AppendQaCommentResponse';
 import type { DeliverableDriveSyncRequest } from '../models/DeliverableDriveSyncRequest';
 import type { ProductionTicketResponse } from '../models/ProductionTicketResponse';
@@ -121,6 +122,37 @@ export class VideosService {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v1/videos/{video_ticket_id}/qa-comments',
+            path: {
+                'video_ticket_id': videoTicketId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Resubmit To Smm Qa
+     * @param videoTicketId
+     * @param requestBody
+     * @returns QaTicketResponse Successful Response
+     * @throws ApiError
+     */
+    /**
+     * Triage Client Revision
+     * @param videoTicketId
+     * @param requestBody
+     * @returns QaTicketResponse Successful Response
+     * @throws ApiError
+     */
+    public static triageClientRevisionApiV1VideosVideoTicketIdClientRevisionTriagePost(
+        videoTicketId: string,
+        requestBody: ClientRevisionTriageRequest,
+    ): CancelablePromise<QaTicketResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/videos/{video_ticket_id}/client-revision-triage',
             path: {
                 'video_ticket_id': videoTicketId,
             },

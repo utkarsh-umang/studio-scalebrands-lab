@@ -25,12 +25,6 @@ import {
 } from '@mockData/index'
 import type { ProvisionClientInput } from '@/components/admin/ProvisionClientModal'
 import {
-  nextStateAfterClientAction,
-  type ClientReviewKind,
-} from '@/lib/clientBoard'
-import type { VideoReviewFeedback } from '@/components/VideoDeliverableReviewPanel'
-import { buildQaCommentsFromFeedback } from '@/lib/qaComments'
-import {
   batchDemoStageAfterScheduleComplete,
   patchBatchDemoStage,
   videoStateFromDemoStage,
@@ -83,16 +77,6 @@ type AdminWorkspaceContextValue = {
   updateBrandGuidelines: (input: UpdateBrandGuidelinesInput) => void
   setVideoDeadline: (videoId: string, deadlineAt: string | null) => void
   setVideoOwner: (videoId: string, owner: VideoPipelineOwner) => void
-  applyClientVideoDecision: (
-    videoId: string,
-    action: 'approve' | 'reject',
-    opts?: { rejectNote?: string; feedback?: VideoReviewFeedback },
-  ) => void
-  appendClientQaComment: (videoId: string, body: string) => void
-  smmTriageClientRevision: (
-    videoId: string,
-    route: 'editor' | 'smm_assets',
-  ) => void
   /** Marks one video scheduled (scheduling → done). Debits batch credits when all deliverables are done. */
   scheduleVideo: (videoId: string, input: ScheduleVideoInput) => void
 }
@@ -109,14 +93,6 @@ const AdminWorkspaceContext = createContext<AdminWorkspaceContextValue | null>(
 
 function staffName(list: StaffMember[], id: string) {
   return list.find((s) => s.id === id)?.name ?? '—'
-}
-
-function reviewKindFromStage(stageLabel: string): ClientReviewKind | null {
-  const s = stageLabel.toLowerCase()
-  if (s.includes('clip review')) return 'clip'
-  if (s.includes('client qa')) return 'final'
-  if (s.includes('final')) return 'final'
-  return null
 }
 
 export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
@@ -353,40 +329,6 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
     [],
   )
 
-  const smmTriageClientRevision = useCallback(
-    (videoId: string, route: 'editor' | 'smm_assets') => {
-      const now = new Date().toISOString().slice(0, 10)
-      setVideos((prev) =>
-        prev.map((v) => {
-          if (v.id !== videoId) return v
-          if (route === 'editor') {
-            return {
-              ...v,
-              ...videoStateFromDemoStage('editor_fix'),
-              lastRevisionRequestedBy: 'smm' as const,
-            }
-          }
-          return {
-            ...v,
-            ...videoStateFromDemoStage('production', {
-              owner: 'smm',
-              deadlineRole: 'smm',
-            }),
-            lastRevisionRequestedBy: 'client' as const,
-          }
-        }),
-      )
-      setBatches((prev) =>
-        prev.map((b) => {
-          const video = videos.find((v) => v.id === videoId)
-          if (!video || video.batchId !== b.id) return b
-          return { ...b, updatedAt: now }
-        }),
-      )
-    },
-    [videos],
-  )
-
   const scheduleVideo = useCallback(
     (videoId: string, input: ScheduleVideoInput) => {
       const target = videos.find((v) => v.id === videoId)
@@ -470,105 +412,6 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
     [videos, batches],
   )
 
-  const applyClientVideoDecision = useCallback(
-    (
-      videoId: string,
-      action: 'approve' | 'reject',
-      opts?: { rejectNote?: string; feedback?: VideoReviewFeedback },
-    ) => {
-      const now = new Date().toISOString().slice(0, 10)
-      setVideos((prev) =>
-        prev.map((v) => {
-          if (v.id !== videoId) return v
-          const next = nextStateAfterClientAction(v, action)
-          const kind = reviewKindFromStage(v.stageLabel)
-          let editorPhase = v.editorPhase
-          let qaCommentHistory = v.qaCommentHistory
-
-          if (action === 'reject') {
-            const slot = 'video' as const
-            const version = v.assetVersions?.video ?? 1
-            if (opts?.feedback) {
-              const added = buildQaCommentsFromFeedback(opts.feedback, {
-                slot,
-                assetVersion: version,
-                authorRole: 'client',
-              })
-              qaCommentHistory = [...(qaCommentHistory ?? []), ...added]
-            } else if (opts?.rejectNote?.trim()) {
-              qaCommentHistory = [
-                ...(qaCommentHistory ?? []),
-                {
-                  id: `qc-${Date.now()}`,
-                  slot,
-                  assetVersion: version,
-                  kind: 'general' as const,
-                  authorRole: 'client' as const,
-                  body: opts.rejectNote.trim(),
-                  createdAt: new Date().toISOString(),
-                  deprecated: false,
-                },
-              ]
-            }
-          }
-
-          if (action === 'approve' && kind === 'clip') {
-            editorPhase = 'videos'
-          }
-          if (action === 'approve' && kind === 'final') {
-            editorPhase = 'handed_off'
-          }
-
-          const patch = {
-            ...v,
-            ...next,
-            editorPhase,
-            qaCommentHistory,
-            ...(action === 'reject'
-              ? { lastRevisionRequestedBy: 'client' as const }
-              : {}),
-          }
-
-          return patch
-        }),
-      )
-      setBatches((prev) =>
-        prev.map((b) => {
-          const video = videos.find((v) => v.id === videoId)
-          if (!video || video.batchId !== b.id) return b
-          return { ...b, updatedAt: now }
-        }),
-      )
-    },
-    [videos],
-  )
-
-  const appendClientQaComment = useCallback((videoId: string, body: string) => {
-    const trimmed = body.trim()
-    if (!trimmed) return
-    setVideos((prev) =>
-      prev.map((v) => {
-        if (v.id !== videoId) return v
-        return {
-          ...v,
-          qaCommentHistory: [
-            ...(v.qaCommentHistory ?? []),
-            {
-              id: `qc-client-${Date.now()}`,
-              slot: 'video' as const,
-              assetVersion: v.assetVersions?.video ?? 1,
-              kind: 'general' as const,
-              authorRole: 'client' as const,
-              body: trimmed,
-              createdAt: new Date().toISOString(),
-              deprecated: false,
-            },
-          ],
-        }
-      }),
-    )
-  }, [])
-
   const value = useMemo(
     () => ({
       clients,
@@ -589,9 +432,6 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
       updateBrandGuidelines,
       setVideoDeadline,
       setVideoOwner,
-      applyClientVideoDecision,
-      appendClientQaComment,
-      smmTriageClientRevision,
       scheduleVideo,
     }),
     [
@@ -610,9 +450,6 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
       updateBrandGuidelines,
       setVideoDeadline,
       setVideoOwner,
-      applyClientVideoDecision,
-      appendClientQaComment,
-      smmTriageClientRevision,
       scheduleVideo,
       isWorkspaceLoading,
       smmStaffList,

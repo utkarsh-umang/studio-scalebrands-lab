@@ -7,6 +7,11 @@ import {
   useApproveBatchClipsMutation,
   useRejectBatchClipsMutation,
 } from '@/hooks/api/pathB/useClipsFolderMutations'
+import {
+  clientQaRejectBody,
+  useAppendClientQaCommentMutation,
+  useClientQaDecisionMutation,
+} from '@/hooks/api/pathB/useClientQaMutations'
 import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
 import { ClientClipIdentificationStatusModal } from './ClientClipIdentificationStatusModal'
 import { ClientUnifiedQaModal } from './ClientUnifiedQaModal'
@@ -31,14 +36,11 @@ export function ClientCardDetailModal({
   batchTitle,
   onClose,
 }: Props) {
-  const {
-    batches,
-    applyClientVideoDecision,
-    getVideosForBatch,
-    appendClientQaComment,
-  } = useAdminWorkspace()
+  const { batches, getVideosForBatch } = useAdminWorkspace()
   const approveBatchClips = useApproveBatchClipsMutation(batchId)
   const rejectBatchClips = useRejectBatchClipsMutation(batchId)
+  const clientQaDecision = useClientQaDecisionMutation()
+  const appendClientQaComment = useAppendClientQaCommentMutation()
 
   const batch = batches.find((b) => b.id === batchId)
   const batchTickets = batch ? getVideosForBatch(batch.id) : []
@@ -129,15 +131,22 @@ export function ClientCardDetailModal({
         initialTicket={card}
         onClose={onClose}
         onApprove={(videoId) => {
-          applyClientVideoDecision(videoId, 'approve')
-          onClose()
+          clientQaDecision.mutate(
+            { videoTicketId: videoId, body: { action: 'approve' } },
+            { onSuccess: onClose },
+          )
         }}
         onReject={(videoId, feedback: VideoReviewFeedback) => {
-          applyClientVideoDecision(videoId, 'reject', { feedback })
-          onClose()
+          clientQaDecision.mutate(
+            {
+              videoTicketId: videoId,
+              body: clientQaRejectBody(feedback),
+            },
+            { onSuccess: onClose },
+          )
         }}
         onAddComment={(videoId, body) => {
-          appendClientQaComment(videoId, body)
+          appendClientQaComment.mutate({ videoTicketId: videoId, body })
         }}
       />
     )

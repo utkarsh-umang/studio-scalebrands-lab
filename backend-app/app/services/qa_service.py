@@ -1,4 +1,4 @@
-"""SMM internal QA and editor resubmit (B7)."""
+"""SMM internal QA, editor resubmit (B7), and client final QA (B8)."""
 
 from typing import Any
 from uuid import UUID
@@ -11,6 +11,7 @@ from app.core.auth import CurrentUser
 from app.db.base import utc_now
 from app.models.batch import Batch
 from app.models.enums import (
+    EditorWorkflowPhase,
     EmployeeKind,
     PipelineStage,
     QaCommentKind,
@@ -24,12 +25,17 @@ from app.schemas.production import DeliverableReadinessDto
 from app.schemas.qa import (
     AppendQaCommentRequest,
     AppendQaCommentResponse,
+    ClientQaRequest,
+    ClientRevisionTriageRequest,
     QaTicketResponse,
     ResubmitToSmmQaRequest,
     SubmitSmmQaRequest,
     TimestampFlagInput,
 )
-from app.services.path_b_transitions import apply_video_transition
+from app.services.path_b_transitions import (
+    apply_video_transition,
+    is_clip_review_gate_ticket,
+)
 from app.services.readiness_service import compute_readiness
 from app.services.workspace_access import assert_employee_batch_access, assert_video_access
 from app.services.workspace_mappers import (
@@ -136,6 +142,62 @@ def _assert_in_editor_fix(ticket: VideoTicket) -> None:
         )
 
 
+def _assert_client_user(user: CurrentUser) -> None:
+    if user.role != UserRole.client:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error_code": "FORBIDDEN",
+                "message": "Client role required",
+            },
+        )
+
+
+def _assert_in_client_final_qa(ticket: VideoTicket) -> None:
+    if is_clip_review_gate_ticket(ticket):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "error_code": "VALIDATION_ERROR",
+                "message": "Clip review uses batch clip endpoints",
+            },
+        )
+    if (
+        ticket.pipeline_stage != PipelineStage.client_qa
+        or ticket.pipeline_owner != VideoPipelineOwner.client
+        or not ticket.released_to_client_final_review
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "error_code": "VALIDATION_ERROR",
+                "message": "Ticket is not in client final QA",
+            },
+        )
+
+
+def _assert_in_client_revision_via_smm(ticket: VideoTicket) -> None:
+    if (
+        ticket.pipeline_stage != PipelineStage.revision_via_smm
+        or ticket.pipeline_owner != VideoPipelineOwner.smm
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "error_code": "VALIDATION_ERROR",
+                "message": "Ticket is not awaiting SMM client-revision triage",
+            },
+        )
+    if ticket.last_revision_requested_by != "client":
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "error_code": "VALIDATION_ERROR",
+                "message": "Client revision triage requires client-originated revision",
+            },
+        )
+
+
 def _has_send_back_feedback(
     *,
     comment_body: str,
@@ -155,6 +217,7 @@ def _build_send_back_comments(
     comment_body: str,
     timestamp_flags: list[TimestampFlagInput],
     general_note: str,
+    author_role: str,
     author_user_id: UUID | None,
 ) -> list[QaComment]:
     video_version = _video_asset_version(ticket)
@@ -167,7 +230,7 @@ def _build_send_back_comments(
                 slot=QaMediaSlot.video,
                 asset_version=video_version,
                 kind=QaCommentKind.general,
-                author_role="smm",
+                author_role=author_role,
                 author_user_id=author_user_id,
                 body=trimmed_body,
                 deprecated=False,
@@ -184,7 +247,7 @@ def _build_send_back_comments(
                     slot=QaMediaSlot.video,
                     asset_version=video_version,
                     kind=QaCommentKind.timestamp,
-                    author_role="smm",
+                    author_role=author_role,
                     author_user_id=author_user_id,
                     at_seconds=flag.at_seconds,
                     body=note,
@@ -199,7 +262,7 @@ def _build_send_back_comments(
                     slot=QaMediaSlot.video,
                     asset_version=video_version,
                     kind=QaCommentKind.general,
-                    author_role="smm",
+                    author_role=author_role,
                     author_user_id=author_user_id,
                     body=trimmed_general,
                     deprecated=False,
@@ -245,15 +308,13 @@ def _apply_smm_qa_send_back(
     ticket.qa_general_note = trimmed_general or trimmed_body or None
 
 
-async def append_smm_qa_comment(
+async def append_qa_comment(
     session: AsyncSession,
     user: CurrentUser,
     video_ticket_id: UUID,
     payload: AppendQaCommentRequest,
 ) -> AppendQaCommentResponse:
-    _assert_smm_user(user)
     ticket, batch = await _get_ticket_and_batch(session, user, video_ticket_id)
-    _assert_in_smm_qa(ticket)
 
     trimmed = payload.body.strip()
     if not trimmed:
@@ -265,12 +326,28 @@ async def append_smm_qa_comment(
             },
         )
 
+    if user.role == UserRole.client:
+        _assert_client_user(user)
+        _assert_in_client_final_qa(ticket)
+        author_role = "client"
+    elif user.role == UserRole.employee and user.employee_kind == EmployeeKind.smm:
+        _assert_in_smm_qa(ticket)
+        author_role = "smm"
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error_code": "FORBIDDEN",
+                "message": "Insufficient permissions",
+            },
+        )
+
     comment = QaComment(
         video_ticket_id=ticket.id,
         slot=QaMediaSlot.video,
         asset_version=_video_asset_version(ticket),
         kind=QaCommentKind.general,
-        author_role="smm",
+        author_role=author_role,
         author_user_id=user.id,
         body=trimmed,
         deprecated=False,
@@ -290,6 +367,16 @@ async def append_smm_qa_comment(
         ticket=video_to_dto(ticket, qa_comments=comments.get(ticket.id, [])),
         comment=qa_comment_to_dto(comment),
     )
+
+
+async def append_smm_qa_comment(
+    session: AsyncSession,
+    user: CurrentUser,
+    video_ticket_id: UUID,
+    payload: AppendQaCommentRequest,
+) -> AppendQaCommentResponse:
+    _assert_smm_user(user)
+    return await append_qa_comment(session, user, video_ticket_id, payload)
 
 
 async def submit_smm_qa_review(
@@ -330,6 +417,7 @@ async def submit_smm_qa_review(
             comment_body=comment_body,
             timestamp_flags=timestamp_flags,
             general_note=general_note,
+            author_role="smm",
             author_user_id=user.id,
         ):
             session.add(row)
@@ -401,6 +489,136 @@ async def resubmit_editor_video(
     )
     ticket.qa_flags = None
     ticket.qa_general_note = None
+    ticket.updated_at = utc_now()
+    session.add(ticket)
+    batch.updated_at = utc_now()
+    session.add(batch)
+
+    await session.flush()
+    await session.refresh(ticket)
+    return await _qa_ticket_response(session, ticket)
+
+
+async def submit_client_qa(
+    session: AsyncSession,
+    user: CurrentUser,
+    video_ticket_id: UUID,
+    payload: ClientQaRequest,
+) -> QaTicketResponse:
+    _assert_client_user(user)
+    ticket, batch = await _get_ticket_and_batch(session, user, video_ticket_id)
+    _assert_in_client_final_qa(ticket)
+
+    comment_body = (payload.comment_body or "").strip()
+    general_note = (payload.general_note or "").strip()
+    timestamp_flags = payload.timestamp_flags or []
+
+    if payload.action == "reject":
+        if not _has_send_back_feedback(
+            comment_body=comment_body,
+            timestamp_flags=timestamp_flags,
+            general_note=general_note,
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={
+                    "error_code": "VALIDATION_ERROR",
+                    "message": "Reject requires commentBody, timestampFlags, or generalNote",
+                },
+            )
+        apply_video_transition(
+            ticket,
+            PipelineStage.revision_via_smm,
+            released_to_client_final_review=False,
+        )
+        ticket.last_revision_requested_by = "client"
+        for row in _build_send_back_comments(
+            ticket,
+            comment_body=comment_body,
+            timestamp_flags=timestamp_flags,
+            general_note=general_note,
+            author_role="client",
+            author_user_id=user.id,
+        ):
+            session.add(row)
+    elif payload.action == "approve":
+        readiness = compute_readiness(ticket, batch)
+        if not readiness.all_ready:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={
+                    "error_code": "VALIDATION_ERROR",
+                    "message": "Deliverable must be fully ready before scheduling",
+                    "readiness": DeliverableReadinessDto(
+                        video_ready=readiness.video_ready,
+                        thumbnail_ready=readiness.thumbnail_ready,
+                        title_ready=readiness.title_ready,
+                        all_ready=readiness.all_ready,
+                    ).model_dump(by_alias=True),
+                    "missing": readiness.missing_fields(),
+                },
+            )
+        apply_video_transition(
+            ticket,
+            PipelineStage.scheduling,
+            released_to_client_final_review=False,
+        )
+        ticket.editor_workflow_phase = EditorWorkflowPhase.handed_off
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "error_code": "VALIDATION_ERROR",
+                "message": "Invalid action",
+            },
+        )
+
+    ticket.updated_at = utc_now()
+    session.add(ticket)
+    batch.updated_at = utc_now()
+    session.add(batch)
+
+    await session.flush()
+    await session.refresh(ticket)
+    return await _qa_ticket_response(session, ticket)
+
+
+async def triage_client_revision(
+    session: AsyncSession,
+    user: CurrentUser,
+    video_ticket_id: UUID,
+    payload: ClientRevisionTriageRequest,
+) -> QaTicketResponse:
+    _assert_smm_user(user)
+    ticket, batch = await _get_ticket_and_batch(session, user, video_ticket_id)
+    _assert_in_client_revision_via_smm(ticket)
+
+    if payload.route == "editor":
+        apply_video_transition(
+            ticket,
+            PipelineStage.editor_fix,
+            released_to_client_final_review=False,
+        )
+        ticket.last_revision_requested_by = "smm"
+        ticket.editor_workflow_phase = None
+    elif payload.route == "smm_assets":
+        apply_video_transition(
+            ticket,
+            PipelineStage.production,
+            released_to_client_final_review=False,
+        )
+        ticket.pipeline_owner = VideoPipelineOwner.smm
+        ticket.deadline_role = "smm"
+        ticket.editor_workflow_phase = None
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "error_code": "VALIDATION_ERROR",
+                "message": "Invalid route",
+            },
+        )
+
     ticket.updated_at = utc_now()
     session.add(ticket)
     batch.updated_at = utc_now()

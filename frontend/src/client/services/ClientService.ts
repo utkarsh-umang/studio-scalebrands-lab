@@ -3,6 +3,8 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { ApproveBatchClipsRequest } from '../models/ApproveBatchClipsRequest';
+import type { ClientQaRequest } from '../models/ClientQaRequest';
+import type { QaTicketResponse } from '../models/QaTicketResponse';
 import type { BatchVideosResponse } from '../models/BatchVideosResponse';
 import type { RejectBatchClipsRequest } from '../models/RejectBatchClipsRequest';
 import type { SubmitBatchIntakeRequest } from '../models/SubmitBatchIntakeRequest';
@@ -52,6 +54,37 @@ export class ClientService {
             url: '/api/v1/client/batches/{batch_id}/clips/approve',
             path: {
                 'batch_id': batchId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Reject Batch Clips
+     * @param batchId
+     * @param requestBody
+     * @returns BatchVideosResponse Successful Response
+     * @throws ApiError
+     */
+    /**
+     * Submit Client Qa
+     * @param videoTicketId
+     * @param requestBody
+     * @returns QaTicketResponse Successful Response
+     * @throws ApiError
+     */
+    public static submitClientQaApiV1ClientVideosVideoTicketIdClientQaPost(
+        videoTicketId: string,
+        requestBody: ClientQaRequest,
+    ): CancelablePromise<QaTicketResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/client/videos/{video_ticket_id}/client-qa',
+            path: {
+                'video_ticket_id': videoTicketId,
             },
             body: requestBody,
             mediaType: 'application/json',

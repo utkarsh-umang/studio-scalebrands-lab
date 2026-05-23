@@ -6,7 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.auth import CurrentUser, require_roles
+from app.core.auth import CurrentUser, get_current_user, require_roles
 from app.db.session import get_db_session
 from app.schemas.production import (
     DeliverableDriveSyncRequest,
@@ -17,6 +17,7 @@ from app.schemas.production import (
 from app.schemas.qa import (
     AppendQaCommentRequest,
     AppendQaCommentResponse,
+    ClientRevisionTriageRequest,
     QaTicketResponse,
     ResubmitToSmmQaRequest,
     SubmitSmmQaRequest,
@@ -115,13 +116,31 @@ async def submit_smm_qa_review(
 async def append_qa_comment(
     video_ticket_id: UUID,
     body: AppendQaCommentRequest,
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> AppendQaCommentResponse:
+    return await qa_service.append_qa_comment(
+        session,
+        current_user,
+        video_ticket_id,
+        body,
+    )
+
+
+@router.post(
+    "/videos/{video_ticket_id}/client-revision-triage",
+    response_model=QaTicketResponse,
+)
+async def triage_client_revision(
+    video_ticket_id: UUID,
+    body: ClientRevisionTriageRequest,
     current_user: Annotated[
         CurrentUser,
         Depends(require_roles("employee", "smm")),
     ],
     session: Annotated[AsyncSession, Depends(get_db_session)],
-) -> AppendQaCommentResponse:
-    return await qa_service.append_smm_qa_comment(
+) -> QaTicketResponse:
+    return await qa_service.triage_client_revision(
         session,
         current_user,
         video_ticket_id,

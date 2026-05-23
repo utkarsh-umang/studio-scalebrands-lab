@@ -28,6 +28,8 @@ export { BatchStatus } from './models/BatchStatus';
 export type { BrandGuidelinesResponse } from './models/BrandGuidelinesResponse';
 export { BrandGuidelinesSource } from './models/BrandGuidelinesSource';
 export { ClientAccountStatus } from './models/ClientAccountStatus';
+export type { ClientQaRequest } from './models/ClientQaRequest';
+export type { ClientRevisionTriageRequest } from './models/ClientRevisionTriageRequest';
 export type { ClientWorkspaceResponse } from './models/ClientWorkspaceResponse';
 export type { CreateBatchRequest } from './models/CreateBatchRequest';
 export type { CredentialsResponse } from './models/CredentialsResponse';
