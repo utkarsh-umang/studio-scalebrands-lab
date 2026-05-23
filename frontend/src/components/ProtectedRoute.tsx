@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
-import { homePathForUser, useMockAuth } from '@/auth'
+import { homePathForUser, useAuth } from '@/auth'
 import type { AuthUser } from '@/auth'
 
 export type ProtectedPortal = 'client' | 'admin' | 'editor' | 'smm'
@@ -21,8 +21,12 @@ type ProtectedRouteProps = {
 }
 
 export function ProtectedRoute({ portal, children }: ProtectedRouteProps) {
-  const { user } = useMockAuth()
+  const { user, isLoading } = useAuth()
   const location = useLocation()
+
+  if (isLoading) {
+    return null
+  }
 
   if (!user) {
     return (

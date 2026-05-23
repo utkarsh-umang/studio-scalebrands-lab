@@ -2,11 +2,9 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type HealthResponse = {
-    status: string;
-    environment: string;
-    postgres: string;
-    mongo: string;
-    redis: string;
+export type ValidationError = {
+    loc: Array<(string | number)>;
+    msg: string;
+    type: string;
 };
 

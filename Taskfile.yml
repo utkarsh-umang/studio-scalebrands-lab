@@ -58,6 +58,12 @@ tasks:
     cmds:
       - poetry run alembic upgrade head
 
+  backend:seed:
+    desc: Bootstrap admin and optional demo data (after migrate)
+    dir: "{{.BACKEND_DIR}}"
+    cmds:
+      - poetry run python -m app.scripts.seed
+
   backend:revision:
     desc: "Create new migration"
     dir: "{{.BACKEND_DIR}}"

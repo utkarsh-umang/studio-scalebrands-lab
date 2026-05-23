@@ -2,11 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type HealthResponse = {
-    status: string;
-    environment: string;
-    postgres: string;
-    mongo: string;
-    redis: string;
+/**
+ * Accepts standard JSON keys (email, password).
+ */
+export type LoginRequest = {
+    email: string;
+    password: string;
 };
 

@@ -1,7 +1,7 @@
 # Backend plan: B0 — Auth & core schema
 
 **Epic:** B0  
-**Status:** Storage reconciled  
+**Status:** Done  
 **Depends on:** —  
 **Blocks:** B1–B11  
 **Index:** [`README.md`](./README.md)

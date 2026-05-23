@@ -2,11 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type HealthResponse = {
-    status: string;
-    environment: string;
-    postgres: string;
-    mongo: string;
-    redis: string;
+import type { ValidationError } from './ValidationError';
+export type HTTPValidationError = {
+    detail?: Array<ValidationError>;
 };
 

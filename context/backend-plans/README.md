@@ -15,6 +15,7 @@
 | [`../../skills/prototype-to-backend-planner/SKILL.md`](../../skills/prototype-to-backend-planner/SKILL.md) | How to write each epic plan |
 | [`../../skills/database-design-consolidator/SKILL.md`](../../skills/database-design-consolidator/SKILL.md) | Merge epic plans → `00-storage-design.md` |
 | [`../../.cursor/skills/backend-coding-structure/SKILL.md`](../../.cursor/skills/backend-coding-structure/SKILL.md) | Controller → service → Postgres/Mongo layout |
+| [`../../.cursor/skills/backend-coding-discipline/SKILL.md`](../../.cursor/skills/backend-coding-discipline/SKILL.md) | Execution: React Query + codegen, Redux UI state, mock removal |
 
 **Prototype sources of truth:**
 
@@ -30,7 +31,7 @@
 1. Write epic plan (this list → B*.md)     [planning — prototype-to-backend-planner]
 2. Consolidate DB → 00-storage-design.md   [planning — database-design-consolidator]
 3. Reconcile each B*.md storage section  [planning — 00-reconcile-checklist.md]
-4. Implement B0 → B11 in order             [execution]
+4. Implement B0 → B11 in order             [execution — backend-coding-discipline skill]
 5. Run test-ui.md against real API         [fix mode]
 ```
 
@@ -40,7 +41,7 @@
 
 | Epic | Plan file | Status | Depends on |
 |------|-----------|--------|------------|
-| B0 | [`B0-auth-and-core-schema.md`](./B0-auth-and-core-schema.md) | Storage reconciled | — |
+| B0 | [`B0-auth-and-core-schema.md`](./B0-auth-and-core-schema.md) | Done | — |
 | B1 | [`B1-admin-clients-batches.md`](./B1-admin-clients-batches.md) | Storage reconciled | B0 |
 | B2 | [`B2-read-models-boards.md`](./B2-read-models-boards.md) | Storage reconciled | B0, B1 |
 | B3 | [`B3-client-intake.md`](./B3-client-intake.md) | Storage reconciled | B2 |

@@ -1,13 +1,13 @@
 import { useLayoutEffect, useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { homePathForUser, useMockAuth } from '@/auth'
+import { homePathForUser, useAuth } from '@/auth'
 import logo from '@/assets/logo.png'
 import { MOCK_USERS } from '@mockData/index'
 import { useTheme } from '@/theme'
 
 export function LoginPage() {
   const { theme } = useTheme()
-  const { user, login } = useMockAuth()
+  const { user, login } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const from =
@@ -217,17 +217,17 @@ export function LoginPage() {
 
           <div className="border-border/70 mt-4 border-t pt-3 md:mt-5 md:pt-4">
             <p className="text-muted-foreground mb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em]">
-              Prototype credentials
+              Local demo (after backend seed)
             </p>
             <p className="text-muted-foreground mb-2 text-[10px] leading-snug md:text-[11px]">
-              Password for all demo users:{' '}
+              Password for seeded demo users:{' '}
               <code className="bg-code-bg text-foreground rounded px-1.5 py-0.5 font-mono text-[10px] md:text-[11px]">
                 demo1234
               </code>
             </p>
             <div className="grid grid-cols-1 gap-x-3 gap-y-0.5 font-mono text-[9px] leading-tight text-[var(--muted-foreground)] sm:grid-cols-2">
               {MOCK_USERS.map((u) => (
-                <div key={u.id} className="truncate" title={u.email}>
+                <div key={u.email} className="truncate" title={u.email}>
                   {u.email}
                 </div>
               ))}

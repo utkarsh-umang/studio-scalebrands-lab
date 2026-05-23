@@ -5,7 +5,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { OpenAPI } from '@/client'
 import { apiBaseUrl } from '@/config/api'
 import { App } from './App'
-import { MockAuthProvider } from '@/auth'
+import { AuthProvider } from '@/auth'
 import { AdminWorkspaceProvider } from '@/pages/admin/adminWorkspaceStore'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { ThemeProvider } from '@/theme'
@@ -28,11 +28,11 @@ createRoot(document.getElementById('root')!).render(
       <ErrorBoundary>
         <BrowserRouter>
           <ThemeProvider>
-            <MockAuthProvider>
+            <AuthProvider>
               <AdminWorkspaceProvider>
                 <App />
               </AdminWorkspaceProvider>
-            </MockAuthProvider>
+            </AuthProvider>
           </ThemeProvider>
         </BrowserRouter>
       </ErrorBoundary>

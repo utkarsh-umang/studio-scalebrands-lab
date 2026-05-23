@@ -4,7 +4,7 @@ from fastapi import APIRouter
 
 from app.cache.redis_client import cache
 from app.core.config import config
-from app.db.session import engine
+from app.db.session import get_engine
 from app.mongo.get_connection import get_database_connection
 from app.schemas.common import HealthResponse
 
@@ -17,7 +17,7 @@ async def _check_postgres() -> str:
         from sqlalchemy import text
         from sqlalchemy.ext.asyncio import AsyncSession
 
-        async with AsyncSession(engine) as session:
+        async with AsyncSession(get_engine()) as session:
             await session.execute(text("SELECT 1"))
         return "connected"
     except Exception:

@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter
 
-# Aggregate versioned routers here. Empty for now — feature routers will be
-# registered as they land.
+from app.controllers.auth import router as auth_router
+
 api_v1_router = APIRouter()
+api_v1_router.include_router(auth_router)
