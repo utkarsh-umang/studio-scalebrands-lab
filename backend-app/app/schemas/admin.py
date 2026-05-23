@@ -194,6 +194,8 @@ class AdminVideoTicketResponse(CamelModel):
     released_to_client_final_review: bool = False
     last_revision_requested_by: str | None = None
     asset_versions: dict[str, Any] | None = None
+    deliverable_drive_slots: dict[str, Any] | None = None
+    drive_slots_synced_at: str | None = None
     qa_flags: list[dict[str, Any]] | None = None
     qa_general_note: str | None = None
     qa_comment_history: list[QaCommentDto] = Field(default_factory=list)

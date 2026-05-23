@@ -66,6 +66,15 @@ export function videoNeedsSmmClientRevision(video: AdminVideoTicket): boolean {
   )
 }
 
+/** SMM owns production-stage asset prep (before returning to SMM QA). */
+export function smmInAssetPrepFlow(video: AdminVideoTicket): boolean {
+  if (video.owner !== 'smm') return false
+  const stage = video.stageLabel.toLowerCase()
+  return (
+    stage.includes('production') || stage.includes('thumbnail') || stage.includes('title')
+  )
+}
+
 /** SMM updates thumb/title on Drive before re-entering SMM QA. */
 export function smmNeedsAssetPrep(
   video: AdminVideoTicket,

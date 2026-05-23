@@ -21,6 +21,8 @@ export type AdminVideoTicketResponse = {
     releasedToClientFinalReview?: boolean;
     lastRevisionRequestedBy?: (string | null);
     assetVersions?: (Record<string, any> | null);
+    deliverableDriveSlots?: (Record<string, any> | null);
+    driveSlotsSyncedAt?: (string | null);
     qaFlags?: null;
     qaGeneralNote?: (string | null);
     qaCommentHistory?: Array<QaCommentDto>;

@@ -8,11 +8,16 @@ import {
   DriveSyncButton,
   DriveSyncMeta,
 } from '@/components/path-b'
+import {
+  useDeliverableDriveSyncMutation,
+  useSubmitToSmmQaMutation,
+  useUpdateProductionMutation,
+} from '@/hooks/api/pathB/useProductionMutations'
 import { useDriveManifestSync } from '@/hooks/useDriveManifestSync'
-import { readinessForDeliverable } from '@/lib/pathBDeliverables'
-import { deliverableIndexForTicket } from '@/lib/driveMedia'
-import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
 import { editorNeedsProductionWork } from '@/lib/editorBoard'
+import { deliverableIndexForTicket } from '@/lib/driveMedia'
+import { driveSyncRequestFromManifest } from '@/lib/productionDriveSync'
+import { readinessForDeliverable } from '@/lib/pathBDeliverables'
 
 type Props = {
   batch: AdminBatchFolder
@@ -29,7 +34,9 @@ export function EditorProductionModal({
   open,
   onClose,
 }: Props) {
-  const { saveVideoPublishTitle, sendEditorDeliverableToSmmQa } = useAdminWorkspace()
+  const updateProduction = useUpdateProductionMutation(ticket.id)
+  const driveSync = useDeliverableDriveSyncMutation(ticket.id)
+  const submitToSmmQa = useSubmitToSmmQaMutation(ticket.id)
   const { manifest, syncing, error, sync } = useDriveManifestSync(
     batch.id,
     open ? ticket.id : undefined,
@@ -46,6 +53,13 @@ export function EditorProductionModal({
   const canSendSmm = editorNeedsProductionWork(ticket) && readiness.allReady
   const folderUrl = batch.editorDeliverablesDriveUrl?.trim() ?? ''
 
+  const handleSyncDrive = async () => {
+    const nextManifest = await sync()
+    const body = driveSyncRequestFromManifest(index, nextManifest)
+    if (!body) return
+    driveSync.mutate(body)
+  }
+
   return (
     <StudioModalShell
       title={ticket.title}
@@ -57,9 +71,9 @@ export function EditorProductionModal({
           <div className="flex flex-wrap items-center justify-end gap-2">
             <DriveSyncButton
               onSync={() => {
-                void sync()
+                void handleSyncDrive()
               }}
-              syncing={syncing}
+              syncing={syncing || driveSync.isPending}
             />
             <a
               href={folderUrl}
@@ -85,12 +99,12 @@ export function EditorProductionModal({
           defaultOpenSections={[]}
           titleEditable
           onSaveTitle={(title) => {
-            saveVideoPublishTitle(ticket.id, title)
+            updateProduction.mutate({ editorPublishTitle: title })
           }}
           onSyncDrive={() => {
-            void sync()
+            void handleSyncDrive()
           }}
-          driveSyncing={syncing}
+          driveSyncing={syncing || driveSync.isPending}
         />
 
         <DeliverableReadinessStrip
@@ -99,12 +113,15 @@ export function EditorProductionModal({
           titleReady={readiness.titleReady}
           showChecklist={false}
           ctaLabel="Send to SMM QA"
-          ctaDisabled={!canSendSmm}
+          ctaDisabled={!canSendSmm || submitToSmmQa.isPending}
           onCta={
             canSendSmm
               ? () => {
-                  sendEditorDeliverableToSmmQa(ticket.id)
-                  onClose()
+                  submitToSmmQa.mutate(undefined, {
+                    onSuccess: () => {
+                      onClose()
+                    },
+                  })
                 }
               : undefined
           }

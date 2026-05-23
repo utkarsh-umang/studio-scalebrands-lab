@@ -18,18 +18,20 @@ export function useDriveManifestSync(batchId: string, resetKey?: string | number
 
   const manifest = override ?? getManifestForBatch(batchId)
 
-  const sync = useCallback(async () => {
+  const sync = useCallback(async (): Promise<BatchDriveManifest | undefined> => {
     setSyncing(true)
     setError(null)
     try {
       const next = await reloadDriveManifestForBatch(batchId)
       if (next) {
         setOverride(next)
-      } else {
-        setError('No manifest for this batch yet.')
+        return next
       }
+      setError('No manifest for this batch yet.')
+      return undefined
     } catch {
       setError('Could not reload manifest — try a full page refresh.')
+      return undefined
     } finally {
       setSyncing(false)
     }

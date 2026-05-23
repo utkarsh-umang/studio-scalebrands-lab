@@ -135,6 +135,8 @@ def video_to_dto(
         released_to_client_final_review=ticket.released_to_client_final_review,
         last_revision_requested_by=ticket.last_revision_requested_by,
         asset_versions=ticket.asset_versions,
+        deliverable_drive_slots=ticket.deliverable_drive_slots,
+        drive_slots_synced_at=_iso_datetime(ticket.drive_slots_synced_at),
         qa_flags=_qa_flags_from_ticket(ticket),
         qa_general_note=ticket.qa_general_note,
         qa_comment_history=history,

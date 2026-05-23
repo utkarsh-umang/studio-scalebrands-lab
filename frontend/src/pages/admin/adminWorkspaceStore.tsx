@@ -97,8 +97,6 @@ type AdminWorkspaceContextValue = {
   ) => void
   /** Marks one video scheduled (scheduling → done). Debits batch credits when all deliverables are done. */
   scheduleVideo: (videoId: string, input: ScheduleVideoInput) => void
-  sendEditorDeliverableToSmmQa: (videoId: string) => void
-  saveVideoPublishTitle: (videoId: string, title: string) => void
   resubmitEditorVideoQa: (videoId: string) => void
 }
 
@@ -502,31 +500,6 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
     [videos],
   )
 
-  const sendEditorDeliverableToSmmQa = useCallback((videoId: string) => {
-    const now = new Date().toISOString().slice(0, 10)
-    setVideos((prev) =>
-      prev.map((v) => {
-        if (v.id !== videoId) return v
-        return { ...v, ...videoStateFromDemoStage('smm_qa') }
-      }),
-    )
-    setBatches((prev) =>
-      prev.map((b) => {
-        const video = videos.find((v) => v.id === videoId)
-        if (!video || video.batchId !== b.id) return b
-        return { ...b, updatedAt: now }
-      }),
-    )
-  }, [videos])
-
-  const saveVideoPublishTitle = useCallback((videoId: string, title: string) => {
-    const trimmed = title.trim()
-    if (!trimmed) return
-    setVideos((prev) =>
-      prev.map((v) => (v.id === videoId ? { ...v, editorPublishTitle: trimmed } : v)),
-    )
-  }, [])
-
   const resubmitEditorVideoQa = useCallback((videoId: string) => {
     const now = new Date().toISOString().slice(0, 10)
     setVideos((prev) =>
@@ -763,8 +736,6 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
       appendSmmQaComment,
       smmTriageClientRevision,
       scheduleVideo,
-      sendEditorDeliverableToSmmQa,
-      saveVideoPublishTitle,
       resubmitEditorVideoQa,
     }),
     [
@@ -789,8 +760,6 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
       appendSmmQaComment,
       smmTriageClientRevision,
       scheduleVideo,
-      sendEditorDeliverableToSmmQa,
-      saveVideoPublishTitle,
       resubmitEditorVideoQa,
       isWorkspaceLoading,
       smmStaffList,

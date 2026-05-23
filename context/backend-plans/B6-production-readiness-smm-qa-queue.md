@@ -1,7 +1,7 @@
 # Backend plan: B6 — Production package & SMM QA queue
 
 **Epic:** B6  
-**Status:** Storage reconciled  
+**Status:** Done  
 **Depends on:** [B0](./B0-auth-and-core-schema.md), [B2](./B2-read-models-boards.md), [B5](./B5-editor-deliverables-split.md)  
 **Blocks:** B7 (SMM internal QA on tickets in `smm_qa` stage)  
 **Index:** [`README.md`](./README.md)

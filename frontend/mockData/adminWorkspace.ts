@@ -155,6 +155,24 @@ export type AdminVideoTicket = {
   deliverableIndex?: number
   /** Per-slot version — bumps when Drive sync detects file change */
   assetVersions?: Partial<Record<QaMediaSlot, number>>
+  /** Server snapshot after Drive sync (B6) */
+  deliverableDriveSlots?: {
+    video?: {
+      index: number
+      driveFileId: string
+      name: string
+      mimeType?: string
+      modifiedTime?: string
+    }
+    thumbnail?: {
+      index: number
+      driveFileId: string
+      name: string
+      mimeType?: string
+      modifiedTime?: string
+    }
+  }
+  driveSlotsSyncedAt?: string
   /** Who last requested a revision (controls resubmit routing) */
   lastRevisionRequestedBy?: 'smm' | 'client'
   /**

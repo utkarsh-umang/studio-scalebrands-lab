@@ -8,11 +8,19 @@ import {
   DriveSyncButton,
   DriveSyncMeta,
 } from '@/components/path-b'
+import {
+  useDeliverableDriveSyncMutation,
+  useSubmitToSmmQaMutation,
+  useUpdateProductionMutation,
+} from '@/hooks/api/pathB/useProductionMutations'
 import { useDriveManifestSync } from '@/hooks/useDriveManifestSync'
 import { deliverableIndexForTicket } from '@/lib/driveMedia'
+import { driveSyncRequestFromManifest } from '@/lib/productionDriveSync'
 import { readinessForDeliverable } from '@/lib/pathBDeliverables'
-import { smmCanEditEditorDeliverable, smmNeedsAssetPrep } from '@/lib/smmBoard'
-import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
+import {
+  smmCanEditEditorDeliverable,
+  smmInAssetPrepFlow,
+} from '@/lib/smmBoard'
 
 type Props = {
   batch: AdminBatchFolder
@@ -29,7 +37,9 @@ export function SmmProductionModal({
   open,
   onClose,
 }: Props) {
-  const { saveVideoPublishTitle, sendEditorDeliverableToSmmQa } = useAdminWorkspace()
+  const updateProduction = useUpdateProductionMutation(ticket.id)
+  const driveSync = useDeliverableDriveSyncMutation(ticket.id)
+  const submitToSmmQa = useSubmitToSmmQaMutation(ticket.id)
   const { manifest, syncing, error, sync } = useDriveManifestSync(
     batch.id,
     open ? ticket.id : undefined,
@@ -43,10 +53,17 @@ export function SmmProductionModal({
 
   if (!open) return null
 
-  const smmOwnedPrep = smmNeedsAssetPrep(ticket, batch)
+  const smmOwnedPrep = smmInAssetPrepFlow(ticket)
   const editorAssist = smmCanEditEditorDeliverable(ticket, batch)
   const canReturnToQa = smmOwnedPrep && readiness.allReady
   const folderUrl = batch.editorDeliverablesDriveUrl?.trim() ?? ''
+
+  const handleSyncDrive = async () => {
+    const nextManifest = await sync()
+    const body = driveSyncRequestFromManifest(index, nextManifest)
+    if (!body) return
+    driveSync.mutate(body)
+  }
 
   return (
     <StudioModalShell
@@ -59,9 +76,9 @@ export function SmmProductionModal({
           <div className="flex flex-wrap items-center justify-end gap-2">
             <DriveSyncButton
               onSync={() => {
-                void sync()
+                void handleSyncDrive()
               }}
-              syncing={syncing}
+              syncing={syncing || driveSync.isPending}
             />
             <a
               href={folderUrl}
@@ -95,12 +112,12 @@ export function SmmProductionModal({
           defaultOpenSections={[]}
           titleEditable
           onSaveTitle={(title) => {
-            saveVideoPublishTitle(ticket.id, title)
+            updateProduction.mutate({ editorPublishTitle: title })
           }}
           onSyncDrive={() => {
-            void sync()
+            void handleSyncDrive()
           }}
-          driveSyncing={syncing}
+          driveSyncing={syncing || driveSync.isPending}
         />
 
         {smmOwnedPrep ? (
@@ -110,10 +127,13 @@ export function SmmProductionModal({
             titleReady={readiness.titleReady}
             showChecklist={false}
             ctaLabel="Return to SMM QA"
-            ctaDisabled={!canReturnToQa}
+            ctaDisabled={!canReturnToQa || submitToSmmQa.isPending}
             onCta={() => {
-              sendEditorDeliverableToSmmQa(ticket.id)
-              onClose()
+              submitToSmmQa.mutate(undefined, {
+                onSuccess: () => {
+                  onClose()
+                },
+              })
             }}
           />
         ) : null}

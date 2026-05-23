@@ -109,6 +109,8 @@ export function mapVideoTicket(api: AdminVideoTicketResponse): AdminVideoTicket 
         ? api.lastRevisionRequestedBy
         : undefined,
     assetVersions: api.assetVersions ?? undefined,
+    deliverableDriveSlots: api.deliverableDriveSlots ?? undefined,
+    driveSlotsSyncedAt: api.driveSlotsSyncedAt ?? undefined,
     qaFlags: api.qaFlags ?? undefined,
     qaGeneralNote: api.qaGeneralNote ?? undefined,
     qaCommentHistory: api.qaCommentHistory?.map(
