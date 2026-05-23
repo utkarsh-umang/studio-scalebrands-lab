@@ -6,7 +6,7 @@ from datetime import datetime
 from sqlalchemy import select
 
 from app.core.config import config
-from app.db.session import AsyncSessionLocal
+from app.db.session import get_session_factory
 from app.models.batch import Batch
 from app.models.client_profile import ClientProfile
 from app.models.enums import (
@@ -165,7 +165,8 @@ async def seed_demo_client_data(session, users: dict[str, User]) -> None:
 
 
 async def run_seed() -> None:
-    async with AsyncSessionLocal() as session:
+    factory = get_session_factory()
+    async with factory() as session:
         try:
             await seed_bootstrap_admin(session)
             users: dict[str, User] = {}

@@ -13,11 +13,26 @@ import { ClientCredentialsModal } from '@/components/admin/ClientCredentialsModa
 import { CreateBatchFolderModal } from '@/components/admin/CreateBatchFolderModal'
 import { DecommissionClientModal } from '@/components/admin/DecommissionClientModal'
 import { TopUpCreditsModal } from '@/components/admin/TopUpCreditsModal'
+import { useAdminBatchVideosQuery } from '@/hooks/api/admin/useAdminBatchVideosQuery'
+import { useAdminClientBatchesQuery } from '@/hooks/api/admin/useAdminClientBatchesQuery'
+import { useAdminClientQuery } from '@/hooks/api/admin/useAdminClientQuery'
+import { useAdminStaffQuery } from '@/hooks/api/admin/useAdminStaffQuery'
+import {
+  useCreateBatchMutation,
+  useDecommissionClientMutation,
+  useTopUpCreditsMutation,
+  useUpdateBrandGuidelinesMutation,
+  useUpdateClientTeamMutation,
+} from '@/hooks/api/admin/useAdminMutations'
 import { useTheme } from '@/theme'
 import { guidelinesSourceLabel } from '@mockData/index'
-import { clientReservedCredits } from '@/lib/clientBoard'
 import { formatDate } from '@/pages/client/clientPageUtils'
 import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
+
+type DetailLocationState = {
+  showCredentials?: boolean
+  credentials?: { loginId: string; password: string }
+}
 
 export function AdminClientDetail() {
   const { clientId } = useParams<{ clientId: string }>()
@@ -28,25 +43,27 @@ export function AdminClientDetail() {
   const primary = theme.colors.primary
   const secondary = theme.colors.secondary
 
-  const {
-    getClient,
-    getBatchesForClient,
-    getVideosForBatch,
-    createBatchFolder,
-    updateClientTeam,
-    updateBrandGuidelines,
-    topUpCredits,
-    decommissionClient,
-    setVideoDeadline,
-    smmStaff,
-    editorStaff,
-  } = useAdminWorkspace()
+  const { setVideoDeadline } = useAdminWorkspace()
+  const clientQuery = useAdminClientQuery(clientId)
+  const batchesQuery = useAdminClientBatchesQuery(clientId)
+  const staffQuery = useAdminStaffQuery()
+  const topUpMutation = useTopUpCreditsMutation(clientId ?? '')
+  const decommissionMutation = useDecommissionClientMutation(clientId ?? '')
+  const teamMutation = useUpdateClientTeamMutation(clientId ?? '')
+  const guidelinesMutation = useUpdateBrandGuidelinesMutation(clientId ?? '')
+  const createBatchMutation = useCreateBatchMutation(clientId ?? '')
+
+  const locationState = location.state as DetailLocationState | null
+  const provisionCredentials = locationState?.credentials
 
   const [createOpen, setCreateOpen] = useState(false)
   const [topUpOpen, setTopUpOpen] = useState(false)
   const [decommissionOpen, setDecommissionOpen] = useState(false)
   const [credentialsOpen, setCredentialsOpen] = useState(
-    () => Boolean((location.state as { showCredentials?: boolean } | null)?.showCredentials),
+    () =>
+      Boolean(
+        locationState?.showCredentials && locationState?.credentials,
+      ),
   )
   const [teamEditing, setTeamEditing] = useState(false)
   const [guidelinesEditing, setGuidelinesEditing] = useState(false)
@@ -55,8 +72,12 @@ export function AdminClientDetail() {
   const [draftSummary, setDraftSummary] = useState('')
   const [draftGoogleDocUrl, setDraftGoogleDocUrl] = useState('')
 
-  const client = clientId ? getClient(clientId) : undefined
-  const allBatches = clientId ? getBatchesForClient(clientId) : []
+  const client = clientQuery.data?.client
+  const allBatches = batchesQuery.data ?? []
+  const smmStaff = staffQuery.data?.smmStaff ?? []
+  const editorStaff = staffQuery.data?.editorStaff ?? []
+  const reservedCredits = clientQuery.data?.reservedCredits ?? 0
+  const creditsDebitedTotal = clientQuery.data?.creditsDebitedTotal ?? 0
 
   const activeBatches = useMemo(
     () => allBatches.filter((b) => b.status === 'active'),
@@ -68,19 +89,6 @@ export function AdminClientDetail() {
     [allBatches],
   )
 
-  const reservedCredits = useMemo(
-    () => clientReservedCredits(activeBatches),
-    [activeBatches],
-  )
-
-  const creditsDebitedTotal = useMemo(
-    () =>
-      completedBatches
-        .filter((b) => b.creditsDebited)
-        .reduce((sum, b) => sum + b.creditCost, 0),
-    [completedBatches],
-  )
-
   const selectedBatchId =
     searchParams.get('batch') ??
     activeBatches[0]?.id ??
@@ -88,9 +96,8 @@ export function AdminClientDetail() {
   const selectedBatch =
     activeBatches.find((b) => b.id === selectedBatchId) ?? activeBatches[0]
 
-  const batchTickets = selectedBatch
-    ? getVideosForBatch(selectedBatch.id)
-    : []
+  const videosQuery = useAdminBatchVideosQuery(clientId, selectedBatch?.id)
+  const batchTickets = videosQuery.data ?? []
 
   useEffect(() => {
     if (!client) return
@@ -100,7 +107,17 @@ export function AdminClientDetail() {
     setDraftGoogleDocUrl(client.brandGuidelines.googleDocUrl ?? '')
   }, [client])
 
-  if (!clientId || !client) {
+  if (!clientId) {
+    return <Navigate to="/admin" replace />
+  }
+
+  if (clientQuery.isLoading) {
+    return (
+      <p className="text-muted-foreground text-sm">Loading client…</p>
+    )
+  }
+
+  if (!client) {
     return <Navigate to="/admin" replace />
   }
 
@@ -109,22 +126,26 @@ export function AdminClientDetail() {
 
   function saveTeam() {
     if (!client) return
-    updateClientTeam({
-      clientId: client.id,
-      smmId: draftSmmId,
-      editorId: draftEditorId,
-    })
-    setTeamEditing(false)
+    void teamMutation
+      .mutateAsync({
+        smmId: draftSmmId,
+        editorId: draftEditorId,
+      })
+      .then(() => {
+        setTeamEditing(false)
+      })
   }
 
   function saveGuidelines() {
     if (!client) return
-    updateBrandGuidelines({
-      clientId: client.id,
-      summary: draftSummary,
-      googleDocUrl: draftGoogleDocUrl.trim() || undefined,
-    })
-    setGuidelinesEditing(false)
+    void guidelinesMutation
+      .mutateAsync({
+        summary: draftSummary,
+        googleDocUrl: draftGoogleDocUrl.trim() || undefined,
+      })
+      .then(() => {
+        setGuidelinesEditing(false)
+      })
   }
 
   const hasGuidelines =
@@ -165,16 +186,18 @@ export function AdminClientDetail() {
           </div>
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              setCredentialsOpen(true)
-            }}
-            className="border-border bg-background text-foreground hover:border-primary/35 inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition-colors"
-          >
-            <KeyRound className="size-4" aria-hidden />
-            Login credentials
-          </button>
+          {provisionCredentials ? (
+            <button
+              type="button"
+              onClick={() => {
+                setCredentialsOpen(true)
+              }}
+              className="border-border bg-background text-foreground hover:border-primary/35 inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition-colors"
+            >
+              <KeyRound className="size-4" aria-hidden />
+              Login credentials
+            </button>
+          ) : null}
           {isActive && (
             <>
               <button
@@ -516,15 +539,17 @@ export function AdminClientDetail() {
         </section>
       )}
 
-      <ClientCredentialsModal
-        open={credentialsOpen}
-        displayName={client.displayName}
-        loginId={client.loginId}
-        password={client.password}
-        onClose={() => {
-          setCredentialsOpen(false)
-        }}
-      />
+      {provisionCredentials ? (
+        <ClientCredentialsModal
+          open={credentialsOpen}
+          displayName={client.displayName}
+          loginId={provisionCredentials.loginId}
+          password={provisionCredentials.password}
+          onClose={() => {
+            setCredentialsOpen(false)
+          }}
+        />
+      ) : null}
 
       <TopUpCreditsModal
         open={topUpOpen}
@@ -534,7 +559,7 @@ export function AdminClientDetail() {
           setTopUpOpen(false)
         }}
         onTopUp={(amount) => {
-          topUpCredits(client.id, amount)
+          void topUpMutation.mutateAsync({ amount })
         }}
       />
 
@@ -545,8 +570,9 @@ export function AdminClientDetail() {
           setDecommissionOpen(false)
         }}
         onConfirm={(reason) => {
-          decommissionClient(client.id, reason)
-          navigate('/admin')
+          void decommissionMutation.mutateAsync({ reason }).then(() => {
+            navigate('/admin')
+          })
         }}
       />
 
@@ -558,9 +584,16 @@ export function AdminClientDetail() {
           setCreateOpen(false)
         }}
         onCreate={(input) => {
-          const folder = createBatchFolder(input)
-          setSearchParams({ batch: folder.id })
-          setCreateOpen(false)
+          void createBatchMutation
+            .mutateAsync({
+              title: input.title,
+              creditCost: input.creditCost,
+              footageUrl: input.footageUrl,
+            })
+            .then((folder) => {
+              setSearchParams({ batch: folder.id })
+              setCreateOpen(false)
+            })
         }}
       />
     </>

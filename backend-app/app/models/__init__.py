@@ -2,6 +2,7 @@
 
 from app.models.batch import Batch
 from app.models.client_profile import ClientProfile
+from app.models.credit_adjustment import CreditAdjustment
 from app.models.enums import (
     BatchClipReviewPhase,
     BatchIntakePath,
@@ -25,6 +26,7 @@ __all__ = [
     "BrandGuidelinesSource",
     "ClientAccountStatus",
     "ClientProfile",
+    "CreditAdjustment",
     "EditorWorkflowPhase",
     "EmployeeKind",
     "PipelineStage",

@@ -1,0 +1,200 @@
+"""Admin API request/response schemas (B1)."""
+
+from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
+
+from app.models.enums import (
+    BatchClipReviewPhase,
+    BatchIntakePath,
+    BatchStatus,
+    BrandGuidelinesSource,
+    ClientAccountStatus,
+    EmployeeKind,
+    PipelineStage,
+    VideoPipelineOwner,
+)
+from app.schemas.common import CamelModel
+
+
+class StaffMemberResponse(CamelModel):
+    id: UUID
+    name: str
+    role: str
+
+
+class StaffListResponse(CamelModel):
+    smm: list[StaffMemberResponse]
+    editors: list[StaffMemberResponse]
+
+
+class AssignedStaffResponse(CamelModel):
+    id: UUID
+    name: str
+
+
+class BrandGuidelinesResponse(CamelModel):
+    source: BrandGuidelinesSource
+    summary: str
+    google_doc_url: str | None = None
+    last_updated_at: str
+
+
+class AdminClientListItemResponse(CamelModel):
+    id: UUID
+    display_name: str
+    login_email: str
+    credits: int
+    account_status: ClientAccountStatus
+    active_batch_number: int | None = None
+    reserved_credits: int
+    assigned_smm: AssignedStaffResponse
+    assigned_editor: AssignedStaffResponse
+    created_at: str
+
+
+class AdminClientListResponse(CamelModel):
+    clients: list[AdminClientListItemResponse]
+
+
+class AdminClientProfileResponse(CamelModel):
+    id: UUID
+    login_email: str
+    display_name: str
+    credits: int
+    account_status: ClientAccountStatus
+    decommission_reason: str | None = None
+    decommissioned_at: str | None = None
+    created_at: str
+    assigned_smm_id: UUID
+    assigned_smm_name: str
+    assigned_editor_id: UUID
+    assigned_editor_name: str
+    brand_guidelines: BrandGuidelinesResponse
+    reserved_credits: int
+    credits_debited_total: int
+    active_batch_number: int | None = None
+
+
+class CredentialsResponse(CamelModel):
+    email: str
+    password: str
+
+
+class ProvisionClientRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    login_id: str = Field(alias="loginId", min_length=3, max_length=320)
+    display_name: str = Field(alias="displayName", min_length=1, max_length=255)
+    password: str = Field(min_length=8)
+    initial_credits: int = Field(alias="initialCredits", ge=0)
+
+
+class ProvisionClientResponse(CamelModel):
+    client: AdminClientProfileResponse
+    credentials: CredentialsResponse
+
+
+class ProvisionStaffRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    email: EmailStr
+    display_name: str = Field(alias="displayName", min_length=1, max_length=255)
+    password: str = Field(min_length=8)
+    employee_kind: EmployeeKind = Field(alias="employeeKind")
+
+
+class ProvisionStaffResponse(CamelModel):
+    staff: StaffMemberResponse
+    credentials: CredentialsResponse
+
+
+class TopUpCreditsRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    amount: int = Field(gt=0)
+
+
+class DecommissionClientRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    reason: str = Field(min_length=1)
+
+
+class UpdateClientTeamRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    smm_id: UUID = Field(alias="smmId")
+    editor_id: UUID = Field(alias="editorId")
+
+
+class UpdateBrandGuidelinesRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    summary: str = ""
+    google_doc_url: str | None = Field(default=None, alias="googleDocUrl", max_length=2048)
+
+
+class CreateBatchRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    title: str = Field(min_length=1, max_length=512)
+    credit_cost: int = Field(alias="creditCost", gt=0)
+    footage_url: str | None = Field(default=None, alias="footageUrl", max_length=2048)
+
+
+class AdminBatchFolderResponse(CamelModel):
+    id: UUID
+    client_id: UUID
+    batch_number: int
+    title: str
+    status: BatchStatus
+    video_count: int
+    created_at: str
+    updated_at: str
+    completed_at: str | None = None
+    footage_url: str | None = None
+    source_media_url: str | None = None
+    intake_path: BatchIntakePath | None = None
+    clip_review_phase: BatchClipReviewPhase | None = None
+    clips_folder_url: str | None = None
+    editor_deliverables_drive_url: str | None = None
+    credit_cost: int
+    credits_debited: bool
+    pipeline_stage: PipelineStage
+    demo_stage: PipelineStage | None = None
+
+
+class AdminVideoTicketResponse(CamelModel):
+    id: UUID
+    batch_id: UUID
+    client_id: UUID
+    title: str
+    owner: VideoPipelineOwner
+    stage_label: str
+    deadline_role: str | None = None
+    deadline_at: str | None = None
+    deliverable_index: int | None = None
+    editor_publish_title: str | None = None
+    released_to_client_final_review: bool = False
+
+
+class AdminPipelineSummaryResponse(CamelModel):
+    with_client: int
+    with_smm: int
+    with_editor: int
+
+
+class AdminPipelineItemResponse(CamelModel):
+    id: UUID
+    client_id: UUID
+    batch_title: str
+    client_label: str
+    owner: str
+    stage_label: str
+    updated_at: str
+
+
+class AdminPipelineResponse(CamelModel):
+    summary: AdminPipelineSummaryResponse
+    items: list[AdminPipelineItemResponse]
