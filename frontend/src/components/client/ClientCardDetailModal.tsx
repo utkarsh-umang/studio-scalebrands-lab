@@ -12,7 +12,7 @@ import {
   useAppendClientQaCommentMutation,
   useClientQaDecisionMutation,
 } from '@/hooks/api/pathB/useClientQaMutations'
-import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
+import { useRoleWorkspace } from '@/hooks/api/workspace/useRoleWorkspace'
 import { ClientClipIdentificationStatusModal } from './ClientClipIdentificationStatusModal'
 import { ClientUnifiedQaModal } from './ClientUnifiedQaModal'
 import type { VideoReviewFeedback } from '@/components/VideoDeliverableReviewPanel'
@@ -36,7 +36,7 @@ export function ClientCardDetailModal({
   batchTitle,
   onClose,
 }: Props) {
-  const { batches, getVideosForBatch } = useAdminWorkspace()
+  const { batches, getVideosForBatch } = useRoleWorkspace()
   const approveBatchClips = useApproveBatchClipsMutation(batchId)
   const rejectBatchClips = useRejectBatchClipsMutation(batchId)
   const clientQaDecision = useClientQaDecisionMutation()

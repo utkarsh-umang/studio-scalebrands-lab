@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { CalendarClock } from 'lucide-react'
-import type { AdminBatchFolder, AdminVideoTicket } from '@mockData/index'
+import type { AdminBatchFolder, AdminVideoTicket } from '@/types/pathB'
 import { StudioModalShell } from '@/components/StudioModalShell'
 import { deliverableIndexForTicket } from '@/lib/driveMedia'
 import { useScheduleVideoMutation } from '@/hooks/api/pathB/useScheduleVideoMutation'

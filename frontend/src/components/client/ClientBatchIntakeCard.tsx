@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Copy, Link2, Mic, FolderOpen } from 'lucide-react'
-import type { AdminBatchFolder, BatchIntakePath } from '@mockData/index'
+import type { AdminBatchFolder, BatchIntakePath } from '@/types/pathB'
 import { STUDIO_DRIVE_READER_EMAIL } from '@/lib/studioDrive'
 import { useTheme } from '@/theme'
 import {

@@ -6,7 +6,7 @@ import type {
   BatchClipReviewPhase,
   BatchIntakePath,
   VideoPipelineOwner,
-} from '@mockData/index'
+} from '@/types/pathB'
 
 /** Canonical video fields set on every Path B transition (Epic 6). */
 export type PathBVideoState = Pick<

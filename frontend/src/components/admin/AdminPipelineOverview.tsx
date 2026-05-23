@@ -2,7 +2,7 @@ import { BarChart3 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { ClientPageHeader, formatDate } from '@/pages/client/clientPageUtils'
 import type { AdminPipelineItem, AdminPipelineSummary } from '@/lib/adminPipeline'
-import type { PipelineOwnerKind } from '@mockData/adminDashboard'
+import type { PipelineOwnerKind } from '@/types/pathB'
 import { useTheme } from '@/theme'
 
 const ownerLabel: Record<PipelineOwnerKind, string> = {

@@ -2,7 +2,7 @@ import { Film, Folder } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useTheme } from '@/theme'
 import { formatDate } from '@/pages/client/clientPageUtils'
-import type { AdminBatchFolder } from '@mockData/index'
+import type { AdminBatchFolder } from '@/types/pathB'
 
 type Props = {
   batch: AdminBatchFolder

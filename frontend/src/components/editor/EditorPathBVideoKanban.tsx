@@ -1,5 +1,5 @@
 import { Film, FolderOpen, Scissors, Wrench } from 'lucide-react'
-import type { AdminBatchFolder } from '@mockData/index'
+import type { AdminBatchFolder } from '@/types/pathB'
 import {
   EDITOR_PATH_B_COLUMNS,
   batchNeedsEditorFindClips,

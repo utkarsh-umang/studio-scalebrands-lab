@@ -1,4 +1,4 @@
-import type { AdminVideoTicket, QaComment } from '@mockData/index'
+import type { AdminVideoTicket, QaComment } from '@/types/pathB'
 import { useTheme } from '@/theme'
 
 type Props = {

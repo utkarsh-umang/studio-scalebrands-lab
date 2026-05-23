@@ -1,5 +1,5 @@
 import type { AuthUser } from '@/auth'
-import type { AdminBatchFolder, AdminClientProfile } from '@mockData/index'
+import type { AdminBatchFolder, AdminClientProfile } from '@/types/pathB'
 
 /**
  * Prototype RBAC: SMM and Editor may only open batches for clients assigned to them.

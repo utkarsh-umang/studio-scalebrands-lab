@@ -1,5 +1,5 @@
 import { Folder, FolderOpen } from 'lucide-react'
-import type { AdminBatchFolder } from '@mockData/index'
+import type { AdminBatchFolder } from '@/types/pathB'
 import { batchNeedsClientIntake } from '@/lib/clientBoard'
 import { formatDate } from '@/pages/client/clientPageUtils'
 import { useTheme } from '@/theme'

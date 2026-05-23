@@ -1,4 +1,4 @@
-import type { AdminBatchFolder, AdminVideoTicket } from '@mockData/index'
+import type { AdminBatchFolder, AdminVideoTicket } from '@/types/pathB'
 
 /** Batch is on the editor's desk (clips approved or client sent clips folder). */
 export function batchReadyForEditorWork(batch: AdminBatchFolder): boolean {

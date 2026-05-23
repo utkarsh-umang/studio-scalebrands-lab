@@ -1,5 +1,5 @@
 import { Film, Upload } from 'lucide-react'
-import type { AdminBatchFolder } from '@mockData/index'
+import type { AdminBatchFolder } from '@/types/pathB'
 import {
   CLIENT_BOARD_COLUMNS,
   batchNeedsClientIntake,

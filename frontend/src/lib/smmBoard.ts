@@ -1,4 +1,4 @@
-import type { AdminBatchFolder, AdminVideoTicket } from '@mockData/index'
+import type { AdminBatchFolder, AdminVideoTicket } from '@/types/pathB'
 import { readinessForDeliverable } from '@/lib/pathBDeliverables'
 import { getManifestForBatch } from '@/lib/driveMedia'
 

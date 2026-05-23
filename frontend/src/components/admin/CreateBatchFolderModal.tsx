@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { X } from 'lucide-react'
 import { useTheme } from '@/theme'
-import type { AdminClientProfile } from '@mockData/index'
+import type { AdminClientProfile } from '@/types/pathB'
 
 type Props = {
   open: boolean

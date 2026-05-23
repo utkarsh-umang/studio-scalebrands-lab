@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import type { AdminClientProfile } from '@mockData/index'
+import type { AdminClientProfile } from '@/types/pathB'
 
 type Row = {
   client: AdminClientProfile

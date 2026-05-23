@@ -52,7 +52,7 @@
 | B8 | [`B8-client-qa-revision-via-smm.md`](./B8-client-qa-revision-via-smm.md) | Done | B7 |
 | B9 | [`B9-scheduling-credits.md`](./B9-scheduling-credits.md) | Done | B8 |
 | B10 | [`B10-deadlines-pipeline.md`](./B10-deadlines-pipeline.md) | Done | B2 |
-| B11 | [`B11-mock-removal-integration.md`](./B11-mock-removal-integration.md) | Storage reconciled | B0–B10 |
+| B11 | [`B11-mock-removal-integration.md`](./B11-mock-removal-integration.md) | Done | B0–B10 |
 | — | [`00-storage-design.md`](./00-storage-design.md) | **Approved** | Reconciled with all B0–B11 plans |
 | — | [`00-reconcile-checklist.md`](./00-reconcile-checklist.md) | **Done** | All epic storage sections patched |
 

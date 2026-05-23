@@ -1,7 +1,7 @@
 import { CalendarClock, LayoutGrid, LogOut, Shield } from 'lucide-react'
 import { NavLink, Outlet } from 'react-router-dom'
 import logo from '@/assets/logo.png'
-import { useMockAuth } from '@/auth'
+import { useAuth } from '@/auth'
 import { useTheme } from '@/theme'
 const NAV = [
   { to: '/admin', label: 'Workspace', Icon: LayoutGrid, end: true },
@@ -10,7 +10,7 @@ const NAV = [
 
 export function AdminLayout() {
   const { theme } = useTheme()
-  const { user, logout } = useMockAuth()
+  const { user, logout } = useAuth()
   const primary = theme.colors.primary
   const secondary = theme.colors.secondary
   const accent = theme.colors.accent

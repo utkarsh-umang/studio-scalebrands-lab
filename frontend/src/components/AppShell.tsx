@@ -1,7 +1,7 @@
 import { Film, LogOut } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useTheme } from '@/theme'
-import { useMockAuth } from '@/auth'
+import { useAuth } from '@/auth'
 
 type AppShellProps = {
   title: string
@@ -11,7 +11,7 @@ type AppShellProps = {
 
 export function AppShell({ title, subtitle, children }: AppShellProps) {
   const { theme } = useTheme()
-  const { user, logout } = useMockAuth()
+  const { user, logout } = useAuth()
 
   return (
     <div className="bg-background flex min-h-svh w-full flex-col">

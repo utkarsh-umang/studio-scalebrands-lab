@@ -2,13 +2,13 @@ import type {
   AdminBatchFolder,
   AdminClientProfile,
   AdminVideoTicket,
-} from '@mockData/index'
+} from '@/types/pathB'
 import type {
   AdminDeadlineTask,
   AdminPipelineItem,
   AdminPipelineSummary,
   PipelineOwnerKind,
-} from '@mockData/adminDashboard'
+} from '@/types/pathB'
 import { batchNeedsClientIntake } from '@/lib/clientBoard'
 import { batchNeedsSmmFindClips } from '@/lib/smmBoard'
 

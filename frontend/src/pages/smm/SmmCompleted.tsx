@@ -1,15 +1,15 @@
 import { useMemo, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { ExternalLink } from 'lucide-react'
-import { useMockAuth } from '@/auth'
+import { useAuth } from '@/auth'
 import { SmmBatchFolderRow } from '@/components/smm/SmmBatchFolderRow'
 import { resolveSmmStaffId } from '@/lib/smmSession'
-import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
+import { useRoleWorkspace } from '@/hooks/api/workspace/useRoleWorkspace'
 import { formatDate } from '@/pages/client/clientPageUtils'
 
 export function SmmCompleted() {
-  const { user } = useMockAuth()
-  const { clients, batches, videos, getVideosForBatch } = useAdminWorkspace()
+  const { user } = useAuth()
+  const { clients, batches, videos, getVideosForBatch } = useRoleWorkspace()
 
   const smmStaffId = resolveSmmStaffId(user)
 

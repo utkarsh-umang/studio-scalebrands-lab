@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { AdminService } from '@/client'
 import { mapClientListItem } from '@/lib/adminApiMappers'
 import { adminQueryKeys } from '@/hooks/api/admin/adminQueryKeys'
-import type { AdminClientProfile } from '@mockData/index'
+import type { AdminClientProfile } from '@/types/pathB'
 
 export type AdminClientTableRow = {
   client: AdminClientProfile

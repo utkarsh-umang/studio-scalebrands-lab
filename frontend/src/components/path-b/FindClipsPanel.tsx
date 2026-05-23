@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ExternalLink, FolderOpen, Link2, Scissors } from 'lucide-react'
-import type { AdminBatchFolder } from '@mockData/index'
+import type { AdminBatchFolder } from '@/types/pathB'
 import {
   useSubmitClipsFolderMutation,
 } from '@/hooks/api/pathB/useClipsFolderMutations'

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ExternalLink } from 'lucide-react'
-import type { AdminBatchFolder, AdminVideoTicket } from '@mockData/index'
+import type { AdminBatchFolder, AdminVideoTicket } from '@/types/pathB'
 import { DriveVideoPreview } from '@/components/drive/DriveVideoPreview'
 import { DeliverableAccordion, type DeliverableAccordionStatus } from '@/components/path-b/DeliverableAccordion'
 import {

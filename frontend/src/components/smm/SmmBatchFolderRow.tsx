@@ -1,7 +1,7 @@
 import { Folder, FolderOpen } from 'lucide-react'
-import type { AdminBatchFolder } from '@mockData/index'
+import type { AdminBatchFolder } from '@/types/pathB'
 import { smmBatchFolderHint } from '@/lib/smmBoard'
-import type { AdminVideoTicket } from '@mockData/index'
+import type { AdminVideoTicket } from '@/types/pathB'
 import { useTheme } from '@/theme'
 
 type Props = {

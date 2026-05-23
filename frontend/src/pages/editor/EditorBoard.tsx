@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Navigate } from 'react-router-dom'
-import { useMockAuth } from '@/auth'
+import { useAuth } from '@/auth'
 import { EditorAttentionStrip } from '@/components/editor/EditorAttentionStrip'
 import { EditorBatchFolderRow } from '@/components/editor/EditorBatchFolderRow'
 import { EditorPathBVideoKanban } from '@/components/editor/EditorPathBVideoKanban'
@@ -19,17 +19,17 @@ import {
 } from '@/lib/editorBoard'
 import { resolveEditorStaffId } from '@/lib/editorSession'
 import { useSubmitDeliverablesDriveMutation } from '@/hooks/api/pathB/useSubmitDeliverablesDriveMutation'
-import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
+import { useRoleWorkspace } from '@/hooks/api/workspace/useRoleWorkspace'
 
 export function EditorBoard() {
-  const { user } = useMockAuth()
+  const { user } = useAuth()
   const {
     clients,
     batches,
     videos,
     getVideosForBatch,
     isWorkspaceLoading,
-  } = useAdminWorkspace()
+  } = useRoleWorkspace()
 
   const editorStaffId = resolveEditorStaffId(user)
 

@@ -1,4 +1,4 @@
-import type { AdminVideoTicket } from '@mockData/index'
+import type { AdminVideoTicket } from '@/types/pathB'
 import type { DriveMediaEntry } from '@mockData/driveManifests'
 import { videoNeedsClientFinalReview } from '@/lib/clientBoard'
 import { deliverableIndexForTicket } from '@/lib/driveMedia'

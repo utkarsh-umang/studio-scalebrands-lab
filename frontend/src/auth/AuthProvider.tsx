@@ -34,6 +34,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setBootstrapped(true)
   }, [])
 
+  useEffect(() => {
+    if (bootstrapped && readAccessToken() && meQuery.isError) {
+      clearAccessToken()
+      syncOpenApiToken()
+      void queryClient.removeQueries({ queryKey: ['me'] })
+    }
+  }, [bootstrapped, meQuery.isError, queryClient])
+
   const user: AuthUser | null = useMemo(() => {
     if (meQuery.data) return mapMeToAuthUser(meQuery.data)
     return null
@@ -48,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const result = await loginMutation.mutateAsync({ email, password })
         writeAccessToken(result.accessToken)
         syncOpenApiToken()
+        queryClient.setQueryData(['me'], result.user)
         const next = mapMeToAuthUser(result.user)
         return { ok: true, user: next }
       } catch {
@@ -57,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
     },
-    [loginMutation],
+    [loginMutation, queryClient],
   )
 
   const logout = useCallback(() => {

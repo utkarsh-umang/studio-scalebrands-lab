@@ -3,7 +3,7 @@ import {
   type BatchDriveManifest,
   type DriveMediaEntry,
 } from '@mockData/driveManifests'
-import type { AdminVideoTicket, QaMediaSlot } from '@mockData/index'
+import type { AdminVideoTicket, QaMediaSlot } from '@/types/pathB'
 
 export type { BatchDriveManifest, DriveMediaEntry }
 

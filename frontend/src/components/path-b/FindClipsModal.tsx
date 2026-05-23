@@ -3,7 +3,7 @@ import {
   FindClipsPanel,
   type FindClipsPanelRole,
 } from '@/components/path-b/FindClipsPanel'
-import type { AdminBatchFolder } from '@mockData/index'
+import type { AdminBatchFolder } from '@/types/pathB'
 
 type Props = {
   batch: AdminBatchFolder

@@ -5,7 +5,7 @@ import {
   type VideoDeliverableReviewPanelProps,
 } from '@/components/VideoDeliverableReviewPanel'
 import { flagsToQaComments } from '@/lib/qaComments'
-import type { AdminVideoTicket } from '@mockData/index'
+import type { AdminVideoTicket } from '@/types/pathB'
 
 type Props = Omit<VideoDeliverableReviewPanelProps, 'driveFileId' | 'videoSrc'> & {
   batchId: string

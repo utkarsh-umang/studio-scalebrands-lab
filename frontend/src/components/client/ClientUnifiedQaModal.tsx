@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { ExternalLink } from 'lucide-react'
-import { SAMPLE_VIDEO_SRC } from '@mockData/index'
-import type { AdminBatchFolder, AdminVideoTicket } from '@mockData/index'
+import { SAMPLE_VIDEO_SRC } from '@/lib/sampleVideoSrc'
+import type { AdminBatchFolder, AdminVideoTicket } from '@/types/pathB'
 import { DeliverableSidebarList } from '@/components/drive/DeliverableSidebarList'
 import { StudioModalShell } from '@/components/StudioModalShell'
 import {

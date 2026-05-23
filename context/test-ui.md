@@ -1,11 +1,11 @@
 # Path B — Fix Mode Test Flows
 
-**Use this document only in fix mode** — after **all epics (0–7)** are Done in [`path-b-build-plan.md`](./path-b-build-plan.md).
+**Use this document only in fix mode** — after the Path B **frontend build** ([`path-b-build-plan.md`](./path-b-build-plan.md) epics 0–7) and **backend cutover** ([`backend-plans/README.md`](./backend-plans/README.md) B0–B11) are done.
 
 | Phase | Document | What you do |
 |-------|----------|-------------|
-| **Build** | `path-b-build-plan.md` | Implement epics; `npm run build` only — **do not use this file** |
-| **Fix** | `test-ui.md` (this file) | Walk flows, log bugs, fix, re-run targeted flows |
+| **Build** | `path-b-build-plan.md` + `backend-plans/README.md` | Implement UI and API; `npm run build` — **do not use this file** |
+| **Fix** | `test-ui.md` (this file) | Walk flows on the **real API**, log bugs, fix, re-run targeted flows |
 
 ---
 
@@ -30,11 +30,17 @@
 
 ## Setup
 
+Backend must be running with migrations applied and demo seed (`SEED_DEMO_USERS=true` locally).
+
 ```bash
+# Terminal 1 — API (from repo root)
+task backend:up
+
+# Terminal 2 — UI
 cd frontend && npm run dev
 ```
 
-Password for all: `demo1234`
+Password for all seeded demo users: `demo1234`
 
 | Role | Email |
 |------|--------|

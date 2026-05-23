@@ -6,7 +6,6 @@ import { OpenAPI } from '@/client'
 import { apiBaseUrl } from '@/config/api'
 import { App } from './App'
 import { AuthProvider } from '@/auth'
-import { AdminWorkspaceProvider } from '@/pages/admin/adminWorkspaceStore'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { ThemeProvider } from '@/theme'
 import './index.css'
@@ -29,9 +28,7 @@ createRoot(document.getElementById('root')!).render(
         <BrowserRouter>
           <ThemeProvider>
             <AuthProvider>
-              <AdminWorkspaceProvider>
-                <App />
-              </AdminWorkspaceProvider>
+              <App />
             </AuthProvider>
           </ThemeProvider>
         </BrowserRouter>

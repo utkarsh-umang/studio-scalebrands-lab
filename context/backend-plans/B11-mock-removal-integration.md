@@ -1,7 +1,7 @@
 # Backend plan: B11 — Mock removal & integration
 
 **Epic:** B11  
-**Status:** Storage reconciled  
+**Status:** Done  
 **Depends on:** [B0](./B0-auth-and-core-schema.md) through [B10](./B10-deadlines-pipeline.md) **implemented** on the backend; OpenAPI spec complete  
 **Blocks:** Production Path B cutover; [`00-storage-design.md`](./00-storage-design.md) reconciliation should land **before or as step 1** of B11 execution  
 **Index:** [`README.md`](./README.md)

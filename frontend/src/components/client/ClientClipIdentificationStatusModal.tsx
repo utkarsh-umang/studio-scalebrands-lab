@@ -1,6 +1,6 @@
 import { ExternalLink, Scissors } from 'lucide-react'
 import { StudioModalShell } from '@/components/StudioModalShell'
-import type { AdminBatchFolder } from '@mockData/index'
+import type { AdminBatchFolder } from '@/types/pathB'
 
 type Props = {
   batch: AdminBatchFolder

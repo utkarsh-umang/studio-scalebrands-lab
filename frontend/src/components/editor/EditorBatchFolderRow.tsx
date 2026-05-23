@@ -1,5 +1,5 @@
 import { Folder, FolderOpen } from 'lucide-react'
-import type { AdminBatchFolder, AdminVideoTicket } from '@mockData/index'
+import type { AdminBatchFolder, AdminVideoTicket } from '@/types/pathB'
 import { editorBatchPhaseLabel } from '@/lib/editorBoard'
 import { useTheme } from '@/theme'
 

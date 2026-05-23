@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { ExternalLink } from 'lucide-react'
-import type { AdminBatchFolder, AdminVideoTicket } from '@mockData/index'
+import type { AdminBatchFolder, AdminVideoTicket } from '@/types/pathB'
 import { StudioModalShell } from '@/components/StudioModalShell'
 import { DeliverableSummaryPanel, DriveSyncButton, DriveSyncMeta } from '@/components/path-b'
 import { SmmClientRevisionPanel } from '@/components/smm/SmmClientRevisionPanel'

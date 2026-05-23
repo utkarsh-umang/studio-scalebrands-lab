@@ -2,7 +2,7 @@ import type {
   AdminBatchFolder,
   AdminVideoTicket,
   VideoPipelineOwner,
-} from '@mockData/index'
+} from '@/types/pathB'
 
 /** Client-facing Kanban columns (4-bucket model). */
 export type ClientBoardColumn =

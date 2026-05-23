@@ -1,7 +1,7 @@
 import { ChevronRight, Film, FolderOpen, User } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useTheme } from '@/theme'
-import type { AdminClientProfile } from '@mockData/index'
+import type { AdminClientProfile } from '@/types/pathB'
 
 type Props = {
   client: AdminClientProfile

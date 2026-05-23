@@ -8,6 +8,3 @@ export function useAuth() {
   }
   return ctx
 }
-
-/** @deprecated Use useAuth — kept for incremental migration (B11 removes). */
-export const useMockAuth = useAuth

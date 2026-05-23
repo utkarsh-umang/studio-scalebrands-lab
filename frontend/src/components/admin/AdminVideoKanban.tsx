@@ -1,4 +1,5 @@
-import { ADMIN_KANBAN_COLUMNS, type AdminVideoTicket } from '@mockData/index'
+import { ADMIN_KANBAN_COLUMNS } from '@/lib/adminKanbanColumns'
+import type { AdminVideoTicket } from '@/types/pathB'
 import { formatDateTime } from '@/pages/client/clientPageUtils'
 
 function toDatetimeLocalValue(iso: string | null): string {

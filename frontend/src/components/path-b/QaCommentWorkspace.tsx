@@ -1,9 +1,9 @@
 import { useState, type ReactNode } from 'react'
-import type { QaComment } from '@mockData/index'
+import type { QaComment } from '@/types/pathB'
 import { DriveVideoPreview } from '@/components/drive/DriveVideoPreview'
 import { QaCommentWorkspaceThread } from '@/components/path-b/QaCommentWorkspaceThread'
 import { QaSecondaryPackageSection } from '@/components/path-b/QaSecondaryPackageSection'
-import { SAMPLE_VIDEO_SRC } from '@mockData/index'
+import { SAMPLE_VIDEO_SRC } from '@/lib/sampleVideoSrc'
 import {
   qaPortraitChromeClass,
   qaPortraitPlayerBoxClass,

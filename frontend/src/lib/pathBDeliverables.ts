@@ -1,4 +1,4 @@
-import type { AdminVideoTicket } from '@mockData/index'
+import type { AdminVideoTicket } from '@/types/pathB'
 import type { BatchDriveManifest, DriveMediaEntry } from '@/lib/driveMedia'
 import { getMediaEntry } from '@/lib/driveMedia'
 

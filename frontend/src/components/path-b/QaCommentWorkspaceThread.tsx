@@ -1,4 +1,4 @@
-import type { QaComment } from '@mockData/index'
+import type { QaComment } from '@/types/pathB'
 
 type Props = {
   comments: QaComment[]

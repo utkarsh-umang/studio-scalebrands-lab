@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useMockAuth } from '@/auth'
+import { useAuth } from '@/auth'
 import { ClientAttentionStrip } from '@/components/client/ClientAttentionStrip'
 import { ClientBatchFolderRow } from '@/components/client/ClientBatchFolderRow'
 import { ClientCardDetailModal } from '@/components/client/ClientCardDetailModal'
@@ -14,11 +14,11 @@ import {
   toClientVideoCard,
 } from '@/lib/clientBoard'
 import { resolveClientProfileId } from '@/lib/clientSession'
-import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
+import { useRoleWorkspace } from '@/hooks/api/workspace/useRoleWorkspace'
 import { Navigate, useSearchParams } from 'react-router-dom'
 
 export function ClientBoard() {
-  const { user } = useMockAuth()
+  const { user } = useAuth()
   const {
     clients,
     batches,
@@ -26,7 +26,7 @@ export function ClientBoard() {
     getBatchesForClient,
     getVideosForBatch,
     isWorkspaceLoading,
-  } = useAdminWorkspace()
+  } = useRoleWorkspace()
 
   const clientProfileId = resolveClientProfileId(user)
   const client = clientProfileId

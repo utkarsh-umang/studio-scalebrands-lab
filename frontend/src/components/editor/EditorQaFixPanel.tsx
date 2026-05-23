@@ -1,5 +1,5 @@
 import { ExternalLink } from 'lucide-react'
-import type { AdminBatchFolder, AdminVideoTicket } from '@mockData/index'
+import type { AdminBatchFolder, AdminVideoTicket } from '@/types/pathB'
 import { QaCommentWorkspace } from '@/components/path-b/QaCommentWorkspace'
 import { useResubmitToSmmQaMutation } from '@/hooks/api/pathB/useSmmQaMutations'
 import type { BatchDriveManifest } from '@/lib/driveMedia'

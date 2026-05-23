@@ -1,4 +1,4 @@
-import type { AdminVideoTicket, QaComment, QaMediaSlot } from '@mockData/index'
+import type { AdminVideoTicket, QaComment, QaMediaSlot } from '@/types/pathB'
 import type { VideoReviewFeedback } from '@/components/VideoDeliverableReviewPanel'
 
 export function buildQaCommentsFromFeedback(

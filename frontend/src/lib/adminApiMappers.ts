@@ -10,15 +10,13 @@ import type {
 import type {
   AdminBatchFolder,
   AdminClientProfile,
-  AdminVideoTicket,
-  QaComment,
-  StaffMember,
-} from '@mockData/index'
-import type {
   AdminDeadlineTask,
   AdminPipelineItem,
   AdminPipelineSummary,
-} from '@mockData/adminDashboard'
+  AdminVideoTicket,
+  QaComment,
+  StaffMember,
+} from '@/types/pathB'
 
 export function mapClientProfile(api: AdminClientProfileResponse): AdminClientProfile {
   return {

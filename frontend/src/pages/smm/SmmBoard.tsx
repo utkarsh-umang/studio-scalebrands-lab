@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Navigate } from 'react-router-dom'
-import { useMockAuth } from '@/auth'
+import { useAuth } from '@/auth'
 import { NumberedClipsModal } from '@/components/path-b'
 import { SmmAttentionStrip } from '@/components/smm/SmmAttentionStrip'
 import { SmmBatchFolderRow } from '@/components/smm/SmmBatchFolderRow'
@@ -23,12 +23,12 @@ import {
   videoNeedsSmmSchedule,
 } from '@/lib/smmBoard'
 import { resolveSmmStaffId } from '@/lib/smmSession'
-import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
+import { useRoleWorkspace } from '@/hooks/api/workspace/useRoleWorkspace'
 
 export function SmmBoard() {
-  const { user } = useMockAuth()
+  const { user } = useAuth()
   const { clients, batches, videos, getVideosForBatch, isWorkspaceLoading } =
-    useAdminWorkspace()
+    useRoleWorkspace()
 
   const smmStaffId = resolveSmmStaffId(user)
 

@@ -2,8 +2,14 @@ import { useLayoutEffect, useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { homePathForUser, useAuth } from '@/auth'
 import logo from '@/assets/logo.png'
-import { MOCK_USERS } from '@mockData/index'
 import { useTheme } from '@/theme'
+
+const DEMO_LOGIN_EMAILS = [
+  'client@scalebrandslab.demo',
+  'editor@scalebrandslab.demo',
+  'smm@scalebrandslab.demo',
+  'admin@scalebrandslab.demo',
+] as const
 
 export function LoginPage() {
   const { theme } = useTheme()
@@ -226,9 +232,9 @@ export function LoginPage() {
               </code>
             </p>
             <div className="grid grid-cols-1 gap-x-3 gap-y-0.5 font-mono text-[9px] leading-tight text-[var(--muted-foreground)] sm:grid-cols-2">
-              {MOCK_USERS.map((u) => (
-                <div key={u.email} className="truncate" title={u.email}>
-                  {u.email}
+              {DEMO_LOGIN_EMAILS.map((email) => (
+                <div key={email} className="truncate" title={email}>
+                  {email}
                 </div>
               ))}
             </div>

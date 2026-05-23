@@ -1,17 +1,17 @@
 import { useMemo } from 'react'
 import { Calendar, CheckCircle2, Clock, Folder } from 'lucide-react'
-import { useMockAuth } from '@/auth'
+import { useAuth } from '@/auth'
 import { ClientPageTitleRow } from '@/components/client/ClientPageTitleRow'
 import { clientReservedCredits, toClientVideoCard } from '@/lib/clientBoard'
 import { resolveClientProfileId } from '@/lib/clientSession'
-import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
+import { useRoleWorkspace } from '@/hooks/api/workspace/useRoleWorkspace'
 import { formatDate } from './clientPageUtils'
 import { Navigate, Link } from 'react-router-dom'
 
 export function ClientAllWork() {
-  const { user } = useMockAuth()
+  const { user } = useAuth()
   const { clients, videos, batches, getBatchesForClient, getVideosForBatch } =
-    useAdminWorkspace()
+    useRoleWorkspace()
 
   const clientProfileId = resolveClientProfileId(user)
   const client = clientProfileId
@@ -58,7 +58,7 @@ export function ClientAllWork() {
   if (!client) {
     return (
       <p className="text-muted-foreground text-sm">
-        Client account not linked to this login (prototype).
+        Client account not linked to this login.
       </p>
     )
   }

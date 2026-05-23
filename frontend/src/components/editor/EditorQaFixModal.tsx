@@ -1,12 +1,12 @@
 import { ExternalLink } from 'lucide-react'
-import type { AdminBatchFolder } from '@mockData/index'
+import type { AdminBatchFolder } from '@/types/pathB'
 import { StudioModalShell } from '@/components/StudioModalShell'
 import { DriveSyncButton, DriveSyncMeta } from '@/components/path-b'
 import { EditorQaFixPanel } from '@/components/editor/EditorQaFixPanel'
 import type { EditorPathBVideoCard } from '@/lib/editorBoard'
 import { useDriveManifestSync } from '@/hooks/useDriveManifestSync'
 import { deliverableIndexForTicket } from '@/lib/driveMedia'
-import { SAMPLE_VIDEO_SRC } from '@mockData/index'
+import { SAMPLE_VIDEO_SRC } from '@/lib/sampleVideoSrc'
 
 type Props = {
   batch: AdminBatchFolder

@@ -1,5 +1,5 @@
 import { Scissors } from 'lucide-react'
-import type { AdminBatchFolder } from '@mockData/index'
+import type { AdminBatchFolder } from '@/types/pathB'
 import { useTheme } from '@/theme'
 
 type Props = {

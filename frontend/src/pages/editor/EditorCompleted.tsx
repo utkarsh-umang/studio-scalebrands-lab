@@ -1,15 +1,15 @@
 import { useMemo, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { ExternalLink } from 'lucide-react'
-import { useMockAuth } from '@/auth'
+import { useAuth } from '@/auth'
 import { EditorBatchFolderRow } from '@/components/editor/EditorBatchFolderRow'
 import { resolveEditorStaffId } from '@/lib/editorSession'
-import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
+import { useRoleWorkspace } from '@/hooks/api/workspace/useRoleWorkspace'
 import { formatDate } from '@/pages/client/clientPageUtils'
 
 export function EditorCompleted() {
-  const { user } = useMockAuth()
-  const { clients, batches, videos, getVideosForBatch } = useAdminWorkspace()
+  const { user } = useAuth()
+  const { clients, batches, videos, getVideosForBatch } = useRoleWorkspace()
 
   const editorStaffId = resolveEditorStaffId(user)
 

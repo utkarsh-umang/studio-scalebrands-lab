@@ -1,4 +1,6 @@
-import type { EmployeeKind, UserRole } from '@mockData/index'
+export type UserRole = 'client' | 'admin' | 'employee'
+
+export type EmployeeKind = 'editor' | 'smm'
 
 /** Signed-in user shape — no password (mirrors GET /auth/me). */
 export type AuthUser = {
