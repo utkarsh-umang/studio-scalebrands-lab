@@ -2,6 +2,7 @@ import type {
   AdminBatchFolderResponse,
   AdminClientListItemResponse,
   AdminClientProfileResponse,
+  AdminDeadlineTaskResponse,
   AdminPipelineItemResponse,
   AdminPipelineSummaryResponse,
   AdminVideoTicketResponse,
@@ -14,6 +15,7 @@ import type {
   StaffMember,
 } from '@mockData/index'
 import type {
+  AdminDeadlineTask,
   AdminPipelineItem,
   AdminPipelineSummary,
 } from '@mockData/adminDashboard'
@@ -156,6 +158,20 @@ export function mapPipelineSummary(
     withClient: api.withClient,
     withSmm: api.withSmm,
     withEditor: api.withEditor,
+  }
+}
+
+export function mapDeadlineTask(api: AdminDeadlineTaskResponse): AdminDeadlineTask {
+  return {
+    id: api.id,
+    batchId: api.batchId,
+    batchTitle: api.batchTitle,
+    clientLabel: api.clientLabel,
+    assigneeRole: api.assigneeRole === 'editor' ? 'editor' : 'smm',
+    assigneeName: api.assigneeName,
+    taskLabel: api.taskLabel,
+    dueAt: api.dueAt ?? null,
+    updatedAt: api.updatedAt,
   }
 }
 

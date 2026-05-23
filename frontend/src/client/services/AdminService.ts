@@ -4,6 +4,9 @@
 /* eslint-disable */
 import type { AdminBatchFolderResponse } from '../models/AdminBatchFolderResponse';
 import type { AdminClientListResponse } from '../models/AdminClientListResponse';
+import type { AdminDeadlinesResponse } from '../models/AdminDeadlinesResponse';
+import type { SetVideoDeadlineRequest } from '../models/SetVideoDeadlineRequest';
+import type { SetVideoDeadlineResponse } from '../models/SetVideoDeadlineResponse';
 import type { AdminClientProfileResponse } from '../models/AdminClientProfileResponse';
 import type { AdminPipelineResponse } from '../models/AdminPipelineResponse';
 import type { AdminVideoTicketResponse } from '../models/AdminVideoTicketResponse';
@@ -273,6 +276,41 @@ export class AdminService {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v1/admin/pipeline',
+        });
+    }
+    /**
+     * Get Deadlines
+     * @returns AdminDeadlinesResponse Successful Response
+     * @throws ApiError
+     */
+    public static getDeadlinesApiV1AdminDeadlinesGet(): CancelablePromise<AdminDeadlinesResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/admin/deadlines',
+        });
+    }
+    /**
+     * Set Video Deadline
+     * @param videoTicketId
+     * @param requestBody
+     * @returns SetVideoDeadlineResponse Successful Response
+     * @throws ApiError
+     */
+    public static setVideoDeadlineApiV1AdminVideosVideoTicketIdDeadlinePatch(
+        videoTicketId: string,
+        requestBody: SetVideoDeadlineRequest,
+    ): CancelablePromise<SetVideoDeadlineResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/admin/videos/{video_ticket_id}/deadline',
+            path: {
+                'video_ticket_id': videoTicketId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
         });
     }
 }

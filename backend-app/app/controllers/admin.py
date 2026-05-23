@@ -12,8 +12,11 @@ from app.schemas.admin import (
     AdminBatchFolderResponse,
     AdminClientListResponse,
     AdminClientProfileResponse,
+    AdminDeadlinesResponse,
     AdminPipelineResponse,
     AdminVideoTicketResponse,
+    SetVideoDeadlineRequest,
+    SetVideoDeadlineResponse,
     CreateBatchRequest,
     DecommissionClientRequest,
     ProvisionClientRequest,
@@ -28,6 +31,7 @@ from app.schemas.admin import (
 from app.services import (
     admin_batches_service,
     admin_clients_service,
+    admin_deadlines_service,
     admin_pipeline_service,
     admin_staff_service,
 )
@@ -158,3 +162,28 @@ async def get_pipeline(
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> AdminPipelineResponse:
     return await admin_pipeline_service.get_pipeline(session)
+
+
+@router.get("/deadlines", response_model=AdminDeadlinesResponse)
+async def get_deadlines(
+    _admin: AdminUser,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> AdminDeadlinesResponse:
+    return await admin_deadlines_service.get_deadlines(session)
+
+
+@router.patch(
+    "/videos/{video_ticket_id}/deadline",
+    response_model=SetVideoDeadlineResponse,
+)
+async def set_video_deadline(
+    video_ticket_id: UUID,
+    body: SetVideoDeadlineRequest,
+    _admin: AdminUser,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> SetVideoDeadlineResponse:
+    return await admin_deadlines_service.set_video_deadline(
+        session,
+        video_ticket_id,
+        body,
+    )

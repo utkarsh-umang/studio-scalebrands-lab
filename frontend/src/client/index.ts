@@ -8,6 +8,8 @@ export { OpenAPI } from './core/OpenAPI';
 export type { OpenAPIConfig } from './core/OpenAPI';
 
 export type { AdminBatchFolderResponse } from './models/AdminBatchFolderResponse';
+export type { AdminDeadlineTaskResponse } from './models/AdminDeadlineTaskResponse';
+export type { AdminDeadlinesResponse } from './models/AdminDeadlinesResponse';
 export type { AdminClientListItemResponse } from './models/AdminClientListItemResponse';
 export type { AdminClientListResponse } from './models/AdminClientListResponse';
 export type { AdminClientProfileResponse } from './models/AdminClientProfileResponse';
@@ -63,6 +65,8 @@ export type { SubmitSmmQaRequest } from './models/SubmitSmmQaRequest';
 export type { TimestampFlagInput } from './models/TimestampFlagInput';
 export type { SubmitToSmmQaResponse } from './models/SubmitToSmmQaResponse';
 export type { SmmWorkspaceResponse } from './models/SmmWorkspaceResponse';
+export type { SetVideoDeadlineRequest } from './models/SetVideoDeadlineRequest';
+export type { SetVideoDeadlineResponse } from './models/SetVideoDeadlineResponse';
 export type { StaffListResponse } from './models/StaffListResponse';
 export type { StaffMemberResponse } from './models/StaffMemberResponse';
 export type { SubmitClipsFolderRequest } from './models/SubmitClipsFolderRequest';

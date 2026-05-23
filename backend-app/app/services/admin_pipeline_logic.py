@@ -1,5 +1,7 @@
 """Admin pipeline owner/stage rollup (ported from frontend adminPipeline.ts)."""
 
+from uuid import UUID
+
 from app.models.batch import Batch
 from app.models.enums import BatchStatus
 from app.models.video_ticket import VideoTicket
@@ -144,3 +146,60 @@ def list_pipeline_items(
         )
     items.sort(key=lambda row: row["updated_at"], reverse=True)
     return items
+
+
+def list_admin_deadline_tasks(
+    batches: list[Batch],
+    videos: list[VideoTicket],
+    client_profiles: dict,
+    staff_names: dict[tuple[UUID, str], str],
+) -> list[dict]:
+    batch_by_id = {batch.id: batch for batch in batches}
+    tasks: list[dict] = []
+
+    for video in videos:
+        batch = batch_by_id.get(video.batch_id)
+        if batch is None or batch.status != BatchStatus.active:
+            continue
+        if video.deadline_role not in ("smm", "editor"):
+            continue
+
+        profile = client_profiles.get(video.client_id)
+        role = video.deadline_role
+        assignee_name = "SMM" if role == "smm" else "Editor"
+        if profile is not None:
+            staff_id = profile.assigned_smm_id if role == "smm" else profile.assigned_editor_id
+            if staff_id is not None:
+                assignee_name = staff_names.get((staff_id, role), assignee_name)
+
+        index_suffix = (
+            f" #{video.deliverable_index}"
+            if video.deliverable_index is not None and video.deliverable_index > 0
+            else ""
+        )
+        due_at = None
+        if video.deadline_at is not None:
+            due_at = video.deadline_at.isoformat()
+
+        tasks.append(
+            {
+                "id": video.id,
+                "batch_id": batch.id,
+                "batch_title": batch.title,
+                "client_label": profile.display_name if profile else "Client",
+                "assignee_role": role,
+                "assignee_name": assignee_name,
+                "task_label": f"{video.title}{index_suffix} · {video.stage_label}",
+                "due_at": due_at,
+                "updated_at": batch_to_response(batch).updated_at,
+            },
+        )
+
+    def sort_key(row: dict) -> tuple[int, str]:
+        due = row["due_at"]
+        if due is None:
+            return (1, "")
+        return (0, due)
+
+    tasks.sort(key=sort_key)
+    return tasks

@@ -8,4 +8,5 @@ export const adminQueryKeys = {
     [...adminQueryKeys.all, 'videos', clientId, batchId] as const,
   staff: () => [...adminQueryKeys.all, 'staff'] as const,
   pipeline: () => [...adminQueryKeys.all, 'pipeline'] as const,
+  deadlines: () => [...adminQueryKeys.all, 'deadlines'] as const,
 }

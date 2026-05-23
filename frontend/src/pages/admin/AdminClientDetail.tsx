@@ -14,6 +14,7 @@ import { CreateBatchFolderModal } from '@/components/admin/CreateBatchFolderModa
 import { DecommissionClientModal } from '@/components/admin/DecommissionClientModal'
 import { TopUpCreditsModal } from '@/components/admin/TopUpCreditsModal'
 import { useAdminStaffQuery } from '@/hooks/api/admin/useAdminStaffQuery'
+import { useSetVideoDeadlineMutation } from '@/hooks/api/admin/useSetVideoDeadlineMutation'
 import {
   useCreateBatchMutation,
   useDecommissionClientMutation,
@@ -45,9 +46,9 @@ export function AdminClientDetail() {
     getClient,
     getBatchesForClient,
     getVideosForBatch,
-    setVideoDeadline,
     isWorkspaceLoading,
   } = useAdminWorkspace()
+  const setVideoDeadline = useSetVideoDeadlineMutation()
   const staffQuery = useAdminStaffQuery()
   const topUpMutation = useTopUpCreditsMutation(clientId ?? '')
   const decommissionMutation = useDecommissionClientMutation(clientId ?? '')
@@ -490,7 +491,12 @@ export function AdminClientDetail() {
           </p>
           <AdminVideoKanban
             tickets={batchTickets}
-            onDeadlineChange={setVideoDeadline}
+            onDeadlineChange={(videoId, deadlineAt) => {
+              setVideoDeadline.mutate({
+                videoTicketId: videoId,
+                body: { deadlineAt },
+              })
+            }}
           />
         </section>
       )}

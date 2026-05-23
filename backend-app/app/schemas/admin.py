@@ -223,3 +223,27 @@ class AdminPipelineItemResponse(CamelModel):
 class AdminPipelineResponse(CamelModel):
     summary: AdminPipelineSummaryResponse
     items: list[AdminPipelineItemResponse]
+
+
+class AdminDeadlineTaskResponse(CamelModel):
+    id: UUID
+    batch_id: UUID
+    batch_title: str
+    client_label: str
+    assignee_role: str
+    assignee_name: str
+    task_label: str
+    due_at: str | None = None
+    updated_at: str
+
+
+class AdminDeadlinesResponse(CamelModel):
+    tasks: list[AdminDeadlineTaskResponse]
+
+
+class SetVideoDeadlineRequest(CamelModel):
+    deadline_at: str | None = Field(default=None, alias="deadlineAt")
+
+
+class SetVideoDeadlineResponse(CamelModel):
+    ticket: AdminVideoTicketResponse

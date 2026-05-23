@@ -21,7 +21,6 @@ import {
   type AdminVideoTicket,
   type BrandGuidelinesSource,
   type StaffMember,
-  type VideoPipelineOwner,
 } from '@mockData/index'
 import type { ProvisionClientInput } from '@/components/admin/ProvisionClientModal'
 
@@ -70,8 +69,6 @@ type AdminWorkspaceContextValue = {
   decommissionClient: (clientId: string, reason: string) => void
   updateClientTeam: (input: UpdateTeamInput) => void
   updateBrandGuidelines: (input: UpdateBrandGuidelinesInput) => void
-  setVideoDeadline: (videoId: string, deadlineAt: string | null) => void
-  setVideoOwner: (videoId: string, owner: VideoPipelineOwner) => void
 }
 
 const AdminWorkspaceContext = createContext<AdminWorkspaceContextValue | null>(
@@ -289,33 +286,6 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
     [],
   )
 
-  const setVideoDeadline = useCallback(
-    (videoId: string, deadlineAt: string | null) => {
-      setVideos((prev) =>
-        prev.map((v) => (v.id === videoId ? { ...v, deadlineAt } : v)),
-      )
-    },
-    [],
-  )
-
-  const setVideoOwner = useCallback(
-    (videoId: string, owner: VideoPipelineOwner) => {
-      setVideos((prev) =>
-        prev.map((v) => {
-          if (v.id !== videoId) return v
-          const deadlineRole =
-            owner === 'smm' ? 'smm' : owner === 'editor' ? 'editor' : null
-          return {
-            ...v,
-            owner,
-            deadlineRole,
-          }
-        }),
-      )
-    },
-    [],
-  )
-
   const value = useMemo(
     () => ({
       clients,
@@ -334,8 +304,6 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
       decommissionClient,
       updateClientTeam,
       updateBrandGuidelines,
-      setVideoDeadline,
-      setVideoOwner,
     }),
     [
       clients,
@@ -351,8 +319,6 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
       decommissionClient,
       updateClientTeam,
       updateBrandGuidelines,
-      setVideoDeadline,
-      setVideoOwner,
       isWorkspaceLoading,
       smmStaffList,
       editorStaffList,

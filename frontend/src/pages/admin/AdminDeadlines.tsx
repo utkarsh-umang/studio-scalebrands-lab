@@ -1,10 +1,9 @@
-import { useMemo } from 'react'
 import { CalendarClock } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useTheme } from '@/theme'
-import { listAdminDeadlineTasks } from '@/lib/adminPipeline'
 import { ClientPageHeader, formatDateTime } from '@/pages/client/clientPageUtils'
-import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
+import { useAdminDeadlinesQuery } from '@/hooks/api/admin/useAdminDeadlinesQuery'
+import { useSetVideoDeadlineMutation } from '@/hooks/api/admin/useSetVideoDeadlineMutation'
 
 function toDatetimeLocalValue(iso: string | null): string {
   if (!iso) return ''
@@ -24,24 +23,17 @@ function fromDatetimeLocalValue(local: string): string | null {
 export function AdminDeadlines() {
   const { theme } = useTheme()
   const primary = theme.colors.primary
-  const { clients, batches, videos, setVideoDeadline } = useAdminWorkspace()
+  const { data: tasks = [], isLoading } = useAdminDeadlinesQuery()
+  const setDeadline = useSetVideoDeadlineMutation()
 
-  const tasks = useMemo(
-    () => listAdminDeadlineTasks(batches, videos, clients),
-    [batches, videos, clients],
-  )
-
-  const withoutDeadline = useMemo(
-    () => tasks.filter((t) => t.dueAt == null).length,
-    [tasks],
-  )
+  const withoutDeadline = tasks.filter((t) => t.dueAt == null).length
 
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <ClientPageHeader
           title="Deadlines"
-          subtitle="Due dates on SMM and Editor tickets in active batches — saved to the workspace store."
+          subtitle="Due dates on SMM and Editor tickets in active batches."
         />
         <Link
           to="/admin"
@@ -77,7 +69,16 @@ export function AdminDeadlines() {
               </tr>
             </thead>
             <tbody className="divide-border divide-y">
-              {tasks.length === 0 ? (
+              {isLoading ? (
+                <tr>
+                  <td
+                    colSpan={4}
+                    className="text-muted-foreground px-5 py-8 text-center text-sm"
+                  >
+                    Loading deadlines…
+                  </td>
+                </tr>
+              ) : tasks.length === 0 ? (
                 <tr>
                   <td
                     colSpan={4}
@@ -132,11 +133,14 @@ export function AdminDeadlines() {
                         <input
                           type="datetime-local"
                           value={toDatetimeLocalValue(row.dueAt)}
+                          disabled={setDeadline.isPending}
                           onChange={(ev) => {
-                            setVideoDeadline(
-                              row.id,
-                              fromDatetimeLocalValue(ev.target.value),
-                            )
+                            setDeadline.mutate({
+                              videoTicketId: row.id,
+                              body: {
+                                deadlineAt: fromDatetimeLocalValue(ev.target.value),
+                              },
+                            })
                           }}
                           className="border-border bg-background focus:ring-primary/25 max-w-[220px] rounded-lg border px-2 py-1.5 text-xs outline-none focus:ring-2"
                         />
@@ -149,8 +153,12 @@ export function AdminDeadlines() {
                       {row.dueAt ? (
                         <button
                           type="button"
+                          disabled={setDeadline.isPending}
                           onClick={() => {
-                            setVideoDeadline(row.id, null)
+                            setDeadline.mutate({
+                              videoTicketId: row.id,
+                              body: { deadlineAt: null },
+                            })
                           }}
                           className="text-muted-foreground hover:text-foreground mt-2 text-[10px] font-medium underline-offset-2 hover:underline"
                         >
