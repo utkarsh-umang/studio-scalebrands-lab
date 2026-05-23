@@ -225,3 +225,56 @@ def create_pre_split_gate_ticket(
         editor_workflow_phase=state.editor_workflow_phase,
         released_to_client_final_review=state.released_to_client_final_review,
     )
+
+
+def apply_deliverables_split(batch: Batch, deliverables_drive_url: str, deliverable_count: int) -> None:
+    now = utc_now()
+    batch.editor_deliverables_drive_url = deliverables_drive_url
+    batch.video_count = deliverable_count
+    batch.pipeline_stage = PipelineStage.production
+    batch.updated_at = now
+
+
+def create_split_deliverable_ticket(
+    batch: Batch,
+    index: int,
+    title: str,
+) -> VideoTicket:
+    state = video_state_for_stage(
+        PipelineStage.production,
+        released_to_client_final_review=False,
+    )
+    return VideoTicket(
+        batch_id=batch.id,
+        client_id=batch.client_id,
+        title=title,
+        deliverable_index=index,
+        pipeline_stage=state.pipeline_stage,
+        pipeline_owner=state.pipeline_owner,
+        stage_label=state.stage_label,
+        deadline_role=state.deadline_role,
+        editor_workflow_phase=state.editor_workflow_phase,
+        released_to_client_final_review=state.released_to_client_final_review,
+        asset_versions={"video": 1, "thumbnail": 1},
+    )
+
+
+def resolve_deliverable_count(
+    batch: Batch,
+    *,
+    deliverable_count: int | None,
+    deliverables_length: int,
+) -> int:
+    if deliverable_count is not None and deliverable_count >= 1:
+        n = deliverable_count
+    elif deliverables_length >= 1:
+        n = deliverables_length
+    elif batch.video_count > 0:
+        n = batch.video_count
+    else:
+        n = 1
+    return max(n, 1)
+
+
+def default_deliverable_title(index: int) -> str:
+    return f"Deliverable {index}"

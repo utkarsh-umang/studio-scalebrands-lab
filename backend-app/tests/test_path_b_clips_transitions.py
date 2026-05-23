@@ -13,11 +13,14 @@ from app.models.enums import (
 from app.models.video_ticket import VideoTicket
 from app.services.path_b_transitions import (
     apply_approve_clips,
+    apply_deliverables_split,
     apply_submit_clips_folder,
     apply_video_transition,
     create_clip_review_gate_ticket,
+    create_split_deliverable_ticket,
     is_clip_review_gate_ticket,
     is_pre_split_gate_or_clip_review,
+    resolve_deliverable_count,
 )
 
 
@@ -63,6 +66,48 @@ def test_apply_approve_clips_sets_video_count() -> None:
     apply_approve_clips(batch, clip_count=4)
     assert batch.clip_review_phase == BatchClipReviewPhase.approved
     assert batch.video_count == 4
+
+
+def test_resolve_deliverable_count() -> None:
+    batch = Batch(
+        client_id=uuid4(),
+        batch_number=1,
+        title="Count",
+        video_count=6,
+    )
+    assert resolve_deliverable_count(batch, deliverable_count=4, deliverables_length=0) == 4
+    assert resolve_deliverable_count(batch, deliverable_count=None, deliverables_length=3) == 3
+    assert resolve_deliverable_count(batch, deliverable_count=None, deliverables_length=0) == 6
+    assert resolve_deliverable_count(
+        Batch(client_id=uuid4(), batch_number=2, title="Min", video_count=0),
+        deliverable_count=None,
+        deliverables_length=0,
+    ) == 1
+
+
+def test_create_split_deliverable_ticket() -> None:
+    batch = Batch(
+        client_id=uuid4(),
+        batch_number=1,
+        title="Split",
+    )
+    ticket = create_split_deliverable_ticket(batch, 2, "Tip #2")
+    assert ticket.deliverable_index == 2
+    assert ticket.title == "Tip #2"
+    assert ticket.pipeline_stage == PipelineStage.production
+    assert ticket.asset_versions == {"video": 1, "thumbnail": 1}
+
+
+def test_apply_deliverables_split() -> None:
+    batch = Batch(
+        client_id=uuid4(),
+        batch_number=1,
+        title="Split batch",
+    )
+    apply_deliverables_split(batch, "https://drive.google.com/drive/folders/x", 3)
+    assert batch.editor_deliverables_drive_url == "https://drive.google.com/drive/folders/x"
+    assert batch.video_count == 3
+    assert batch.pipeline_stage == PipelineStage.production
 
 
 def test_pre_split_gate_or_clip_review() -> None:

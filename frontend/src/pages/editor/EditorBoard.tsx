@@ -18,6 +18,7 @@ import {
   editorNeedsProductionWork,
 } from '@/lib/editorBoard'
 import { resolveEditorStaffId } from '@/lib/editorSession'
+import { useSubmitDeliverablesDriveMutation } from '@/hooks/api/pathB/useSubmitDeliverablesDriveMutation'
 import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
 
 export function EditorBoard() {
@@ -27,7 +28,6 @@ export function EditorBoard() {
     batches,
     videos,
     getVideosForBatch,
-    submitEditorVideosDrive,
     isWorkspaceLoading,
   } = useAdminWorkspace()
 
@@ -65,6 +65,10 @@ export function EditorBoard() {
   const effectiveBatchId = selectedBatchId ?? editorBatches[0]?.id ?? null
   const selectedBatch =
     editorBatches.find((b) => b.id === effectiveBatchId) ?? editorBatches[0]
+
+  const submitDeliverablesDrive = useSubmitDeliverablesDriveMutation(
+    selectedBatch?.id ?? '',
+  )
 
   const batchVideos = useMemo(() => {
     if (!selectedBatch) return []
@@ -205,11 +209,31 @@ export function EditorBoard() {
           resetKey={`${selectedBatch.id}-clips`}
           deliverablesDriveUrl={deliverablesDriveDraft}
           onDeliverablesDriveUrlChange={setDeliverablesDriveDraft}
-          onSubmitDeliverables={() => {
-            submitEditorVideosDrive(selectedBatch.id, deliverablesDriveDraft)
-            setClipsModalOpen(false)
+          onSubmitDeliverables={(payload) => {
+            const trimmed = deliverablesDriveDraft.trim()
+            if (!trimmed || !selectedBatch) return
+            const deliverableCount = Math.max(
+              payload.deliverableCount,
+              selectedBatch.videoCount,
+              1,
+            )
+            submitDeliverablesDrive.mutate(
+              {
+                deliverablesDriveUrl: trimmed,
+                deliverableCount,
+                deliverables:
+                  payload.deliverables.length > 0 ? payload.deliverables : undefined,
+              },
+              {
+                onSuccess: () => {
+                  setClipsModalOpen(false)
+                },
+              },
+            )
           }}
-          submitDeliverablesDisabled={!deliverablesDriveDraft.trim()}
+          submitDeliverablesDisabled={
+            !deliverablesDriveDraft.trim() || submitDeliverablesDrive.isPending
+          }
           onClose={() => {
             setClipsModalOpen(false)
           }}

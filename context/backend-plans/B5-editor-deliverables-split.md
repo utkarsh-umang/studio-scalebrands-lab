@@ -1,7 +1,7 @@
 # Backend plan: B5 — Editor deliverables split
 
 **Epic:** B5  
-**Status:** Storage reconciled  
+**Status:** Done  
 **Depends on:** [B0](./B0-auth-and-core-schema.md), [B2](./B2-read-models-boards.md), [B3](./B3-client-intake.md), [B4](./B4-smm-clips-client-clip-review.md) (podcast path)  
 **Blocks:** B6 (per-video production + send to SMM QA requires split tickets)  
 **Index:** [`README.md`](./README.md)

@@ -22,7 +22,10 @@ type Props = {
   /** Editor — submit deliverables Drive root (videos/ + thumbnails/) */
   deliverablesDriveUrl?: string
   onDeliverablesDriveUrlChange?: (url: string) => void
-  onSubmitDeliverables?: () => void
+  onSubmitDeliverables?: (payload: {
+    deliverableCount: number
+    deliverables: { index: number; title: string }[]
+  }) => void
   submitDeliverablesDisabled?: boolean
   /** Shown above the clips panel (client in-progress states). */
   statusBanner?: ReactNode
@@ -103,7 +106,20 @@ export function NumberedClipsModal({
       />
       <button
         type="button"
-        onClick={onSubmitDeliverables}
+        onClick={() => {
+          if (!onSubmitDeliverables) return
+          const clipCount = manifest?.clips.length ?? 0
+          const videoCount = manifest?.videos.length ?? 0
+          const deliverableCount = Math.max(clipCount, videoCount, 1)
+          const deliverables = Array.from({ length: deliverableCount }, (_, i) => {
+            const index = i + 1
+            const clip = manifest?.clips.find((c) => c.index === index)
+            const video = manifest?.videos.find((v) => v.index === index)
+            const title = (clip?.name ?? video?.name ?? '').trim()
+            return title ? { index, title } : null
+          }).filter((row): row is { index: number; title: string } => row != null)
+          onSubmitDeliverables({ deliverableCount, deliverables })
+        }}
         disabled={
           submitDeliverablesDisabled ||
           !(controlledDriveUrl ? deliverablesDriveUrl : driveDraft).trim()

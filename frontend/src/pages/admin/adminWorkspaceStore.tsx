@@ -28,13 +28,10 @@ import {
   nextStateAfterClientAction,
   type ClientReviewKind,
 } from '@/lib/clientBoard'
-import { getManifestForBatch } from '@/lib/driveMedia'
 import type { VideoReviewFeedback } from '@/components/VideoDeliverableReviewPanel'
 import { buildQaCommentsFromFeedback } from '@/lib/qaComments'
 import {
-  batchDemoStageAfterDeliverablesSplit,
   batchDemoStageAfterScheduleComplete,
-  createSplitDeliverableTicket,
   patchBatchDemoStage,
   videoStateFromDemoStage,
 } from '@/lib/pathBStateMachine'
@@ -100,7 +97,6 @@ type AdminWorkspaceContextValue = {
   ) => void
   /** Marks one video scheduled (scheduling → done). Debits batch credits when all deliverables are done. */
   scheduleVideo: (videoId: string, input: ScheduleVideoInput) => void
-  submitEditorVideosDrive: (batchId: string, driveUrl: string) => void
   sendEditorDeliverableToSmmQa: (videoId: string) => void
   saveVideoPublishTitle: (videoId: string, title: string) => void
   resubmitEditorVideoQa: (videoId: string) => void
@@ -506,53 +502,6 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
     [videos],
   )
 
-  const submitEditorVideosDrive = useCallback((batchId: string, driveUrl: string) => {
-    const trimmed = driveUrl.trim()
-    if (!trimmed) return
-    const now = new Date().toISOString().slice(0, 10)
-    const batch = batches.find((b) => b.id === batchId)
-    if (!batch) return
-
-    const manifest = getManifestForBatch(batchId)
-    const clipCount = manifest?.clips.length ?? 0
-    const videoCount = manifest?.videos.length ?? 0
-    const n = Math.max(clipCount, videoCount, batch.videoCount, 1)
-    const ts = Date.now()
-
-    const newTickets: AdminVideoTicket[] = Array.from({ length: n }, (_, i) => {
-      const index = i + 1
-      const clip = manifest?.clips.find((c) => c.index === index)
-      const video = manifest?.videos.find((v) => v.index === index)
-      return createSplitDeliverableTicket(
-        batch,
-        index,
-        `v-${batchId}-d${index}-${ts}-${i}`,
-        clip?.name ?? video?.name ?? `Deliverable ${index}`,
-      )
-    })
-
-    setVideos((vPrev) => [
-      ...vPrev.filter((v) => v.batchId !== batchId),
-      ...newTickets,
-    ])
-
-    setBatches((prev) =>
-      prev.map((b) =>
-        b.id === batchId
-          ? patchBatchDemoStage(
-              {
-                ...b,
-                editorDeliverablesDriveUrl: trimmed,
-                videoCount: n,
-                updatedAt: now,
-              },
-              batchDemoStageAfterDeliverablesSplit(),
-            )
-          : b,
-      ),
-    )
-  }, [batches])
-
   const sendEditorDeliverableToSmmQa = useCallback((videoId: string) => {
     const now = new Date().toISOString().slice(0, 10)
     setVideos((prev) =>
@@ -814,7 +763,6 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
       appendSmmQaComment,
       smmTriageClientRevision,
       scheduleVideo,
-      submitEditorVideosDrive,
       sendEditorDeliverableToSmmQa,
       saveVideoPublishTitle,
       resubmitEditorVideoQa,
@@ -841,7 +789,6 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
       appendSmmQaComment,
       smmTriageClientRevision,
       scheduleVideo,
-      submitEditorVideosDrive,
       sendEditorDeliverableToSmmQa,
       saveVideoPublishTitle,
       resubmitEditorVideoQa,
