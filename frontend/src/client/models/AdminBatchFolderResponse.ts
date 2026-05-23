@@ -26,5 +26,6 @@ export type AdminBatchFolderResponse = {
     creditsDebited: boolean;
     pipelineStage: PipelineStage;
     demoStage?: (PipelineStage | null);
+    batchSchedule?: (Record<string, unknown> | null);
 };
 

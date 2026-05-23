@@ -24,11 +24,6 @@ import {
   type VideoPipelineOwner,
 } from '@mockData/index'
 import type { ProvisionClientInput } from '@/components/admin/ProvisionClientModal'
-import {
-  batchDemoStageAfterScheduleComplete,
-  patchBatchDemoStage,
-  videoStateFromDemoStage,
-} from '@/lib/pathBStateMachine'
 
 type CreateBatchInput = {
   clientId: string
@@ -77,14 +72,6 @@ type AdminWorkspaceContextValue = {
   updateBrandGuidelines: (input: UpdateBrandGuidelinesInput) => void
   setVideoDeadline: (videoId: string, deadlineAt: string | null) => void
   setVideoOwner: (videoId: string, owner: VideoPipelineOwner) => void
-  /** Marks one video scheduled (scheduling → done). Debits batch credits when all deliverables are done. */
-  scheduleVideo: (videoId: string, input: ScheduleVideoInput) => void
-}
-
-export type ScheduleVideoInput = {
-  platform: string
-  goLiveDate: string
-  goLiveTime: string
 }
 
 const AdminWorkspaceContext = createContext<AdminWorkspaceContextValue | null>(
@@ -329,89 +316,6 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
     [],
   )
 
-  const scheduleVideo = useCallback(
-    (videoId: string, input: ScheduleVideoInput) => {
-      const target = videos.find((v) => v.id === videoId)
-      if (!target || target.owner !== 'scheduling') return
-
-      const goLiveAt = new Date(`${input.goLiveDate}T${input.goLiveTime}`).toISOString()
-      const scheduledAt = new Date().toISOString()
-      const batchId = target.batchId
-      const batchSnapshot = batches.find((b) => b.id === batchId)
-      if (!batchSnapshot) return
-
-      setVideos((prevVideos) => {
-        const nextVideos = prevVideos.map((v) => {
-          if (v.id !== videoId) return v
-          if (v.owner !== 'scheduling') return v
-          return {
-            ...v,
-            ...videoStateFromDemoStage('completed', { stageLabel: 'Scheduled' }),
-            videoSchedule: {
-              platform: input.platform.trim(),
-              goLiveAt,
-              scheduledAt,
-            },
-          }
-        })
-
-        const batchDeliverables = nextVideos.filter(
-          (v) =>
-            v.batchId === batchId &&
-            v.deliverableIndex != null &&
-            v.deliverableIndex > 0,
-        )
-        const allDone =
-          batchDeliverables.length > 0 &&
-          batchDeliverables.every((v) => v.owner === 'done')
-
-        if (allDone && !batchSnapshot.creditsDebited) {
-          const now = new Date().toISOString().slice(0, 10)
-          setBatches((prev) =>
-            prev.map((b) => {
-              if (b.id !== batchId) return b
-              return patchBatchDemoStage(
-                {
-                  ...b,
-                  status: 'completed' as const,
-                  completedAt: now,
-                  updatedAt: now,
-                  creditsDebited: true,
-                  batchSchedule: {
-                    platform: input.platform.trim(),
-                    goLiveAt,
-                    completedAt: now,
-                  },
-                },
-                batchDemoStageAfterScheduleComplete(),
-              )
-            }),
-          )
-          setClients((prev) =>
-            prev.map((c) =>
-              c.id === batchSnapshot.clientId
-                ? {
-                    ...c,
-                    credits: Math.max(0, c.credits - batchSnapshot.creditCost),
-                  }
-                : c,
-            ),
-          )
-        } else {
-          const now = new Date().toISOString().slice(0, 10)
-          setBatches((prev) =>
-            prev.map((b) =>
-              b.id === batchId ? { ...b, updatedAt: now } : b,
-            ),
-          )
-        }
-
-        return nextVideos
-      })
-    },
-    [videos, batches],
-  )
-
   const value = useMemo(
     () => ({
       clients,
@@ -432,7 +336,6 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
       updateBrandGuidelines,
       setVideoDeadline,
       setVideoOwner,
-      scheduleVideo,
     }),
     [
       clients,
@@ -450,7 +353,6 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
       updateBrandGuidelines,
       setVideoDeadline,
       setVideoOwner,
-      scheduleVideo,
       isWorkspaceLoading,
       smmStaffList,
       editorStaffList,

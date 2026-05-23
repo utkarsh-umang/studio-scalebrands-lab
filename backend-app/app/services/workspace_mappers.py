@@ -72,6 +72,7 @@ def batch_to_dto(batch: Batch) -> AdminBatchFolderResponse:
         credits_debited=batch.credits_debited,
         pipeline_stage=batch.pipeline_stage,
         demo_stage=batch.pipeline_stage,
+        batch_schedule=batch.batch_schedule,
     )
 
 

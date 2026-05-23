@@ -83,6 +83,18 @@ export function mapBatchFolder(api: AdminBatchFolderResponse): AdminBatchFolder 
     creditCost: api.creditCost,
     creditsDebited: api.creditsDebited,
     demoStage: api.demoStage ?? api.pipelineStage,
+    batchSchedule: api.batchSchedule
+      ? {
+          platform: String(api.batchSchedule.platform ?? ''),
+          goLiveAt: String(api.batchSchedule.goLiveAt ?? ''),
+          completedAt: String(api.batchSchedule.completedAt ?? ''),
+          videoPublishLinks:
+            api.batchSchedule.videoPublishLinks &&
+            typeof api.batchSchedule.videoPublishLinks === 'object'
+              ? (api.batchSchedule.videoPublishLinks as Record<string, string>)
+              : undefined,
+        }
+      : undefined,
   }
 }
 

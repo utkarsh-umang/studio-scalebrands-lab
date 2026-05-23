@@ -14,6 +14,7 @@ from app.schemas.production import (
     SubmitToSmmQaResponse,
     UpdateProductionRequest,
 )
+from app.schemas.schedule import ScheduleVideoRequest, ScheduleVideoResponse
 from app.schemas.qa import (
     AppendQaCommentRequest,
     AppendQaCommentResponse,
@@ -22,7 +23,7 @@ from app.schemas.qa import (
     ResubmitToSmmQaRequest,
     SubmitSmmQaRequest,
 )
-from app.services import production_service, qa_service
+from app.services import production_service, qa_service, schedule_service
 
 router = APIRouter(tags=["videos"])
 
@@ -141,6 +142,27 @@ async def triage_client_revision(
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> QaTicketResponse:
     return await qa_service.triage_client_revision(
+        session,
+        current_user,
+        video_ticket_id,
+        body,
+    )
+
+
+@router.post(
+    "/videos/{video_ticket_id}/schedule",
+    response_model=ScheduleVideoResponse,
+)
+async def schedule_video(
+    video_ticket_id: UUID,
+    body: ScheduleVideoRequest,
+    current_user: Annotated[
+        CurrentUser,
+        Depends(require_roles("employee", "smm")),
+    ],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> ScheduleVideoResponse:
+    return await schedule_service.schedule_video(
         session,
         current_user,
         video_ticket_id,

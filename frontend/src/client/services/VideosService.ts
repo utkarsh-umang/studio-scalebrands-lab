@@ -9,6 +9,8 @@ import type { DeliverableDriveSyncRequest } from '../models/DeliverableDriveSync
 import type { ProductionTicketResponse } from '../models/ProductionTicketResponse';
 import type { QaTicketResponse } from '../models/QaTicketResponse';
 import type { ResubmitToSmmQaRequest } from '../models/ResubmitToSmmQaRequest';
+import type { ScheduleVideoRequest } from '../models/ScheduleVideoRequest';
+import type { ScheduleVideoResponse } from '../models/ScheduleVideoResponse';
 import type { SubmitSmmQaRequest } from '../models/SubmitSmmQaRequest';
 import type { SubmitToSmmQaResponse } from '../models/SubmitToSmmQaResponse';
 import type { UpdateProductionRequest } from '../models/UpdateProductionRequest';
@@ -139,6 +141,30 @@ export class VideosService {
      * @returns QaTicketResponse Successful Response
      * @throws ApiError
      */
+    /**
+     * Schedule Video
+     * @param videoTicketId
+     * @param requestBody
+     * @returns ScheduleVideoResponse Successful Response
+     * @throws ApiError
+     */
+    public static scheduleVideoApiV1VideosVideoTicketIdSchedulePost(
+        videoTicketId: string,
+        requestBody: ScheduleVideoRequest,
+    ): CancelablePromise<ScheduleVideoResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/videos/{video_ticket_id}/schedule',
+            path: {
+                'video_ticket_id': videoTicketId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
     /**
      * Triage Client Revision
      * @param videoTicketId

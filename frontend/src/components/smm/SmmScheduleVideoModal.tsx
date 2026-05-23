@@ -3,7 +3,7 @@ import { CalendarClock } from 'lucide-react'
 import type { AdminBatchFolder, AdminVideoTicket } from '@mockData/index'
 import { StudioModalShell } from '@/components/StudioModalShell'
 import { deliverableIndexForTicket } from '@/lib/driveMedia'
-import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
+import { useScheduleVideoMutation } from '@/hooks/api/pathB/useScheduleVideoMutation'
 import { useTheme } from '@/theme'
 
 type Props = {
@@ -22,7 +22,7 @@ export function SmmScheduleVideoModal({
   onClose,
 }: Props) {
   const { theme } = useTheme()
-  const { scheduleVideo } = useAdminWorkspace()
+  const scheduleVideo = useScheduleVideoMutation()
   const index = deliverableIndexForTicket(ticket)
 
   const [platform, setPlatform] = useState('YouTube Shorts')
@@ -50,8 +50,13 @@ export function SmmScheduleVideoModal({
 
   function handleSave() {
     if (!canSave) return
-    scheduleVideo(ticket.id, { platform, goLiveDate, goLiveTime })
-    onClose()
+    scheduleVideo.mutate(
+      {
+        videoTicketId: ticket.id,
+        body: { platform: platform.trim(), goLiveDate, goLiveTime },
+      },
+      { onSuccess: onClose },
+    )
   }
 
   return (

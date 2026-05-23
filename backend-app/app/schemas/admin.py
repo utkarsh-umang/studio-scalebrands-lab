@@ -165,6 +165,7 @@ class AdminBatchFolderResponse(CamelModel):
     credits_debited: bool
     pipeline_stage: PipelineStage
     demo_stage: PipelineStage | None = None
+    batch_schedule: dict[str, Any] | None = None
 
 
 class QaCommentDto(CamelModel):
