@@ -475,7 +475,7 @@ export function AdminClientDetail() {
             {selectedBatch.demoStage ? (
               <span className="text-muted-foreground/80">
                 {' '}
-                · demo: {selectedBatch.demoStage.replace(/_/g, ' ')}
+                · Stage: {selectedBatch.demoStage.replace(/_/g, ' ')}
               </span>
             ) : null}
           </p>
