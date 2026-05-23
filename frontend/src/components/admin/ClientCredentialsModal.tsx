@@ -6,6 +6,7 @@ type Props = {
   displayName: string
   loginId: string
   password: string
+  title?: string
   onClose: () => void
 }
 
@@ -14,6 +15,7 @@ export function ClientCredentialsModal({
   displayName,
   loginId,
   password,
+  title = 'Client login',
   onClose,
 }: Props) {
   const [copiedField, setCopiedField] = useState<'login' | 'password' | null>(
@@ -57,7 +59,7 @@ export function ClientCredentialsModal({
             id="client-credentials-title"
             className="text-foreground text-lg font-semibold"
           >
-            Client login
+            {title}
           </h2>
           <button
             type="button"

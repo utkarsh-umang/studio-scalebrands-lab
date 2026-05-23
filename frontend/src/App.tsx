@@ -3,6 +3,7 @@ import { ScrollToTop } from '@/components/ScrollToTop'
 import { AdminBatchRedirect } from '@/pages/admin/AdminBatchRedirect'
 import { AdminClientDetail } from '@/pages/admin/AdminClientDetail'
 import { AdminLayout } from '@/pages/admin/AdminLayout'
+import { AdminAddEmployees } from '@/pages/admin/AdminAddEmployees'
 import { AdminDeadlines } from '@/pages/admin/AdminDeadlines'
 import { AdminWorkspace } from '@/pages/admin/AdminWorkspace'
 import { EditorBoard } from '@/pages/editor/EditorBoard'
@@ -106,6 +107,7 @@ function App() {
             element={<AdminBatchRedirect />}
           />
           <Route path="clients" element={<Navigate to="/admin" replace />} />
+          <Route path="employees" element={<AdminAddEmployees />} />
           <Route path="deadlines" element={<AdminDeadlines />} />
           <Route path="overview" element={<Navigate to="/admin" replace />} />
         </Route>

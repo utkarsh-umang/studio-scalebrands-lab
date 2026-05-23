@@ -1,10 +1,11 @@
-import { CalendarClock, LayoutGrid, LogOut, Shield } from 'lucide-react'
+import { CalendarClock, LayoutGrid, LogOut, Shield, UserPlus } from 'lucide-react'
 import { NavLink, Outlet } from 'react-router-dom'
 import logo from '@/assets/logo.png'
 import { useAuth } from '@/auth'
 import { useTheme } from '@/theme'
 const NAV = [
   { to: '/admin', label: 'Workspace', Icon: LayoutGrid, end: true },
+  { to: '/admin/employees', label: 'Add Employees', Icon: UserPlus, end: false },
   { to: '/admin/deadlines', label: 'Deadlines', Icon: CalendarClock, end: false },
 ] as const
 

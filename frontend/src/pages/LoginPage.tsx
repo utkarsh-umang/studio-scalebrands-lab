@@ -4,13 +4,6 @@ import { homePathForUser, useAuth } from '@/auth'
 import logo from '@/assets/logo.png'
 import { useTheme } from '@/theme'
 
-const DEMO_LOGIN_EMAILS = [
-  'client@scalebrandslab.demo',
-  'editor@scalebrandslab.demo',
-  'smm@scalebrandslab.demo',
-  'admin@scalebrandslab.demo',
-] as const
-
 export function LoginPage() {
   const { theme } = useTheme()
   const { user, login } = useAuth()
@@ -220,25 +213,6 @@ export function LoginPage() {
               {pending ? 'Signing in…' : 'Continue'}
             </button>
           </form>
-
-          <div className="border-border/70 mt-4 border-t pt-3 md:mt-5 md:pt-4">
-            <p className="text-muted-foreground mb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em]">
-              Local demo (after backend seed)
-            </p>
-            <p className="text-muted-foreground mb-2 text-[10px] leading-snug md:text-[11px]">
-              Password for seeded demo users:{' '}
-              <code className="bg-code-bg text-foreground rounded px-1.5 py-0.5 font-mono text-[10px] md:text-[11px]">
-                demo1234
-              </code>
-            </p>
-            <div className="grid grid-cols-1 gap-x-3 gap-y-0.5 font-mono text-[9px] leading-tight text-[var(--muted-foreground)] sm:grid-cols-2">
-              {DEMO_LOGIN_EMAILS.map((email) => (
-                <div key={email} className="truncate" title={email}>
-                  {email}
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
     </div>

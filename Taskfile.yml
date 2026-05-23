@@ -64,6 +64,14 @@ tasks:
     cmds:
       - poetry run python -m app.scripts.seed
 
+  backend:setup:
+    desc: Install deps, migrate, and seed (run dev:infra first)
+    deps:
+      - backend:install
+    cmds:
+      - task: backend:migrate
+      - task: backend:seed
+
   backend:revision:
     desc: "Create new migration"
     dir: "{{.BACKEND_DIR}}"

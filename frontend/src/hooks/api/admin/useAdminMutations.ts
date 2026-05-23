@@ -4,6 +4,7 @@ import {
   type CreateBatchRequest,
   type DecommissionClientRequest,
   type ProvisionClientRequest,
+  type ProvisionStaffRequest,
   type TopUpCreditsRequest,
   type UpdateBrandGuidelinesRequest,
   type UpdateClientTeamRequest,
@@ -84,6 +85,15 @@ export function useCreateBatchMutation(clientId: string) {
         clientId,
         body,
       ),
+    onSuccess: invalidate,
+  })
+}
+
+export function useProvisionStaffMutation() {
+  const invalidate = useInvalidateAdmin()
+  return useMutation({
+    mutationFn: (body: ProvisionStaffRequest) =>
+      AdminService.provisionStaffApiV1AdminStaffPost(body),
     onSuccess: invalidate,
   })
 }

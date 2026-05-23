@@ -50,20 +50,10 @@ DEMO_USERS = [
 ]
 
 
-async def _admin_exists(session) -> bool:
-    result = await session.execute(select(User.id).where(User.role == UserRole.admin).limit(1))
-    return result.scalar_one_or_none() is not None
-
-
 async def seed_bootstrap_admin(session) -> None:
-    if await _admin_exists(session):
-        print("Bootstrap admin: skipped (admin already exists)")
-        return
     password = config.BOOTSTRAP_ADMIN_PASSWORD.strip()
     if not password:
-        raise RuntimeError(
-            "BOOTSTRAP_ADMIN_PASSWORD is required when no admin user exists",
-        )
+        raise RuntimeError("BOOTSTRAP_ADMIN_PASSWORD is required for bootstrap admin seed")
     await upsert_user(
         session,
         email=config.BOOTSTRAP_ADMIN_EMAIL,
@@ -71,7 +61,7 @@ async def seed_bootstrap_admin(session) -> None:
         display_name=config.BOOTSTRAP_ADMIN_DISPLAY_NAME,
         role=UserRole.admin,
     )
-    print(f"Bootstrap admin: created {normalize_email(config.BOOTSTRAP_ADMIN_EMAIL)}")
+    print(f"Bootstrap admin: ensured {normalize_email(config.BOOTSTRAP_ADMIN_EMAIL)}")
 
 
 async def seed_demo_users(session) -> dict[str, User]:

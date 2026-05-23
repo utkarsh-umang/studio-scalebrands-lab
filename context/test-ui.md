@@ -32,8 +32,15 @@
 
 Backend must be running with migrations applied and demo seed (`SEED_DEMO_USERS=true` locally).
 
+**Credentials & API setup:** see [`b11-integration-test-plan.md`](./b11-integration-test-plan.md).
+
 ```bash
-# Terminal 1 — API (from repo root)
+# From repo root (once per fresh DB)
+cp .env.example .env   # edit BOOTSTRAP_ADMIN_* if needed
+task backend:migrate
+task backend:seed      # not run automatically by backend:up
+
+# Terminal 1 — API
 task backend:up
 
 # Terminal 2 — UI
