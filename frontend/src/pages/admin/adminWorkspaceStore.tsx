@@ -30,16 +30,10 @@ import {
 } from '@/lib/clientBoard'
 import { getManifestForBatch } from '@/lib/driveMedia'
 import type { VideoReviewFeedback } from '@/components/VideoDeliverableReviewPanel'
+import { buildQaCommentsFromFeedback } from '@/lib/qaComments'
 import {
-  appendClipRejectNote,
-  buildQaCommentsFromFeedback,
-} from '@/lib/qaComments'
-import {
-  batchDemoStageAfterClipApproval,
   batchDemoStageAfterDeliverablesSplit,
   batchDemoStageAfterScheduleComplete,
-  batchDemoStageAfterSmmClipsFolder,
-  createClipReviewGateTicket,
   createSplitDeliverableTicket,
   patchBatchDemoStage,
   videoStateFromDemoStage,
@@ -92,19 +86,12 @@ type AdminWorkspaceContextValue = {
   updateBrandGuidelines: (input: UpdateBrandGuidelinesInput) => void
   setVideoDeadline: (videoId: string, deadlineAt: string | null) => void
   setVideoOwner: (videoId: string, owner: VideoPipelineOwner) => void
-  approveBatchClips: (batchId: string, clipReviewVideoId: string) => void
-  rejectBatchClips: (
-    batchId: string,
-    clipReviewVideoId: string,
-    note: string,
-  ) => void
   applyClientVideoDecision: (
     videoId: string,
     action: 'approve' | 'reject',
     opts?: { rejectNote?: string; feedback?: VideoReviewFeedback },
   ) => void
   appendClientQaComment: (videoId: string, body: string) => void
-  submitSmmClipsFolder: (batchId: string, clipsFolderUrl: string) => void
   submitSmmQaReview: (videoId: string, input: SubmitSmmQaInput) => void
   appendSmmQaComment: (videoId: string, body: string) => void
   smmTriageClientRevision: (
@@ -383,131 +370,6 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
     },
     [],
   )
-
-  const approveBatchClips = useCallback(
-    (batchId: string, clipReviewVideoId: string) => {
-      const now = new Date().toISOString().slice(0, 10)
-      const manifest = getManifestForBatch(batchId)
-      const clipCount = manifest?.clips.length ?? 0
-      const gateState = videoStateFromDemoStage('pre_split_production')
-
-      setBatches((prev) =>
-        prev.map((b) =>
-          b.id === batchId
-            ? patchBatchDemoStage(
-                {
-                  ...b,
-                  clipReviewPhase: 'approved' as const,
-                  updatedAt: now,
-                  ...(clipCount > 0 ? { videoCount: clipCount } : {}),
-                },
-                batchDemoStageAfterClipApproval(),
-              )
-            : b,
-        ),
-      )
-      setVideos((prev) =>
-        prev.map((v) => {
-          if (v.batchId !== batchId) return v
-          if (v.id === clipReviewVideoId || isPreSplitGateOrClipReview(v)) {
-            return { ...v, ...gateState }
-          }
-          return v
-        }),
-      )
-    },
-    [],
-  )
-
-  function isPreSplitGateOrClipReview(v: AdminVideoTicket): boolean {
-    const stage = v.stageLabel.toLowerCase()
-    return (
-      stage.includes('clip identification') ||
-      stage.includes('clip review') ||
-      v.deliverableIndex == null ||
-      v.deliverableIndex < 1
-    )
-  }
-
-  const rejectBatchClips = useCallback(
-    (batchId: string, clipReviewVideoId: string, note: string) => {
-      const now = new Date().toISOString().slice(0, 10)
-      const smmIdentifying = videoStateFromDemoStage('clips_identifying')
-
-      setBatches((prev) =>
-        prev.map((b) =>
-          b.id === batchId
-            ? patchBatchDemoStage(
-                { ...b, clipReviewPhase: 'with_smm' as const, updatedAt: now },
-                'clips_identifying',
-              )
-            : b,
-        ),
-      )
-      setVideos((prev) =>
-        prev.map((v) => {
-          if (v.id !== clipReviewVideoId) return v
-          return {
-            ...v,
-            ...smmIdentifying,
-            qaCommentHistory: appendClipRejectNote(v, note),
-          }
-        }),
-      )
-    },
-    [],
-  )
-
-  const submitSmmClipsFolder = useCallback((batchId: string, clipsFolderUrl: string) => {
-    const trimmed = clipsFolderUrl.trim()
-    if (!trimmed) return
-    const now = new Date().toISOString().slice(0, 10)
-    const batch = batches.find((b) => b.id === batchId)
-    if (!batch) return
-
-    const clipReviewState = videoStateFromDemoStage('clip_client_review')
-
-    setBatches((prev) =>
-      prev.map((b) => {
-        if (b.id !== batchId) return b
-        return patchBatchDemoStage(
-          {
-            ...b,
-            intakePath: 'source_media' as const,
-            clipsFolderUrl: trimmed,
-            clipReviewPhase: 'awaiting_client' as const,
-            updatedAt: now,
-          },
-          batchDemoStageAfterSmmClipsFolder(),
-        )
-      }),
-    )
-
-    setVideos((prev) => {
-      const batchVideos = prev.filter((v) => v.batchId === batchId)
-      const hasClipReview = batchVideos.some((v) =>
-        v.stageLabel.toLowerCase().includes('clip review'),
-      )
-
-      let next = prev.map((v) => {
-        if (v.batchId !== batchId) return v
-        if (v.stageLabel.toLowerCase().includes('clip identification')) {
-          return { ...v, ...clipReviewState }
-        }
-        return v
-      })
-
-      if (!hasClipReview) {
-        const clipReviewTicket = createClipReviewGateTicket(
-          batch,
-          `v-clip-${batchId}-${Date.now()}`,
-        )
-        next = [clipReviewTicket, ...next]
-      }
-
-      return next
-    })
-  }, [batches])
 
   const submitSmmQaReview = useCallback(
     (videoId: string, input: SubmitSmmQaInput) => {
@@ -946,11 +808,8 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
       updateBrandGuidelines,
       setVideoDeadline,
       setVideoOwner,
-      approveBatchClips,
-      rejectBatchClips,
       applyClientVideoDecision,
       appendClientQaComment,
-      submitSmmClipsFolder,
       submitSmmQaReview,
       appendSmmQaComment,
       smmTriageClientRevision,
@@ -976,11 +835,8 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
       updateBrandGuidelines,
       setVideoDeadline,
       setVideoOwner,
-      approveBatchClips,
-      rejectBatchClips,
       applyClientVideoDecision,
       appendClientQaComment,
-      submitSmmClipsFolder,
       submitSmmQaReview,
       appendSmmQaComment,
       smmTriageClientRevision,

@@ -69,3 +69,15 @@ class EditorWorkflowPhase(str, Enum):
 class BrandGuidelinesSource(str, Enum):
     internal = "internal"
     google_doc = "google_doc"
+
+
+class QaMediaSlot(str, Enum):
+    clip = "clip"
+    video = "video"
+    thumbnail = "thumbnail"
+
+
+class QaCommentKind(str, Enum):
+    timestamp = "timestamp"
+    general = "general"
+    clip_note = "clip_note"

@@ -32,7 +32,22 @@ from app.services.workspace_access import (
     client_ids_for_employee,
     get_profile_or_404,
 )
-from app.services.workspace_mappers import batch_to_dto, client_profile_to_dto, video_to_dto
+from app.services.workspace_mappers import (
+    batch_to_dto,
+    client_profile_to_dto,
+    load_qa_comments_by_ticket_ids,
+    video_to_dto,
+)
+
+
+def _videos_to_dtos(
+    videos: list[VideoTicket],
+    comments_by_ticket: dict,
+) -> list:
+    return [
+        video_to_dto(video, qa_comments=comments_by_ticket.get(video.id, []))
+        for video in videos
+    ]
 
 
 async def _load_users_by_id(session: AsyncSession, user_ids: set[UUID]) -> dict[UUID, User]:
@@ -156,10 +171,14 @@ async def get_client_workspace(
 
     batches = await _load_batches(session, [client_id])
     videos = await _load_videos(session, [client_id])
+    comments_by_ticket = await load_qa_comments_by_ticket_ids(
+        session,
+        [video.id for video in videos],
+    )
     return ClientWorkspaceResponse(
         client=profiles_dto[0],
         batches=[batch_to_dto(b) for b in batches],
-        videos=[video_to_dto(v) for v in videos],
+        videos=_videos_to_dtos(videos, comments_by_ticket),
     )
 
 
@@ -176,10 +195,14 @@ async def _employee_workspace(
     profiles = list(profiles_result.scalars().all())
     batches = await _load_batches(session, client_ids)
     videos = await _load_videos(session, client_ids)
+    comments_by_ticket = await load_qa_comments_by_ticket_ids(
+        session,
+        [video.id for video in videos],
+    )
     payload = {
         "clients": await _profiles_to_dtos(session, profiles),
         "batches": [batch_to_dto(b) for b in batches],
-        "videos": [video_to_dto(v) for v in videos],
+        "videos": _videos_to_dtos(videos, comments_by_ticket),
     }
     if kind == EmployeeKind.editor:
         return EditorWorkspaceResponse(**payload)
@@ -214,10 +237,14 @@ async def get_admin_workspace(
     profiles = list(profiles_result.scalars().all())
     batches = await _load_batches(session, None)
     videos = await _load_videos(session, None)
+    comments_by_ticket = await load_qa_comments_by_ticket_ids(
+        session,
+        [video.id for video in videos],
+    )
     return AdminWorkspaceResponse(
         clients=await _profiles_to_dtos(session, profiles),
         batches=[batch_to_dto(b) for b in batches],
-        videos=[video_to_dto(v) for v in videos],
+        videos=_videos_to_dtos(videos, comments_by_ticket),
     )
 
 
@@ -228,7 +255,11 @@ async def get_batch_detail(
 ) -> BatchDetailResponse:
     batch = await assert_batch_access(session, user, batch_id)
     videos = await _load_videos(session, None, batch_ids=[batch_id])
+    comments_by_ticket = await load_qa_comments_by_ticket_ids(
+        session,
+        [video.id for video in videos],
+    )
     return BatchDetailResponse(
         batch=batch_to_dto(batch),
-        videos=[video_to_dto(v) for v in videos],
+        videos=_videos_to_dtos(videos, comments_by_ticket),
     )

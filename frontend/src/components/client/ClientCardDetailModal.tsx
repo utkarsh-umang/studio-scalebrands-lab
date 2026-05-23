@@ -2,6 +2,11 @@ import { StudioModalShell } from '@/components/StudioModalShell'
 import { NumberedClipsModal } from '@/components/path-b'
 import type { ClientVideoCard } from '@/lib/clientBoard'
 import { clientBatchKanbanPhase } from '@/lib/clientBoard'
+import { getManifestForBatch } from '@/lib/driveMedia'
+import {
+  useApproveBatchClipsMutation,
+  useRejectBatchClipsMutation,
+} from '@/hooks/api/pathB/useClipsFolderMutations'
 import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
 import { ClientClipIdentificationStatusModal } from './ClientClipIdentificationStatusModal'
 import { ClientUnifiedQaModal } from './ClientUnifiedQaModal'
@@ -29,11 +34,11 @@ export function ClientCardDetailModal({
   const {
     batches,
     applyClientVideoDecision,
-    approveBatchClips,
-    rejectBatchClips,
     getVideosForBatch,
     appendClientQaComment,
   } = useAdminWorkspace()
+  const approveBatchClips = useApproveBatchClipsMutation(batchId)
+  const rejectBatchClips = useRejectBatchClipsMutation(batchId)
 
   const batch = batches.find((b) => b.id === batchId)
   const batchTickets = batch ? getVideosForBatch(batch.id) : []
@@ -90,12 +95,21 @@ export function ClientCardDetailModal({
         resetKey={card.id}
         onClose={onClose}
         onApproveAll={() => {
-          approveBatchClips(batchId, card.id)
-          onClose()
+          const manifest = getManifestForBatch(batchId)
+          const clipCount = manifest?.clips.length
+          approveBatchClips.mutate(
+            {
+              videoTicketId: card.id,
+              ...(clipCount != null && clipCount > 0 ? { clipCount } : {}),
+            },
+            { onSuccess: onClose },
+          )
         }}
         onRejectClips={(note) => {
-          rejectBatchClips(batchId, card.id, note)
-          onClose()
+          rejectBatchClips.mutate(
+            { videoTicketId: card.id, note },
+            { onSuccess: onClose },
+          )
         }}
       />
     )

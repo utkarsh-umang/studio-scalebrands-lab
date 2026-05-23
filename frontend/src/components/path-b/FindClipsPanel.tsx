@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { ExternalLink, FolderOpen, Link2, Scissors } from 'lucide-react'
 import type { AdminBatchFolder } from '@mockData/index'
-import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
+import {
+  useSubmitClipsFolderMutation,
+} from '@/hooks/api/pathB/useClipsFolderMutations'
 import { useTheme } from '@/theme'
 
 export type FindClipsPanelRole = 'smm' | 'editor'
@@ -20,7 +22,7 @@ export function FindClipsPanel({
   onSubmitted,
 }: Props) {
   const { theme } = useTheme()
-  const { submitSmmClipsFolder } = useAdminWorkspace()
+  const submitClipsFolder = useSubmitClipsFolderMutation(batch.id)
   const [clipsFolderUrl, setClipsFolderUrl] = useState(batch.clipsFolderUrl ?? '')
 
   const rawUrl = batch.sourceMediaUrl?.trim() || batch.footageUrl?.trim() || ''
@@ -28,9 +30,16 @@ export function FindClipsPanel({
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!clipsFolderUrl.trim()) return
-    submitSmmClipsFolder(batch.id, clipsFolderUrl.trim())
-    onSubmitted?.()
+    const trimmed = clipsFolderUrl.trim()
+    if (!trimmed || submitClipsFolder.isPending) return
+    submitClipsFolder.mutate(
+      { clipsFolderUrl: trimmed },
+      {
+        onSuccess: () => {
+          onSubmitted?.()
+        },
+      },
+    )
   }
 
   return (
@@ -81,7 +90,7 @@ export function FindClipsPanel({
             setClipsFolderUrl(e.target.value)
           }}
           placeholder="https://drive.google.com/drive/folders/..."
-          disabled={!rawUrl}
+          disabled={!rawUrl || submitClipsFolder.isPending}
           className="border-border bg-background text-foreground focus:ring-primary/30 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 disabled:opacity-50"
         />
         <p className="text-muted-foreground flex items-start gap-1.5 text-[11px] leading-snug">
@@ -92,14 +101,19 @@ export function FindClipsPanel({
           </span>
           — links only; no uploads inside Studio.
         </p>
+        {submitClipsFolder.isError && (
+          <p className="text-destructive text-[11px] leading-snug" role="alert">
+            Could not submit clips folder. Check the link and try again.
+          </p>
+        )}
         <button
           type="submit"
-          disabled={!rawUrl || !clipsFolderUrl.trim()}
+          disabled={!rawUrl || !clipsFolderUrl.trim() || submitClipsFolder.isPending}
           className="inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
           style={{ background: primary }}
         >
           <Link2 className="size-3.5" aria-hidden />
-          Submit clips folder
+          {submitClipsFolder.isPending ? 'Submitting…' : 'Submit clips folder'}
         </button>
       </form>
     </div>

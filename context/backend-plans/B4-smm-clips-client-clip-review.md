@@ -1,7 +1,7 @@
 # Backend plan: B4 — SMM clips folder & client clip review
 
 **Epic:** B4  
-**Status:** Storage reconciled  
+**Status:** Done  
 **Depends on:** [B0](./B0-auth-and-core-schema.md), [B2](./B2-read-models-boards.md), [B3](./B3-client-intake.md)  
 **Blocks:** B5 (editor deliverables split assumes clip review done or skipped)  
 **Index:** [`README.md`](./README.md)

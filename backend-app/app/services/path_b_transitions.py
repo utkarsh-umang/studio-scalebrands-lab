@@ -114,6 +114,99 @@ def apply_clips_ready_intake(batch: Batch, url: str) -> None:
     batch.updated_at = now
 
 
+CLIP_REVIEW_GATE_TITLE = "Clip approval"
+
+
+def apply_video_transition(
+    ticket: VideoTicket,
+    stage: PipelineStage,
+    *,
+    title: str | None = None,
+    released_to_client_final_review: bool | None = False,
+) -> None:
+    state = video_state_for_stage(
+        stage,
+        released_to_client_final_review=released_to_client_final_review,
+    )
+    ticket.pipeline_stage = state.pipeline_stage
+    ticket.pipeline_owner = state.pipeline_owner
+    ticket.stage_label = state.stage_label
+    ticket.deadline_role = state.deadline_role
+    ticket.editor_workflow_phase = state.editor_workflow_phase
+    ticket.released_to_client_final_review = state.released_to_client_final_review
+    if title is not None:
+        ticket.title = title
+    ticket.updated_at = utc_now()
+
+
+def apply_submit_clips_folder(batch: Batch, clips_folder_url: str) -> None:
+    now = utc_now()
+    batch.intake_path = BatchIntakePath.source_media
+    batch.clips_folder_url = clips_folder_url
+    batch.clip_review_phase = BatchClipReviewPhase.awaiting_client
+    batch.pipeline_stage = PipelineStage.clip_client_review
+    batch.updated_at = now
+
+
+def apply_approve_clips(batch: Batch, *, clip_count: int | None = None) -> None:
+    now = utc_now()
+    batch.clip_review_phase = BatchClipReviewPhase.approved
+    batch.pipeline_stage = PipelineStage.pre_split_production
+    if clip_count is not None and clip_count > 0:
+        batch.video_count = clip_count
+    batch.updated_at = now
+
+
+def apply_reject_clips(batch: Batch) -> None:
+    now = utc_now()
+    batch.clip_review_phase = BatchClipReviewPhase.with_smm
+    batch.pipeline_stage = PipelineStage.clips_identifying
+    batch.updated_at = now
+
+
+def is_clip_identification_ticket(ticket: VideoTicket) -> bool:
+    if ticket.pipeline_stage == PipelineStage.clips_identifying:
+        return True
+    label = (ticket.stage_label or "").lower()
+    return "clip identification" in label or "identifying" in label
+
+
+def is_clip_review_gate_ticket(ticket: VideoTicket) -> bool:
+    if ticket.deliverable_index is not None and ticket.deliverable_index >= 1:
+        return False
+    if ticket.pipeline_stage == PipelineStage.clip_client_review:
+        return True
+    label = (ticket.stage_label or "").lower()
+    return "clip review" in label or ticket.title == CLIP_REVIEW_GATE_TITLE
+
+
+def is_pre_split_gate_or_clip_review(ticket: VideoTicket) -> bool:
+    if ticket.deliverable_index is not None and ticket.deliverable_index >= 1:
+        return False
+    if is_clip_identification_ticket(ticket) or is_clip_review_gate_ticket(ticket):
+        return True
+    return ticket.deliverable_index is None
+
+
+def create_clip_review_gate_ticket(batch: Batch) -> VideoTicket:
+    state = video_state_for_stage(
+        PipelineStage.clip_client_review,
+        released_to_client_final_review=False,
+    )
+    return VideoTicket(
+        batch_id=batch.id,
+        client_id=batch.client_id,
+        title=CLIP_REVIEW_GATE_TITLE,
+        deliverable_index=None,
+        pipeline_stage=state.pipeline_stage,
+        pipeline_owner=state.pipeline_owner,
+        stage_label=state.stage_label,
+        deadline_role=state.deadline_role,
+        editor_workflow_phase=state.editor_workflow_phase,
+        released_to_client_final_review=state.released_to_client_final_review,
+    )
+
+
 def create_pre_split_gate_ticket(
     batch: Batch,
     *,

@@ -76,6 +76,45 @@ async def assert_client_access(user: CurrentUser, profile: ClientProfile) -> Non
     )
 
 
+async def assert_employee_batch_access(
+    session: AsyncSession,
+    user: CurrentUser,
+    batch_id: UUID,
+) -> Batch:
+    batch = await session.get(Batch, batch_id)
+    if batch is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={
+                "error_code": "NOT_FOUND",
+                "message": f"Batch {batch_id} not found",
+            },
+        )
+    if user.role != UserRole.employee or user.employee_kind not in (
+        EmployeeKind.smm,
+        EmployeeKind.editor,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error_code": "FORBIDDEN",
+                "message": "Insufficient permissions",
+            },
+        )
+    profile = await get_profile_or_404(session, batch.client_id)
+    if user.employee_kind == EmployeeKind.smm and profile.assigned_smm_id == user.id:
+        return batch
+    if user.employee_kind == EmployeeKind.editor and profile.assigned_editor_id == user.id:
+        return batch
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail={
+            "error_code": "NOT_FOUND",
+            "message": f"Batch {batch_id} not found",
+        },
+    )
+
+
 async def assert_batch_access(
     session: AsyncSession,
     user: CurrentUser,

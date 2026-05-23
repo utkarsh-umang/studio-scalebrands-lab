@@ -1,12 +1,17 @@
 """Map ORM rows to workspace DTOs (shared across roles)."""
 
+from collections import defaultdict
 from datetime import datetime
 from typing import Any
 from uuid import UUID
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models.batch import Batch
 from app.models.client_profile import ClientProfile
 from app.models.enums import BrandGuidelinesSource
+from app.models.qa_comment import QaComment
 from app.models.user import User
 from app.models.video_ticket import VideoTicket
 from app.schemas.admin import (
@@ -14,6 +19,7 @@ from app.schemas.admin import (
     AdminClientProfileResponse,
     AdminVideoTicketResponse,
     BrandGuidelinesResponse,
+    QaCommentDto,
 )
 
 
@@ -77,7 +83,43 @@ def _qa_flags_from_ticket(ticket: VideoTicket) -> list[dict[str, Any]] | None:
     return None
 
 
-def video_to_dto(ticket: VideoTicket) -> AdminVideoTicketResponse:
+async def load_qa_comments_by_ticket_ids(
+    session: AsyncSession,
+    ticket_ids: list[UUID],
+) -> dict[UUID, list[QaComment]]:
+    if not ticket_ids:
+        return {}
+    result = await session.execute(
+        select(QaComment)
+        .where(QaComment.video_ticket_id.in_(ticket_ids))
+        .order_by(QaComment.created_at),
+    )
+    grouped: dict[UUID, list[QaComment]] = defaultdict(list)
+    for comment in result.scalars().all():
+        grouped[comment.video_ticket_id].append(comment)
+    return dict(grouped)
+
+
+def qa_comment_to_dto(comment: QaComment) -> QaCommentDto:
+    return QaCommentDto(
+        id=str(comment.id),
+        slot=comment.slot.value,
+        asset_version=comment.asset_version,
+        kind=comment.kind.value,
+        author_role=comment.author_role,
+        at_seconds=comment.at_seconds,
+        body=comment.body,
+        created_at=_iso_datetime(comment.created_at) or "",
+        deprecated=comment.deprecated,
+    )
+
+
+def video_to_dto(
+    ticket: VideoTicket,
+    *,
+    qa_comments: list[QaComment] | None = None,
+) -> AdminVideoTicketResponse:
+    history = [qa_comment_to_dto(comment) for comment in (qa_comments or [])]
     return AdminVideoTicketResponse(
         id=ticket.id,
         batch_id=ticket.batch_id,
@@ -95,7 +137,7 @@ def video_to_dto(ticket: VideoTicket) -> AdminVideoTicketResponse:
         asset_versions=ticket.asset_versions,
         qa_flags=_qa_flags_from_ticket(ticket),
         qa_general_note=ticket.qa_general_note,
-        qa_comment_history=[],
+        qa_comment_history=history,
         video_schedule=ticket.video_schedule,
         demo_stage=ticket.pipeline_stage,
     )

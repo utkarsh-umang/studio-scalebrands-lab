@@ -12,9 +12,12 @@ from app.models.enums import (
     EditorWorkflowPhase,
     EmployeeKind,
     PipelineStage,
+    QaCommentKind,
+    QaMediaSlot,
     UserRole,
     VideoPipelineOwner,
 )
+from app.models.qa_comment import QaComment
 from app.models.user import User
 from app.models.video_ticket import VideoTicket
 
@@ -30,6 +33,9 @@ __all__ = [
     "EditorWorkflowPhase",
     "EmployeeKind",
     "PipelineStage",
+    "QaComment",
+    "QaCommentKind",
+    "QaMediaSlot",
     "User",
     "UserRole",
     "VideoPipelineOwner",
