@@ -44,7 +44,7 @@
 | B0 | [`B0-auth-and-core-schema.md`](./B0-auth-and-core-schema.md) | Done | — |
 | B1 | [`B1-admin-clients-batches.md`](./B1-admin-clients-batches.md) | Storage reconciled | B0 |
 | B2 | [`B2-read-models-boards.md`](./B2-read-models-boards.md) | Storage reconciled | B0, B1 |
-| B3 | [`B3-client-intake.md`](./B3-client-intake.md) | Storage reconciled | B2 |
+| B3 | [`B3-client-intake.md`](./B3-client-intake.md) | Done | B2 |
 | B4 | [`B4-smm-clips-client-clip-review.md`](./B4-smm-clips-client-clip-review.md) | Storage reconciled | B3 |
 | B5 | [`B5-editor-deliverables-split.md`](./B5-editor-deliverables-split.md) | Storage reconciled | B4 |
 | B6 | [`B6-production-readiness-smm-qa-queue.md`](./B6-production-readiness-smm-qa-queue.md) | Storage reconciled | B5 |

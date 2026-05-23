@@ -2,8 +2,11 @@ import { useState } from 'react'
 import { Copy, Link2, Mic, FolderOpen } from 'lucide-react'
 import type { AdminBatchFolder, BatchIntakePath } from '@mockData/index'
 import { STUDIO_DRIVE_READER_EMAIL } from '@/lib/studioDrive'
-import { useAdminWorkspace } from '@/pages/admin/adminWorkspaceStore'
 import { useTheme } from '@/theme'
+import {
+  toIntakePath,
+  useSubmitBatchIntakeMutation,
+} from '@/hooks/api/pathB/useSubmitBatchIntakeMutation'
 
 type Props = {
   batch: AdminBatchFolder
@@ -11,7 +14,7 @@ type Props = {
 
 export function ClientBatchIntakeCard({ batch }: Props) {
   const { theme } = useTheme()
-  const { submitBatchIntake } = useAdminWorkspace()
+  const intakeMutation = useSubmitBatchIntakeMutation(batch.id)
   const [path, setPath] = useState<BatchIntakePath>(
     batch.intakePath ?? 'source_media',
   )
@@ -33,8 +36,12 @@ export function ClientBatchIntakeCard({ batch }: Props) {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!url.trim()) return
-    submitBatchIntake(batch.id, path, url.trim())
+    const trimmed = url.trim()
+    if (!trimmed || intakeMutation.isPending) return
+    intakeMutation.mutate({
+      intakePath: toIntakePath(path),
+      url: trimmed,
+    })
   }
 
   return (
@@ -180,12 +187,21 @@ export function ClientBatchIntakeCard({ batch }: Props) {
             <p className="text-muted-foreground text-[10px] leading-snug">
               Links only — we do not accept file uploads in Studio.
             </p>
+            {intakeMutation.isError && (
+              <p className="text-destructive text-[10px] leading-snug" role="alert">
+                Could not submit intake. Check the link and try again.
+              </p>
+            )}
             <button
               type="submit"
-              disabled={!url.trim()}
+              disabled={!url.trim() || intakeMutation.isPending}
               className="bg-primary text-primary-foreground disabled:opacity-50 w-full rounded-lg py-1.5 text-xs font-semibold"
             >
-              {submitted ? 'Update link' : 'Submit link'}
+              {intakeMutation.isPending
+                ? 'Submitting…'
+                : submitted
+                  ? 'Update link'
+                  : 'Submit link'}
             </button>
           </form>
         </div>

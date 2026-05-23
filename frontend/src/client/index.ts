@@ -45,6 +45,8 @@ export type { QaCommentDto } from './models/QaCommentDto';
 export type { SmmWorkspaceResponse } from './models/SmmWorkspaceResponse';
 export type { StaffListResponse } from './models/StaffListResponse';
 export type { StaffMemberResponse } from './models/StaffMemberResponse';
+export type { SubmitBatchIntakeRequest } from './models/SubmitBatchIntakeRequest';
+export type { SubmitBatchIntakeResponse } from './models/SubmitBatchIntakeResponse';
 export type { TopUpCreditsRequest } from './models/TopUpCreditsRequest';
 export type { UpdateBrandGuidelinesRequest } from './models/UpdateBrandGuidelinesRequest';
 export type { UpdateClientTeamRequest } from './models/UpdateClientTeamRequest';
@@ -54,5 +56,6 @@ export { VideoPipelineOwner } from './models/VideoPipelineOwner';
 
 export { AdminService } from './services/AdminService';
 export { AuthService } from './services/AuthService';
+export { ClientService } from './services/ClientService';
 export { HealthService } from './services/HealthService';
 export { WorkspaceService } from './services/WorkspaceService';

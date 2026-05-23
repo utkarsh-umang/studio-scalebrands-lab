@@ -19,7 +19,6 @@ import {
   type AdminBatchFolder,
   type AdminClientProfile,
   type AdminVideoTicket,
-  type BatchIntakePath,
   type BrandGuidelinesSource,
   type StaffMember,
   type VideoPipelineOwner,
@@ -36,14 +35,11 @@ import {
   buildQaCommentsFromFeedback,
 } from '@/lib/qaComments'
 import {
-  batchClipReviewPhaseAfterIntake,
   batchDemoStageAfterClipApproval,
   batchDemoStageAfterDeliverablesSplit,
-  batchDemoStageAfterIntake,
   batchDemoStageAfterScheduleComplete,
   batchDemoStageAfterSmmClipsFolder,
   createClipReviewGateTicket,
-  createPreSplitGateTicket,
   createSplitDeliverableTicket,
   patchBatchDemoStage,
   videoStateFromDemoStage,
@@ -96,11 +92,6 @@ type AdminWorkspaceContextValue = {
   updateBrandGuidelines: (input: UpdateBrandGuidelinesInput) => void
   setVideoDeadline: (videoId: string, deadlineAt: string | null) => void
   setVideoOwner: (videoId: string, owner: VideoPipelineOwner) => void
-  submitBatchIntake: (
-    batchId: string,
-    path: BatchIntakePath,
-    url: string,
-  ) => void
   approveBatchClips: (batchId: string, clipReviewVideoId: string) => void
   rejectBatchClips: (
     batchId: string,
@@ -391,66 +382,6 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
       )
     },
     [],
-  )
-
-  const submitBatchIntake = useCallback(
-    (batchId: string, path: BatchIntakePath, url: string) => {
-      const now = new Date().toISOString().slice(0, 10)
-      const trimmed = url.trim()
-      if (!trimmed) return
-
-      const batchSnapshot = batches.find((b) => b.id === batchId)
-      if (!batchSnapshot) return
-
-      const batchDemoStage = batchDemoStageAfterIntake(path)
-      const clipReviewPhase = batchClipReviewPhaseAfterIntake(path)
-
-      setBatches((prev) =>
-        prev.map((b) => {
-          if (b.id !== batchId) return b
-          if (path === 'clips_ready') {
-            return patchBatchDemoStage(
-              {
-                ...b,
-                intakePath: path,
-                clipsFolderUrl: trimmed,
-                clipReviewPhase,
-                updatedAt: now,
-              },
-              batchDemoStage,
-            )
-          }
-          return patchBatchDemoStage(
-            {
-              ...b,
-              intakePath: path,
-              sourceMediaUrl: trimmed,
-              footageUrl: trimmed,
-              clipReviewPhase,
-              updatedAt: now,
-            },
-            batchDemoStage,
-          )
-        }),
-      )
-
-      if (path === 'clips_ready') {
-        const gateId = `v-gate-${batchId}-${Date.now()}`
-        const gate = createPreSplitGateTicket(
-          { ...batchSnapshot, clipsFolderUrl: trimmed, clipReviewPhase: 'approved' },
-          gateId,
-          'clips_ready_intake',
-        )
-        setVideos((prev) => [
-          gate,
-          ...prev.filter((v) => v.batchId !== batchId),
-        ])
-      } else {
-        setVideos((prev) => prev.filter((v) => v.batchId !== batchId))
-      }
-      invalidateWorkspace()
-    },
-    [batches, invalidateWorkspace],
   )
 
   const approveBatchClips = useCallback(
@@ -1015,7 +946,6 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
       updateBrandGuidelines,
       setVideoDeadline,
       setVideoOwner,
-      submitBatchIntake,
       approveBatchClips,
       rejectBatchClips,
       applyClientVideoDecision,
@@ -1046,7 +976,6 @@ export function AdminWorkspaceProvider({ children }: { children: ReactNode }) {
       updateBrandGuidelines,
       setVideoDeadline,
       setVideoOwner,
-      submitBatchIntake,
       approveBatchClips,
       rejectBatchClips,
       applyClientVideoDecision,

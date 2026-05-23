@@ -10,17 +10,14 @@ from app.db.session import get_session_factory
 from app.models.batch import Batch
 from app.models.client_profile import ClientProfile
 from app.models.enums import (
-    BatchIntakePath,
     BatchStatus,
     BrandGuidelinesSource,
     ClientAccountStatus,
     EmployeeKind,
     PipelineStage,
     UserRole,
-    VideoPipelineOwner,
 )
 from app.models.user import User
-from app.models.video_ticket import VideoTicket
 from app.services.auth_service import normalize_email, upsert_user
 
 DEMO_PASSWORD = "demo1234"
@@ -146,21 +143,12 @@ async def seed_demo_client_data(session, users: dict[str, User]) -> None:
             status=BatchStatus.active,
             pipeline_stage=PipelineStage.intake_pending,
             video_count=0,
-            intake_path=BatchIntakePath.source_media,
+            intake_path=None,
+            clip_review_phase=None,
             credit_cost=5,
             credits_debited=False,
         )
         session.add(batch)
-        await session.flush()
-        gate = VideoTicket(
-            batch_id=batch.id,
-            client_id=profile.id,
-            title="Clip review",
-            pipeline_stage=PipelineStage.intake_pending,
-            pipeline_owner=VideoPipelineOwner.client,
-            stage_label="Awaiting intake",
-        )
-        session.add(gate)
         print("Demo batch: created July Deep Dive (intake_pending)")
 
 

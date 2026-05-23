@@ -1,7 +1,7 @@
 # Backend plan: B3 — Client intake
 
 **Epic:** B3  
-**Status:** Storage reconciled  
+**Status:** Done  
 **Depends on:** [B0](./B0-auth-and-core-schema.md), [B2](./B2-read-models-boards.md)  
 **Blocks:** B4 (SMM clips folder assumes intake complete on podcast path)  
 **Index:** [`README.md`](./README.md)
