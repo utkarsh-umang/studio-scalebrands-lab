@@ -12,6 +12,8 @@
 
 Establish real authentication (JWT + role guards), a unified `users` table linked to client and staff identities, and baseline Postgres models for `client_profiles`, `batches`, and `video_tickets` with canonical pipeline enums. Ship `POST /auth/login` and `GET /auth/me` so the frontend can replace `MockAuthProvider` incrementally; full login cutover may finish in B11, but the API contract and schema must be stable after B0.
 
+**Account creation (v1):** There is **no public self-service sign-up** (`POST /auth/register` is out of scope). The **first admin** is created from **environment variables** at seed/bootstrap time. **Editors and SMMs** are created by an authenticated admin via **`POST /admin/staff`** in [B1](./B1-admin-clients-batches.md) (same pattern as client provision). **Clients** are provisioned in B1 via `POST /admin/clients`.
+
 B0 does **not** implement board reads, batch mutations, or Drive sync — those are B1+.
 
 ---
@@ -51,6 +53,42 @@ Align with [`problem-context.md`](../problem-context.md) access table; Path A fe
 
 ---
 
+## Account provisioning (v1)
+
+There is **no sign-up API** on `/auth/*` for any role. Login is **authentication only** (`POST /auth/login`).
+
+| Role | How the account is created | Who can create it |
+|------|----------------------------|-------------------|
+| **Admin** | **Bootstrap seed** from `.env` (idempotent: create if no `role=admin` exists) | Ops / deploy — not via HTTP in production |
+| **Editor / SMM** | **`POST /admin/staff`** (B1) — inserts `users` with `role=employee`, `employee_kind` | Logged-in **admin** only |
+| **Client** | **`POST /admin/clients`** (B1) — inserts `client_profiles` + `users` | Logged-in **admin** only |
+
+### Bootstrap admin (B0 seed)
+
+Read from `Settings` / monorepo `.env` (see `.env.example`):
+
+| Variable | Purpose |
+|----------|---------|
+| `BOOTSTRAP_ADMIN_EMAIL` | Email for the first admin login (e.g. `admin@scalebrandslab.demo`) |
+| `BOOTSTRAP_ADMIN_PASSWORD` | Plaintext **only in env** — hashed into `users.password_hash` at seed; never stored in code |
+| `BOOTSTRAP_ADMIN_DISPLAY_NAME` | Optional; default `"Studio Admin"` |
+| `SEED_DEMO_USERS` | Optional `true` — also seed prototype quartet (client, editor, smm, admin) with password `demo1234` for local QA |
+
+**Seed command** (implementation): `poetry run python -m app.scripts.seed` or Alembic post-migration hook — runs after `alembic upgrade head`.
+
+**Idempotency:**
+
+- If any user with `role=admin` exists → skip bootstrap admin insert (do not overwrite password).
+- If `SEED_DEMO_USERS=true` → upsert demo emails from [`README.md`](./README.md) demo table (dev only; disable in production).
+
+**Production:** Set `BOOTSTRAP_ADMIN_*` in secrets manager / deploy env; set `SEED_DEMO_USERS=false`. Do **not** expose an HTTP endpoint that creates admins.
+
+### Optional demo staff (dev only)
+
+When `SEED_DEMO_USERS=true`, seed editor + SMM accounts so team pickers work before you call `POST /admin/staff`. In production without demo seed, create staff explicitly via B1 after first admin login.
+
+---
+
 ## Mock inventory
 
 | Symbol | File | Consumers | B0 persistence |
@@ -62,7 +100,7 @@ Align with [`problem-context.md`](../problem-context.md) access table; Path A fe
 | `readStoredUser` / `writeStoredUser` | `auth/mockAuthStorage.ts` | Session | JWT in `localStorage` or httpOnly cookie (decide in open questions) |
 | `MOCK_ADMIN_CLIENT_PROFILES` | `mockData/adminWorkspace.ts` | Boards, admin | `client_profiles` (schema only; seed in B0/B1) |
 | `AdminClientProfile.loginId` / `.password` | `mockData/adminWorkspace.ts` | Admin credentials UI | Client user `email` = loginId; password on `users` only |
-| `MOCK_STAFF_SMM` / `MOCK_STAFF_EDITORS` | `mockData/adminWorkspace.ts` | Admin team pickers | Staff are `users` with `employee_kind` |
+| `MOCK_STAFF_SMM` / `MOCK_STAFF_EDITORS` | `mockData/adminWorkspace.ts` | Admin team pickers | `users` with `employee_kind`; **create via `POST /admin/staff` (B1)** or `SEED_DEMO_USERS` |
 | `MOCK_ADMIN_BATCH_FOLDERS` | `mockData/adminWorkspace.ts` | All boards | `batches` (minimal columns + seed) |
 | `MOCK_ADMIN_VIDEO_TICKETS` | `mockData/adminWorkspace.ts` | Kanban | `video_tickets` (minimal columns + seed) |
 | `PathBDemoStage` | `mockData/pathBDemoScenarios.ts` | State machine, demos | `pipeline_stage` enum (batch and/or ticket) |
@@ -150,7 +188,8 @@ Reference implementation today: [`pathBStateMachine.ts`](../../frontend/src/lib/
 |-----------------|--------|
 | `demoStage` on batch/ticket | Replace with `pipeline_stage` enum |
 | Plaintext `password` in mocks | Hash in `users.password_hash`; admin “show password” only at provision time (B1) |
-| `MOCK_USERS` in runtime login | Dev seed script only |
+| `MOCK_USERS` in runtime login | Dev seed (`SEED_DEMO_USERS`) or bootstrap env only |
+| Public `POST /auth/register` | **Excluded** — no self-service signup |
 | `sessionStorage` user blob | JWT + `/me` |
 | `loginId` vs `email` for clients | Single `users.email`; provision sets email = former loginId |
 | `assignedSmmName` / `assignedEditorName` | Denormalized UI only → JOIN `users` in read APIs (B2) |
@@ -175,20 +214,21 @@ Canonical design: [00-storage-design.md](./00-storage-design.md) §§ [3.1–3.4
 | Auth | `users` + JWT; `get_current_user`, `require_roles` |
 | Enums | All §4 enums in Alembic wave 1 |
 | Core DDL | `users`, `client_profiles`, `batches`, `video_tickets` (columns per canonical; optional `credit_adjustments` table if created in B0/B1) |
-| Dev seed | Demo users (hashed `demo1234`), `c-1` subset; API IDs are UUID (no `legacy_id` column in v1 — D4) |
+| Bootstrap admin | `BOOTSTRAP_ADMIN_*` env → one `users` row `role=admin` (idempotent seed) |
+| Dev seed | Optional `SEED_DEMO_USERS` + `c-1` batch subset; API IDs are UUID (D4) |
 | Mongo / Redis | None (§§ 7–8) |
 
 **API DTOs:** Responses use `pipelineStage` / `pipelineOwner` — not client-writable `demoStage` (conflict #3).
 
-### Dev seed
+### Dev seed / bootstrap
 
-Script or Alembic data migration loading:
+`app/scripts/seed.py` (or equivalent), invoked after migrations:
 
-- 4 users from `MOCK_USERS` (hashed `demo1234` in local only)
-- 3 client profiles `c-1`..`c-3` from `MOCK_ADMIN_CLIENT_PROFILES` (minimal)
-- Subset of Path B demo batches/tickets for `c-1` from `pathBDemoScenarios.ts` / `MOCK_ADMIN_*` (enough for login smoke tests; full catalog optional)
+1. **Bootstrap admin** — always attempt if no admin exists: read `BOOTSTRAP_ADMIN_EMAIL` / `BOOTSTRAP_ADMIN_PASSWORD` from settings; fail fast if password missing when bootstrap is required.
+2. **Demo users** — if `SEED_DEMO_USERS=true`: insert/update 4 logins from [`README.md`](./README.md) demo table (hashed `demo1234`).
+3. **Demo data** — client profiles `c-1`..`c-3` + Path B batches/tickets for `c-1` (minimal set for smoke tests; full catalog optional).
 
-Use UUIDs in DB; API may accept legacy string ids during transition if needed — prefer UUID everywhere.
+Use UUIDs in DB. Document seeded emails in README; do not hardcode passwords in source — only in `.env` / `SEED_DEMO_USERS` path.
 
 ---
 
@@ -247,6 +287,7 @@ Base path: `/api/v1` (`API_V1_STR`).
 | `require_roles("admin")` | Factory returning dependency |
 | Password hashing | `app/services/auth_service.py` or `app/utils/security.py` |
 | JWT settings | `SECRET_KEY`, `ACCESS_TOKEN_EXPIRE_MINUTES` in `Settings` |
+| Bootstrap admin | `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_PASSWORD`, `BOOTSTRAP_ADMIN_DISPLAY_NAME`, `SEED_DEMO_USERS` in `Settings` |
 
 Register router: `app/controllers/auth.py` → `api_v1_router`.
 
@@ -254,6 +295,8 @@ Register router: `app/controllers/auth.py` → `api_v1_router`.
 
 | Planned | Epic |
 |---------|------|
+| `POST /auth/register` (public signup) | **Out of scope v1** |
+| `POST /admin/staff` (provision editor/SMM) | B1 |
 | CRUD clients/batches | B1 |
 | Board list/detail | B2 |
 | All pipeline commands | B3–B9 |
@@ -307,16 +350,18 @@ Regenerate client after OpenAPI: `task frontend:generate-client`.
 | 5 | `stage_label` stored or computed? | **Resolved:** Stored on each transition for stable sorts ([§12](./00-storage-design.md#12-open-questions) #3) |
 | 6 | Client decommissioned — block login? | Yes, `is_active=false` + `account_status` |
 | 7 | Admin creates client password (B1) | Return once; store hash only |
+| 8 | How to create first admin in prod? | `BOOTSTRAP_ADMIN_*` env + seed script only — no signup API |
+| 9 | How to create editor/SMM? | `POST /admin/staff` (B1) after admin login |
 
 ---
 
 ## Suggested implementation order (B0 execution)
 
-1. **Settings** — `ACCESS_TOKEN_EXPIRE_MINUTES`, JWT algorithm.  
+1. **Settings** — `ACCESS_TOKEN_EXPIRE_MINUTES`, JWT algorithm; `BOOTSTRAP_ADMIN_*`, `SEED_DEMO_USERS`.  
 2. **Enums** — SQLAlchemy/SQLModel enum types in `app/models/enums.py`.  
 3. **Models** — `User`, `ClientProfile`, `Batch`, `VideoTicket` + `app/models/__init__.py`.  
 4. **Alembic** — `revision --autogenerate` + review; upgrade head.  
-5. **Seed** — dev users + minimal `c-1` batch (optional full demo catalog).  
+5. **Seed** — bootstrap admin from env; optional demo users + minimal `c-1` batch.  
 6. **Auth service** — hash verify, token create/decode.  
 7. **Implement `get_current_user` / `require_roles`**.  
 8. **Schemas** — `LoginRequest`, `LoginResponse`, `MeResponse`.  
@@ -335,6 +380,8 @@ Regenerate client after OpenAPI: `task frontend:generate-client`.
 - [x] Single state owner: `pipeline_stage` + `pipeline_owner` in Postgres (not `demoStage`)  
 - [x] `MeResponse` sufficient for `ProtectedRoute` + `homePathForUser` without UI redesign  
 - [x] Passwords and Drive called out  
+- [x] Bootstrap admin from env documented; no public register endpoint  
+- [x] Staff provisioning deferred to B1 `POST /admin/staff`  
 
 ---
 

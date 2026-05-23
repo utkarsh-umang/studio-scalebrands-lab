@@ -10,7 +10,7 @@
 
 ## Summary
 
-Give admins API-backed control over **client accounts** (provision, decommission, credits, team assignment, brand guidelines) and **batch folder creation** with `creditCost`. Provisioning atomically creates a `client_profiles` row plus a `users` login (hashed password). New batches start in `intake_pending` with no video tickets until later epics. Admin workspace and client detail pages stop mutating `adminWorkspaceStore` for these flows; pipeline overview and kanban on client detail may still consume **read** data from B1 admin endpoints (tickets empty or seeded until B2 unifies cross-role reads).
+Give admins API-backed control over **client accounts** (provision, decommission, credits, team assignment, brand guidelines), **staff accounts** (provision Editor and SMM logins), and **batch folder creation** with `creditCost`. Client provisioning atomically creates a `client_profiles` row plus a `users` login (hashed password). Staff provisioning creates a `users` row with `role=employee` and `employee_kind` (`editor` | `smm`) — this is the v1 “sign-up” path for internal employees (admin-only, not public self-registration). The **admin login itself** is **not** created via API; it comes from B0 bootstrap seed (`BOOTSTRAP_ADMIN_*` in `.env`). New batches start in `intake_pending` with no video tickets until later epics.
 
 ---
 
@@ -48,6 +48,7 @@ Non-admin must receive `403` (not `404`) on admin paths.
 | Assign SMM + Editor | Team editor on detail | `PATCH /admin/clients/{id}/team` |
 | Edit brand guidelines | Guidelines editor | `PATCH /admin/clients/{id}/brand-guidelines` |
 | List staff for pickers | Team `<select>` | `GET /admin/staff` |
+| Provision editor or SMM | API / admin tooling (no UI in prototype v1) | `POST /admin/staff` |
 | Create batch folder | `CreateBatchFolderModal` | `POST /admin/clients/{id}/batches` |
 | List client batches | Detail sidebar | `GET /admin/clients/{id}/batches` |
 | Pipeline summary + items | `AdminPipelineOverview` | `GET /admin/pipeline` (derived server-side) |
@@ -68,7 +69,8 @@ Non-admin must receive `403` (not `404`) on admin paths.
 | `assignedSmmId` / `assignedEditorId` | `adminWorkspace.ts` | Team, `batchAccess` | FK on `client_profiles` |
 | `assignedSmmName` / `assignedEditorName` | `adminWorkspace.ts` | Labels | JOIN `users.display_name` in responses |
 | `brandGuidelines` | `adminWorkspace.ts` | Detail page | Columns on `client_profiles` (B0) |
-| `MOCK_STAFF_SMM` / `MOCK_STAFF_EDITORS` | `adminWorkspace.ts` | Team pickers | Query `users` where `role=employee` |
+| `MOCK_STAFF_SMM` / `MOCK_STAFF_EDITORS` | `adminWorkspace.ts` | Team pickers | `GET /admin/staff`; create via `POST /admin/staff` |
+| *(no store action)* | — | New employee accounts | `POST /admin/staff` (B1) |
 | `MOCK_ADMIN_BATCH_FOLDERS` | `adminWorkspace.ts` | Admin detail, pipeline | `batches` |
 | `createBatchFolder` | `adminWorkspaceStore.tsx` | `CreateBatchFolderModal` | `POST .../batches` |
 | `provisionClient` | `adminWorkspaceStore.tsx` | `ProvisionClientModal` | `POST /admin/clients` |
@@ -109,12 +111,49 @@ erDiagram
 
 **B1 creates/updates:**
 
-- `users` — client login on provision; `is_active=false` on decommission  
+- `users` — client login on provision; employee login on staff provision; `is_active=false` on decommission  
 - `client_profiles` — business record, credits, team, guidelines, status  
 - `batches` — new folder per `createBatchFolder`  
 - *(optional)* `credit_adjustments` — ledger row per top-up  
 
-**B1 does not create** `video_tickets` for new batches (client intake in B3 may later create gate tickets).
+**B1 does not create** `video_tickets` for new batches (client intake in B3 may later create gate tickets). **B1 does not create admin users** — see [B0 bootstrap](./B0-auth-and-core-schema.md#account-provisioning-v1).
+
+### Provision staff — Editor / SMM (transaction)
+
+`POST /admin/staff` — admin-only. Creates internal employee login (v1 substitute for “employee sign-up”).
+
+Single DB transaction:
+
+1. Insert `users` (`role=employee`, `employee_kind` = `editor` | `smm`, `email`, `password_hash`, `display_name`, `is_active=true`, `client_profile_id=NULL`).
+
+**`ProvisionStaffRequest`:**
+
+```json
+{
+  "email": "jane.editor@scalebrandslab.com",
+  "displayName": "Jane Editor",
+  "password": "generated-or-entered",
+  "employeeKind": "editor"
+}
+```
+
+**`ProvisionStaffResponse`:**
+
+```json
+{
+  "staff": { "id": "uuid", "name": "Jane Editor", "role": "editor" },
+  "credentials": {
+    "email": "jane.editor@scalebrandslab.com",
+    "password": "plaintext-once-only"
+  }
+}
+```
+
+**Validation:** unique email (case-insensitive); `employeeKind` ∈ `{ editor, smm }`; password min length; reject `employeeKind=admin` (admins only via bootstrap).
+
+**UI v1:** No prototype modal — call via OpenAPI/curl/Postman or add minimal admin “Add staff” later. Team pickers consume `GET /admin/staff` after provision.
+
+**Not in v1:** `POST /auth/register`, self-service employee signup, decommission staff endpoint (defer; set `is_active=false` manually in DB if needed).
 
 ### Provision client (transaction)
 
@@ -220,6 +259,7 @@ Canonical design: [00-storage-design.md](./00-storage-design.md) §§ [3.2](./00
 | Area | Detail |
 |------|--------|
 | Tables | No new core tables — uses B0 `users`, `client_profiles`, `batches` |
+| Staff rows | `users` only (`role=employee`, `employee_kind`); no separate `staff` table |
 | `credit_adjustments` | Recommended audit table; `kind`: `top_up` (B1), `debit_batch` (B9) — §3.6 |
 | Batch create | `footageUrl` in request → `batches.source_media_url` (conflict #5); `pipeline_stage=intake_pending` |
 | Concurrency | `SELECT … FOR UPDATE` (or serializable tx) when allocating `batch_number` |
@@ -242,6 +282,8 @@ Base: `/api/v1`. All routes require admin JWT unless noted.
 | GET | `/admin/clients/{client_id}/batches/{batch_id}/videos` | `AdminVideoTicketResponse[]` | `getVideosForBatch` (read-only; often `[]` for new batches) |
 | GET | `/admin/staff` | `StaffListResponse` | `MOCK_STAFF_SMM` + `MOCK_STAFF_EDITORS` |
 | GET | `/admin/pipeline` | `{ summary, items }` | `computeAdminPipelineSummary` + `listAdminPipelineItems` |
+
+`GET /admin/staff` returns `{ smm: StaffMember[], editors: StaffMember[] }` or flat list grouped by `employeeKind` — match OpenAPI/codegen preference.
 
 **`AdminClientListResponse` row** (per client):
 
@@ -271,6 +313,7 @@ Base: `/api/v1`. All routes require admin JWT unless noted.
 | Method | Path | Body | Effects | Replaces |
 |--------|------|------|---------|----------|
 | POST | `/admin/clients` | `ProvisionClientRequest` | profile + user + credits | `provisionClient` |
+| POST | `/admin/staff` | `ProvisionStaffRequest` | employee user | *(new — provision editor/SMM)* |
 | POST | `/admin/clients/{id}/credits/top-up` | `{ amount: number }` | balance += amount | `topUpCredits` |
 | POST | `/admin/clients/{id}/decommission` | `{ reason: string }` | status, deactivate user | `decommissionClient` |
 | PATCH | `/admin/clients/{id}/team` | `{ smmId, editorId }` | FK updates | `updateClientTeam` |
@@ -317,6 +360,8 @@ Base: `/api/v1`. All routes require admin JWT unless noted.
 | Case | Status |
 |------|--------|
 | Duplicate login email | `409` |
+| Duplicate staff email on `POST /admin/staff` | `409` |
+| Invalid `employeeKind` on staff provision | `422` |
 | Decommissioned client mutation | `422` |
 | Invalid staff ids | `422` |
 | `creditCost <= 0` | `422` |
@@ -329,6 +374,7 @@ Base: `/api/v1`. All routes require admin JWT unless noted.
 |--------|----------|
 | `app/schemas/admin.py` | Request/response models |
 | `app/services/admin_clients_service.py` | Provision, decommission, credits, team, guidelines |
+| `app/services/admin_staff_service.py` | Provision employee (`editor` / `smm`) |
 | `app/services/admin_batches_service.py` | Create batch, list batches |
 | `app/services/admin_pipeline_service.py` | Port `adminPipeline.ts` logic |
 | `app/controllers/admin.py` | Router prefix `/admin` |
@@ -384,8 +430,10 @@ All `/admin/*` routes: **admin** only. Enforced server-side; `ProtectedRoute por
 | 2 | Auto-generate client password vs admin-entered? | Support both; optional `generatePassword: true` |
 | 3 | `loginId` without `@`? | Validate as email per spec; or relax to unique username |
 | 4 | Pipeline on B1 without tickets | New batches → owner `client`, stage “Awaiting client intake” via `batchNeedsClientIntake` logic |
-| 5 | Link provisioned user to `MOCK_USERS` seed | Dev seed only; prod uses API |
+| 5 | Link provisioned user to `MOCK_USERS` seed | Dev: `SEED_DEMO_USERS`; prod: bootstrap admin + `POST /admin/staff` |
 | 6 | Admin kanban on detail still needs videos | `GET .../videos` returns `[]` until pipeline creates tickets |
+| 7 | Admin UI for “Add staff” | v1: API-only; optional admin modal later |
+| 8 | Creating additional admins | Out of v1 — only bootstrap env + manual DB if needed |
 
 ---
 
@@ -395,7 +443,7 @@ All `/admin/*` routes: **admin** only. Enforced server-side; `ProtectedRoute por
 2. `admin_clients_service.provision` (transaction + hash password).  
 3. `POST /admin/clients`, `GET /admin/clients`, `GET /admin/clients/{id}`.  
 4. Top-up, decommission, team, guidelines PATCH/POST endpoints.  
-5. `GET /admin/staff`.  
+5. `GET /admin/staff` + `POST /admin/staff` (provision editor/SMM).  
 6. `admin_batches_service.create_batch` + list batches.  
 7. `GET .../videos` (read mapper from `video_tickets`).  
 8. `admin_pipeline_service` + `GET /admin/pipeline`.  
@@ -414,6 +462,8 @@ All `/admin/*` routes: **admin** only. Enforced server-side; `ProtectedRoute por
 - [x] Password only on provision response  
 - [x] Response shapes cover `AdminClientsTable`, detail page, modals without redesign  
 - [x] Batch create aligns with Path B spec (intake pending, optional admin footage URL)  
+- [x] Staff provision (`POST /admin/staff`) documented; admin bootstrap remains B0 env seed  
+- [x] No public `/auth/register`  
 
 ---
 

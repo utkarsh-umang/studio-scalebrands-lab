@@ -78,7 +78,8 @@ B10 can be implemented any time after B2 (deadlines/pipeline reads), but keeping
 | Area | Build |
 |------|--------|
 | Auth | Implement `get_current_user`, JWT/session, `require_roles` in `app/core/auth.py` |
-| Users | Staff (editor/smm) + client login accounts; role enum |
+| Bootstrap admin | Seed first admin from `BOOTSTRAP_ADMIN_*` in `.env` (no signup API) |
+| Users | Role enum; optional `SEED_DEMO_USERS` for local quartet |
 | Core entities | `client_profiles`, `batches`, `video_tickets` (minimal columns — extended in later epics) |
 | API | `GET /api/v1/me` |
 | Tests | Auth + role guard smoke tests |
@@ -99,6 +100,7 @@ B10 can be implemented any time after B2 (deadlines/pipeline reads), but keeping
 
 | Commands | Store / mock |
 |----------|----------------|
+| Provision editor / SMM | `POST /admin/staff` *(new — no prototype store action)* |
 | Provision / decommission client | `provisionClient`, `decommissionClient` |
 | Top-up credits | `topUpCredits` |
 | Update team, brand guidelines | `updateClientTeam`, `updateBrandGuidelines` |
@@ -300,12 +302,26 @@ When writing each `B*.md` with `prototype-to-backend-planner`, include:
 
 ## Demo reference (implementation)
 
+### First admin (production-style)
+
+Set in `.env` before `alembic upgrade` + seed:
+
+| Variable | Example |
+|----------|---------|
+| `BOOTSTRAP_ADMIN_EMAIL` | `admin@yourcompany.com` |
+| `BOOTSTRAP_ADMIN_PASSWORD` | *(strong secret — not committed)* |
+| `SEED_DEMO_USERS` | `false` in prod; `true` locally for table below |
+
+### Demo logins (`SEED_DEMO_USERS=true` only)
+
 | Role | Email | Password |
 |------|-------|------------|
 | Client | `client@scalebrandslab.demo` | `demo1234` |
 | Editor | `editor@scalebrandslab.demo` | `demo1234` |
 | SMM | `smm@scalebrandslab.demo` | `demo1234` |
 | Admin | `admin@scalebrandslab.demo` | `demo1234` |
+
+Create additional editors/SMMs with **`POST /api/v1/admin/staff`** (admin JWT) — see [B1 plan](./B1-admin-clients-batches.md).
 
 Primary seed client: **c-1** (TechWithTim). See `frontend/mockData/pathBDemoScenarios.ts`.
 

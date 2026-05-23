@@ -22,6 +22,13 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "change-me-in-production"
     CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:5174"]
     API_V1_STR: str = "/api/v1"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+
+    # ── Auth bootstrap (B0 seed — see context/backend-plans/B0-auth-and-core-schema.md) ──
+    BOOTSTRAP_ADMIN_EMAIL: str = "admin@scalebrandslab.demo"
+    BOOTSTRAP_ADMIN_PASSWORD: str = "change-me-local-only"
+    BOOTSTRAP_ADMIN_DISPLAY_NAME: str = "Studio Admin"
+    SEED_DEMO_USERS: bool = True
 
     # ── Postgres ──
     POSTGRES_HOST: str = "localhost"
