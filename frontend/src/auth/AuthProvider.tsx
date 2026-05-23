@@ -6,6 +6,7 @@ import {
   type ReactNode,
 } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 import { OpenAPI } from '@/client'
 import { useLoginMutation } from '@/hooks/api/auth/useLoginMutation'
 import { useMeQuery } from '@/hooks/api/auth/useMeQuery'
@@ -25,30 +26,36 @@ function syncOpenApiToken() {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const [bootstrapped, setBootstrapped] = useState(false)
+  const [hasToken, setHasToken] = useState(() => !!readAccessToken())
   const loginMutation = useLoginMutation()
-  const meQuery = useMeQuery(bootstrapped)
+  const meQuery = useMeQuery(bootstrapped && hasToken)
 
   useEffect(() => {
     syncOpenApiToken()
+    setHasToken(!!readAccessToken())
     setBootstrapped(true)
   }, [])
 
   useEffect(() => {
-    if (bootstrapped && readAccessToken() && meQuery.isError) {
+    if (bootstrapped && hasToken && meQuery.isError) {
       clearAccessToken()
       syncOpenApiToken()
+      setHasToken(false)
       void queryClient.removeQueries({ queryKey: ['me'] })
+      navigate('/login', { replace: true })
     }
-  }, [bootstrapped, meQuery.isError, queryClient])
+  }, [bootstrapped, hasToken, meQuery.isError, queryClient, navigate])
 
   const user: AuthUser | null = useMemo(() => {
+    if (!hasToken) return null
     if (meQuery.data) return mapMeToAuthUser(meQuery.data)
     return null
-  }, [meQuery.data])
+  }, [hasToken, meQuery.data])
 
   const isLoading =
-    bootstrapped && !!readAccessToken() && meQuery.isLoading && !meQuery.data
+    bootstrapped && hasToken && meQuery.isLoading && !meQuery.data
 
   const login = useCallback<AuthContextValue['login']>(
     async (email, password) => {
@@ -56,6 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const result = await loginMutation.mutateAsync({ email, password })
         writeAccessToken(result.accessToken)
         syncOpenApiToken()
+        setHasToken(true)
         queryClient.setQueryData(['me'], result.user)
         const next = mapMeToAuthUser(result.user)
         return { ok: true, user: next }
@@ -72,8 +80,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     clearAccessToken()
     syncOpenApiToken()
+    setHasToken(false)
     void queryClient.removeQueries({ queryKey: ['me'] })
-  }, [queryClient])
+    void queryClient.removeQueries({ queryKey: ['workspace'] })
+    navigate('/login', { replace: true })
+  }, [queryClient, navigate])
 
   const value = useMemo<AuthContextValue>(
     () => ({ user, isLoading, login, logout }),
