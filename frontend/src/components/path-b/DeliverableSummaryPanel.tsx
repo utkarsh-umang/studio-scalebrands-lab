@@ -92,7 +92,9 @@ export function DeliverableSummaryPanel({
     defaultOpenSections.join(','),
   ])
 
-  const clipEntry = getMediaEntry(batch.id, 'clips', deliverableIndex)
+  const clipEntry = manifest
+    ? manifest.clips.find((c) => c.index === deliverableIndex)
+    : getMediaEntry(batch.id, 'clips', deliverableIndex)
   const videoEntry = manifest
     ? manifest.videos.find((v) => v.index === deliverableIndex)
     : getMediaEntry(batch.id, 'videos', deliverableIndex)
