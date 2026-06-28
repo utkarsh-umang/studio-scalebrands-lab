@@ -52,6 +52,9 @@ class Settings(BaseSettings):
     GCP_PROJECT_ID: str | None = None
     GCP_SECRET_NAME: str | None = None
 
+    # ── Google Drive (service account for live manifest fetch) ──
+    GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON: str | None = None
+
     @property
     def DATABASE_URL(self) -> str:
         return (

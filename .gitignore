@@ -38,3 +38,5 @@ openapi.json
 **/secrets/
 *.json
 .cursor
+.gstack/
+docker-compose.override.yml
