@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { DriveDiagnosticsDto } from './DriveDiagnosticsDto';
 import type { DriveMediaEntryDto } from './DriveMediaEntryDto';
 import type { DriveUnmappedEntryDto } from './DriveUnmappedEntryDto';
 export type BatchDriveManifestResponse = {
@@ -11,5 +12,6 @@ export type BatchDriveManifestResponse = {
     videos?: Array<DriveMediaEntryDto>;
     thumbnails?: Array<DriveMediaEntryDto>;
     unmapped?: Array<DriveUnmappedEntryDto>;
+    diagnostics?: (DriveDiagnosticsDto | null);
 };
 

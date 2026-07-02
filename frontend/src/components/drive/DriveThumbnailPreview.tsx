@@ -1,5 +1,10 @@
+import { useState } from 'react'
 import { ExternalLink } from 'lucide-react'
-import { driveFileViewUrl, driveThumbnailUrl } from '@/lib/driveMedia'
+import {
+  driveFileViewUrl,
+  driveStreamUrl,
+  driveThumbnailUrl,
+} from '@/lib/driveMedia'
 
 type Props = {
   driveFileId: string
@@ -7,7 +12,11 @@ type Props = {
 }
 
 export function DriveThumbnailPreview({ driveFileId, fileName }: Props) {
-  const imgUrl = driveThumbnailUrl(driveFileId)
+  // Stream via the backend proxy first; fall back to the Google thumbnail URL.
+  const [streamFailed, setStreamFailed] = useState(false)
+  const imgUrl = streamFailed
+    ? driveThumbnailUrl(driveFileId)
+    : driveStreamUrl(driveFileId)
   const viewUrl = driveFileViewUrl(driveFileId)
 
   return (
@@ -17,6 +26,9 @@ export function DriveThumbnailPreview({ driveFileId, fileName }: Props) {
           src={imgUrl}
           alt={fileName ?? 'Thumbnail preview'}
           className="max-h-[min(48vh,460px)] w-auto max-w-full object-contain"
+          onError={() => {
+            if (!streamFailed) setStreamFailed(true)
+          }}
         />
       </div>
       <a

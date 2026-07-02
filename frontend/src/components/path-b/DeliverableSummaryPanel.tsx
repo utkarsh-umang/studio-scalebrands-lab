@@ -12,7 +12,7 @@ import { DriveSyncButton } from '@/components/path-b/DriveSyncButton'
 import type { BatchDriveManifest } from '@/lib/driveMedia'
 import {
   driveFileViewUrl,
-  driveThumbnailUrl,
+  driveStreamUrl,
   getMediaEntry,
 } from '@/lib/driveMedia'
 import type { DeliverableReadiness } from '@/lib/pathBDeliverables'
@@ -243,7 +243,7 @@ export function DeliverableSummaryPanel({
               <div className="flex w-full flex-col items-center">
                 <div className={deliverablePortraitPlayerBoxClass} dir="ltr">
                   <img
-                    src={driveThumbnailUrl(thumbEntry.driveFileId)}
+                    src={driveStreamUrl(thumbEntry.driveFileId)}
                     alt={thumbEntry.name}
                     className={qaPortraitVideoInnerClass}
                   />

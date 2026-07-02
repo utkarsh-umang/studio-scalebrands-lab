@@ -3,9 +3,23 @@ import {
   type BatchDriveManifest,
   type DriveMediaEntry,
 } from '@mockData/driveManifests'
+import { readAccessToken } from '@/auth/authTokenStorage'
+import { apiBaseUrl } from '@/config/api'
 import type { AdminVideoTicket, QaMediaSlot } from '@/types/pathB'
 
 export type { BatchDriveManifest, DriveMediaEntry }
+
+/**
+ * Backend media proxy — streams the file via the service account so the viewer
+ * never needs a Google login. Token goes in the query string because native
+ * <video>/<img> elements can't send an Authorization header.
+ */
+export function driveStreamUrl(fileId: string): string {
+  const base = apiBaseUrl.replace(/\/$/, '').replace(/\/api\/v1$/, '')
+  const token = readAccessToken()
+  const query = token ? `?access_token=${encodeURIComponent(token)}` : ''
+  return `${base}/api/v1/drive/files/${fileId}/content${query}`
+}
 
 export function parseDriveFolderId(url: string): string | null {
   const m = url.match(/\/folders\/([a-zA-Z0-9_-]+)/)

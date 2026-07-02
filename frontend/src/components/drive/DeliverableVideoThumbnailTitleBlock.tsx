@@ -6,7 +6,7 @@ import {
 } from '@/components/drive/DriveVideoPreview'
 import {
   driveFileViewUrl,
-  driveThumbnailUrl,
+  driveStreamUrl,
 } from '@/lib/driveMedia'
 import {
   qaPortraitChromeClass,
@@ -49,7 +49,7 @@ export function DeliverableVideoThumbnailTitleBlock({
     ? driveFileViewUrl(thumbnailDriveFileId)
     : undefined
   const thumbSrc = thumbnailDriveFileId
-    ? driveThumbnailUrl(thumbnailDriveFileId)
+    ? driveStreamUrl(thumbnailDriveFileId)
     : undefined
 
   return (

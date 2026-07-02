@@ -40,6 +40,9 @@ export type { DecommissionClientRequest } from './models/DecommissionClientReque
 export type { DeliverableDriveSyncRequest } from './models/DeliverableDriveSyncRequest';
 export type { DeliverableReadinessDto } from './models/DeliverableReadinessDto';
 export type { DeliverableTitleInput } from './models/DeliverableTitleInput';
+export type { DriveClipsDiagnosticsDto } from './models/DriveClipsDiagnosticsDto';
+export type { DriveDeliverablesDiagnosticsDto } from './models/DriveDeliverablesDiagnosticsDto';
+export type { DriveDiagnosticsDto } from './models/DriveDiagnosticsDto';
 export type { DriveMediaEntryDto } from './models/DriveMediaEntryDto';
 export type { DriveMediaEntryInput } from './models/DriveMediaEntryInput';
 export type { DriveUnmappedEntryDto } from './models/DriveUnmappedEntryDto';

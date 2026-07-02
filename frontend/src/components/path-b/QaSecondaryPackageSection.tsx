@@ -1,7 +1,7 @@
 import { ExternalLink, ImageIcon } from 'lucide-react'
 import {
   driveFileViewUrl,
-  driveThumbnailUrl,
+  driveStreamUrl,
 } from '@/lib/driveMedia'
 import {
   qaPortraitChromeClass,
@@ -35,7 +35,7 @@ export function QaSecondaryPackageSection({
     ? driveFileViewUrl(thumbnailDriveFileId)
     : undefined
   const thumbSrc = thumbnailDriveFileId
-    ? driveThumbnailUrl(thumbnailDriveFileId)
+    ? driveStreamUrl(thumbnailDriveFileId)
     : undefined
   const titleText = displayVideoTitle?.trim()
 
