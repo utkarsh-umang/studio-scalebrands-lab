@@ -45,6 +45,9 @@ export type { DriveDeliverablesDiagnosticsDto } from './models/DriveDeliverables
 export type { DriveDiagnosticsDto } from './models/DriveDiagnosticsDto';
 export type { DriveMediaEntryDto } from './models/DriveMediaEntryDto';
 export type { DriveMediaEntryInput } from './models/DriveMediaEntryInput';
+export type { MarkSeenResponse } from './models/MarkSeenResponse';
+export type { NotificationInboxResponse } from './models/NotificationInboxResponse';
+export type { NotificationItemDto } from './models/NotificationItemDto';
 export type { DriveUnmappedEntryDto } from './models/DriveUnmappedEntryDto';
 export { EditorWorkflowPhase } from './models/EditorWorkflowPhase';
 export type { EditorWorkspaceResponse } from './models/EditorWorkspaceResponse';
@@ -93,6 +96,7 @@ export { BatchesService } from './services/BatchesService';
 export { ClientService } from './services/ClientService';
 export { DriveService } from './services/DriveService';
 export { EditorService } from './services/EditorService';
+export { NotificationsService } from './services/NotificationsService';
 export { HealthService } from './services/HealthService';
 export { VideosService } from './services/VideosService';
 export { WorkspaceService } from './services/WorkspaceService';

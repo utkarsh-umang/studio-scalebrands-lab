@@ -2,6 +2,7 @@ import { LayoutGrid, Layers, LogOut, User } from 'lucide-react'
 import { NavLink, Outlet } from 'react-router-dom'
 import logo from '@/assets/logo.png'
 import { useAuth } from '@/auth'
+import { NotificationBell } from '@/components/NotificationBell'
 import { useTheme } from '@/theme'
 
 const NAV = [
@@ -82,6 +83,7 @@ export function ClientLayout() {
               {item.label}
             </NavLink>
           ))}
+          <NotificationBell />
         </nav>
 
         <div className="border-border mt-auto shrink-0 border-t p-2">
