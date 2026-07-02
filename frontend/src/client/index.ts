@@ -64,6 +64,7 @@ export type { ProvisionClientRequest } from './models/ProvisionClientRequest';
 export type { ProvisionClientResponse } from './models/ProvisionClientResponse';
 export type { RejectBatchClipsRequest } from './models/RejectBatchClipsRequest';
 export type { ProvisionStaffRequest } from './models/ProvisionStaffRequest';
+export type { SetBatchAssignmentsRequest } from './models/SetBatchAssignmentsRequest';
 export type { ProductionTicketResponse } from './models/ProductionTicketResponse';
 export type { ProvisionStaffResponse } from './models/ProvisionStaffResponse';
 export type { QaCommentDto } from './models/QaCommentDto';

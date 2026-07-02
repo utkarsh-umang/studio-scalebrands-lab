@@ -19,6 +19,7 @@ import type { ProvisionStaffResponse } from '../models/ProvisionStaffResponse';
 import type { StaffListResponse } from '../models/StaffListResponse';
 import type { TopUpCreditsRequest } from '../models/TopUpCreditsRequest';
 import type { UpdateBrandGuidelinesRequest } from '../models/UpdateBrandGuidelinesRequest';
+import type { SetBatchAssignmentsRequest } from '../models/SetBatchAssignmentsRequest';
 import type { UpdateClientTeamRequest } from '../models/UpdateClientTeamRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
@@ -138,6 +139,30 @@ export class AdminService {
             url: '/api/v1/admin/clients/{client_id}/team',
             path: {
                 'client_id': clientId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Set Batch Assignments
+     * @param batchId
+     * @param requestBody
+     * @returns AdminBatchFolderResponse Successful Response
+     * @throws ApiError
+     */
+    public static setBatchAssignmentsApiV1AdminBatchesBatchIdAssignmentsPatch(
+        batchId: string,
+        requestBody: SetBatchAssignmentsRequest,
+    ): CancelablePromise<AdminBatchFolderResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/admin/batches/{batch_id}/assignments',
+            path: {
+                'batch_id': batchId,
             },
             body: requestBody,
             mediaType: 'application/json',

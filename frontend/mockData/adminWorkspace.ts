@@ -123,6 +123,10 @@ export type AdminBatchFolder = {
    * Set when the editor shares the link after uploading finals.
    */
   editorDeliverablesDriveUrl?: string
+  /** Which shared team member owns each shared step (CSM used to decide offline). */
+  clipOwnerKind?: 'smm' | 'editor' | null
+  thumbnailOwnerKind?: 'smm' | 'editor' | null
+  titleOwnerKind?: 'smm' | 'editor' | null
   /** Ties row to Path B demo catalog (dev / Storybook) */
   demoStage?: PathBDemoStage
 }

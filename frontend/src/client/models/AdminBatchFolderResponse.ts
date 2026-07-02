@@ -27,5 +27,8 @@ export type AdminBatchFolderResponse = {
     pipelineStage: PipelineStage;
     demoStage?: (PipelineStage | null);
     batchSchedule?: (Record<string, unknown> | null);
+    clipOwnerKind?: (string | null);
+    thumbnailOwnerKind?: (string | null);
+    titleOwnerKind?: (string | null);
 };
 

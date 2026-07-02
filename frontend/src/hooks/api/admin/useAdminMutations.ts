@@ -7,6 +7,7 @@ import {
   type ProvisionStaffRequest,
   type TopUpCreditsRequest,
   type UpdateBrandGuidelinesRequest,
+  type SetBatchAssignmentsRequest,
   type UpdateClientTeamRequest,
 } from '@/client'
 import { adminQueryKeys } from '@/hooks/api/admin/adminQueryKeys'
@@ -59,6 +60,18 @@ export function useUpdateClientTeamMutation(clientId: string) {
     mutationFn: (body: UpdateClientTeamRequest) =>
       AdminService.updateClientTeamApiV1AdminClientsClientIdTeamPatch(
         clientId,
+        body,
+      ),
+    onSuccess: invalidate,
+  })
+}
+
+export function useSetBatchAssignmentsMutation(batchId: string) {
+  const invalidate = useInvalidateAdmin()
+  return useMutation({
+    mutationFn: (body: SetBatchAssignmentsRequest) =>
+      AdminService.setBatchAssignmentsApiV1AdminBatchesBatchIdAssignmentsPatch(
+        batchId,
         body,
       ),
     onSuccess: invalidate,

@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom'
 import { useAuth } from '@/auth'
 import { EditorAttentionStrip } from '@/components/editor/EditorAttentionStrip'
 import { EditorBatchFolderRow } from '@/components/editor/EditorBatchFolderRow'
+import { BatchOwnershipControls } from '@/components/path-b/BatchOwnershipControls'
 import { EditorPathBVideoKanban } from '@/components/editor/EditorPathBVideoKanban'
 import { EditorProductionModal } from '@/components/editor/EditorProductionModal'
 import { EditorQaFixModal } from '@/components/editor/EditorQaFixModal'
@@ -159,6 +160,12 @@ export function EditorBoard() {
               {selectedBatch.title}
               <span className="text-muted-foreground font-normal"> · {clientName}</span>
             </p>
+            <BatchOwnershipControls
+              clipOwnerKind={selectedBatch.clipOwnerKind ?? null}
+              thumbnailOwnerKind={selectedBatch.thumbnailOwnerKind ?? null}
+              titleOwnerKind={selectedBatch.titleOwnerKind ?? null}
+              className="pt-1"
+            />
           </div>
 
           {batchNeedsEditorFindClips(selectedBatch) || batchReadyForEditorWork(selectedBatch) ? (

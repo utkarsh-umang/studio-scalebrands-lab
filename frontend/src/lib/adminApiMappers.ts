@@ -82,6 +82,9 @@ export function mapBatchFolder(api: AdminBatchFolderResponse): AdminBatchFolder 
     editorDeliverablesDriveUrl: api.editorDeliverablesDriveUrl ?? undefined,
     creditCost: api.creditCost,
     creditsDebited: api.creditsDebited,
+    clipOwnerKind: (api.clipOwnerKind as 'smm' | 'editor' | null) ?? null,
+    thumbnailOwnerKind: (api.thumbnailOwnerKind as 'smm' | 'editor' | null) ?? null,
+    titleOwnerKind: (api.titleOwnerKind as 'smm' | 'editor' | null) ?? null,
     demoStage: api.demoStage ?? api.pipelineStage,
     batchSchedule: api.batchSchedule
       ? {

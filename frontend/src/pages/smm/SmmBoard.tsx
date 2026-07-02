@@ -6,6 +6,7 @@ import { SmmAttentionStrip } from '@/components/smm/SmmAttentionStrip'
 import { SmmBatchFolderRow } from '@/components/smm/SmmBatchFolderRow'
 import { SmmClientRevisionModal } from '@/components/smm/SmmClientRevisionModal'
 import { SmmFindClipsModal } from '@/components/smm/SmmFindClipsModal'
+import { BatchOwnershipControls } from '@/components/path-b/BatchOwnershipControls'
 import { SmmPathBVideoKanban } from '@/components/smm/SmmPathBVideoKanban'
 import { SmmProductionModal } from '@/components/smm/SmmProductionModal'
 import { SmmScheduleVideoModal } from '@/components/smm/SmmScheduleVideoModal'
@@ -159,6 +160,12 @@ export function SmmBoard() {
               {selectedBatch.title}
               <span className="text-muted-foreground font-normal"> · {clientName}</span>
             </p>
+            <BatchOwnershipControls
+              clipOwnerKind={selectedBatch.clipOwnerKind ?? null}
+              thumbnailOwnerKind={selectedBatch.thumbnailOwnerKind ?? null}
+              titleOwnerKind={selectedBatch.titleOwnerKind ?? null}
+              className="pt-1"
+            />
           </div>
 
           {phase === 'identifying' ? (

@@ -10,6 +10,7 @@ import {
 } from 'react-router-dom'
 import { AdminVideoKanban } from '@/components/admin/AdminVideoKanban'
 import { BatchActivityModal } from '@/components/BatchActivityModal'
+import { BatchOwnershipControls } from '@/components/path-b/BatchOwnershipControls'
 import { ClientCredentialsModal } from '@/components/admin/ClientCredentialsModal'
 import { CreateBatchFolderModal } from '@/components/admin/CreateBatchFolderModal'
 import { DecommissionClientModal } from '@/components/admin/DecommissionClientModal'
@@ -22,6 +23,7 @@ import { useSetVideoDeadlineMutation } from '@/hooks/api/admin/useSetVideoDeadli
 import {
   useCreateBatchMutation,
   useDecommissionClientMutation,
+  useSetBatchAssignmentsMutation,
   useTopUpCreditsMutation,
   useUpdateBrandGuidelinesMutation,
   useUpdateClientTeamMutation,
@@ -96,6 +98,7 @@ export function AdminClientDetail() {
     null
   const selectedBatch =
     activeBatches.find((b) => b.id === selectedBatchId) ?? activeBatches[0]
+  const setBatchAssignments = useSetBatchAssignmentsMutation(selectedBatch?.id ?? '')
 
   const videosQuery = useAdminBatchVideosQuery(clientId, selectedBatch?.id)
   const batchTickets = videosQuery.data ?? []
@@ -491,6 +494,21 @@ export function AdminClientDetail() {
             <History className="size-3.5" aria-hidden />
             Activity &amp; approvals
           </button>
+          <div className="border-border bg-muted/10 mt-2 rounded-xl border p-3">
+            <p className="text-muted-foreground mb-2 text-[11px] font-semibold uppercase tracking-wide">
+              Who owns each shared step
+            </p>
+            <BatchOwnershipControls
+              clipOwnerKind={selectedBatch.clipOwnerKind ?? null}
+              thumbnailOwnerKind={selectedBatch.thumbnailOwnerKind ?? null}
+              titleOwnerKind={selectedBatch.titleOwnerKind ?? null}
+              smmName={client.assignedSmmName}
+              editorName={client.assignedEditorName}
+              onChange={(next) => {
+                setBatchAssignments.mutate(next)
+              }}
+            />
+          </div>
           <AdminVideoKanban
             tickets={batchTickets}
             onDeadlineChange={(videoId, deadlineAt) => {
