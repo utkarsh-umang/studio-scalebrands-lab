@@ -23,8 +23,12 @@ async def _reset_db_engine():
     from app.db import session as db_session
 
     yield
-    if db_session._engine is not None:
-        await db_session._engine.dispose()
+    try:
+        if db_session._engine is not None:
+            await db_session._engine.dispose()
+    except Exception:
+        # Loop may already be closing on teardown; the engine is reset below anyway.
+        pass
     db_session._engine = None
     db_session._session_factory = None
 

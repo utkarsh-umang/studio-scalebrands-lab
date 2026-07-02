@@ -11,16 +11,26 @@ from app.core.config import config
 from app.core.errors.exceptions import register_exception_handlers
 
 
+class RequestIdMiddleware:
+    """Pure-ASGI request-ID middleware.
+
+    Deliberately not BaseHTTPMiddleware: that runs the app in a separate anyio
+    task, which breaks async DB sessions under the test client ("attached to a
+    different loop"). Pure ASGI keeps everything on one loop.
+    """
+
+    def __init__(self, app) -> None:
+        self.app = app
+
+    async def __call__(self, scope, receive, send) -> None:
+        if scope["type"] == "http":
+            scope.setdefault("state", {})["request_id"] = str(uuid.uuid4())
+        await self.app(scope, receive, send)
+
+
 def add_request_id_middleware(app: FastAPI) -> None:
     """Add request-ID middleware."""
-
-    @app.middleware("http")
-    async def _request_id(request, call_next):
-        request.state.request_id = str(uuid.uuid4())
-        response = await call_next(request)
-        return response
-
-    return None  # type: ignore
+    app.add_middleware(RequestIdMiddleware)
 
 
 app = FastAPI(
