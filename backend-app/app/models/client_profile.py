@@ -6,13 +6,16 @@ from datetime import datetime
 from sqlalchemy import Column, Text
 from sqlmodel import Field
 
-from app.db.base import Base
+from app.db.base import Base, utc_now
 from app.models._columns import pg_enum
 from app.models.enums import BrandGuidelinesSource, ClientAccountStatus
 
 
 class ClientProfile(Base, table=True):
     __tablename__ = "client_profiles"
+
+    def touch_updated_at(self) -> None:
+        self.updated_at = utc_now()
 
     display_name: str = Field(max_length=255)
     credits_balance: int = Field(default=0)
