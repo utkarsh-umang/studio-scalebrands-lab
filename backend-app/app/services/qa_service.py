@@ -32,6 +32,7 @@ from app.schemas.qa import (
     SubmitSmmQaRequest,
     TimestampFlagInput,
 )
+from app.services.activity_service import record_activity
 from app.services.path_b_transitions import (
     apply_video_transition,
     is_clip_review_gate_ticket,
@@ -448,6 +449,28 @@ async def submit_smm_qa_review(
             },
         )
 
+    if payload.action == "approve":
+        record_activity(
+            session,
+            batch_id=batch.id,
+            actor=user,
+            action="smm_qa_approved",
+            summary=f"SMM QA passed video #{ticket.deliverable_index} — released to client",
+            video_ticket_id=ticket.id,
+            deliverable_index=ticket.deliverable_index,
+        )
+    else:
+        record_activity(
+            session,
+            batch_id=batch.id,
+            actor=user,
+            action="smm_qa_flagged",
+            summary=f"SMM QA sent video #{ticket.deliverable_index} back to editor",
+            video_ticket_id=ticket.id,
+            deliverable_index=ticket.deliverable_index,
+            detail=general_note or comment_body or None,
+        )
+
     ticket.updated_at = utc_now()
     session.add(ticket)
     batch.updated_at = utc_now()
@@ -493,6 +516,16 @@ async def resubmit_editor_video(
     session.add(ticket)
     batch.updated_at = utc_now()
     session.add(batch)
+
+    record_activity(
+        session,
+        batch_id=batch.id,
+        actor=user,
+        action="editor_resubmitted",
+        summary=f"Editor resubmitted video #{ticket.deliverable_index} for SMM QA",
+        video_ticket_id=ticket.id,
+        deliverable_index=ticket.deliverable_index,
+    )
 
     await session.flush()
     await session.refresh(ticket)
@@ -571,6 +604,28 @@ async def submit_client_qa(
                 "error_code": "VALIDATION_ERROR",
                 "message": "Invalid action",
             },
+        )
+
+    if payload.action == "approve":
+        record_activity(
+            session,
+            batch_id=batch.id,
+            actor=user,
+            action="client_qa_approved",
+            summary=f"Client approved final video #{ticket.deliverable_index}",
+            video_ticket_id=ticket.id,
+            deliverable_index=ticket.deliverable_index,
+        )
+    else:
+        record_activity(
+            session,
+            batch_id=batch.id,
+            actor=user,
+            action="client_qa_rejected",
+            summary=f"Client requested changes on video #{ticket.deliverable_index}",
+            video_ticket_id=ticket.id,
+            deliverable_index=ticket.deliverable_index,
+            detail=general_note or comment_body or None,
         )
 
     ticket.updated_at = utc_now()

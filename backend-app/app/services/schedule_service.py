@@ -26,6 +26,7 @@ from app.schemas.schedule import (
     ScheduleVideoRequest,
     ScheduleVideoResponse,
 )
+from app.services.activity_service import record_activity
 from app.services.path_b_transitions import apply_video_transition, is_clip_review_gate_ticket
 from app.services.workspace_access import assert_employee_batch_access, assert_video_access
 from app.services.workspace_mappers import batch_to_dto, video_to_dto
@@ -182,6 +183,17 @@ async def schedule_video(
     ticket.updated_at = utc_now()
     session.add(ticket)
 
+    record_activity(
+        session,
+        batch_id=batch.id,
+        actor=user,
+        action="video_scheduled",
+        summary=f"Scheduled video #{ticket.deliverable_index} on {platform}",
+        video_ticket_id=ticket.id,
+        deliverable_index=ticket.deliverable_index,
+        detail=f"Go-live {go_live_at.isoformat()}",
+    )
+
     client_snapshot: ScheduleVideoClientResponse | None = None
 
     if await _all_deliverables_done(session, batch.id):
@@ -215,6 +227,13 @@ async def schedule_video(
                     kind="debit_batch",
                     created_by_user_id=user.id,
                 ),
+            )
+            record_activity(
+                session,
+                batch_id=batch.id,
+                actor=user,
+                action="batch_completed",
+                summary=f"Batch “{batch.title}” completed — {batch.credit_cost} credit(s) debited",
             )
             client_snapshot = ScheduleVideoClientResponse(
                 id=profile.id,

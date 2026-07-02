@@ -11,14 +11,15 @@ from app.models.enums import (
     BatchClipReviewPhase,
     BatchIntakePath,
     BatchStatus,
+    PipelineStage,
     QaCommentKind,
     QaMediaSlot,
-    PipelineStage,
     UserRole,
 )
 from app.models.qa_comment import QaComment
 from app.models.video_ticket import VideoTicket
 from app.schemas.clips import BatchVideosResponse
+from app.services.activity_service import record_activity
 from app.services.admin_helpers import assert_client_active, get_profile_or_404
 from app.services.batch_command_response import build_batch_videos_response, load_batch_tickets
 from app.services.path_b_transitions import (
@@ -248,6 +249,15 @@ async def approve_batch_clips(
             apply_video_transition(row, PipelineStage.pre_split_production)
             session.add(row)
 
+    record_activity(
+        session,
+        batch_id=batch.id,
+        actor=user,
+        action="clips_approved",
+        summary=f"Approved clips for “{batch.title}”",
+        video_ticket_id=ticket.id,
+    )
+
     await session.flush()
     await session.refresh(batch)
     return await build_batch_videos_response(session, batch)
@@ -319,6 +329,16 @@ async def reject_batch_clips(
             body=trimmed_note,
             deprecated=False,
         ),
+    )
+
+    record_activity(
+        session,
+        batch_id=batch.id,
+        actor=user,
+        action="clips_rejected",
+        summary=f"Rejected clips for “{batch.title}”",
+        video_ticket_id=ticket.id,
+        detail=trimmed_note,
     )
 
     await session.flush()
