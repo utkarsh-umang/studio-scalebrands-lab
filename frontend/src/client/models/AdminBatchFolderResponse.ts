@@ -30,5 +30,6 @@ export type AdminBatchFolderResponse = {
     clipOwnerKind?: (string | null);
     thumbnailOwnerKind?: (string | null);
     titleOwnerKind?: (string | null);
+    ideaList?: (Array<string> | null);
 };
 

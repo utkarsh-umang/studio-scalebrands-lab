@@ -8,6 +8,7 @@ import { SmmClientRevisionModal } from '@/components/smm/SmmClientRevisionModal'
 import { SmmFindClipsModal } from '@/components/smm/SmmFindClipsModal'
 import { History } from 'lucide-react'
 import { BatchActivityModal } from '@/components/BatchActivityModal'
+import { SmmIdeaResearchPanel } from '@/components/smm/SmmIdeaResearchPanel'
 import { BatchOwnershipControls } from '@/components/path-b/BatchOwnershipControls'
 import { SmmPathBVideoKanban } from '@/components/smm/SmmPathBVideoKanban'
 import { SmmProductionModal } from '@/components/smm/SmmProductionModal'
@@ -181,7 +182,13 @@ export function SmmBoard() {
             </button>
           </div>
 
-          {phase === 'identifying' ? (
+          {selectedBatch.pipelineStage === 'idea_research' ? (
+            <SmmIdeaResearchPanel batch={selectedBatch} />
+          ) : selectedBatch.pipelineStage === 'idea_review' ? (
+            <p className="text-muted-foreground border-border rounded-xl border border-dashed px-4 py-8 text-center text-sm">
+              Ideas submitted — waiting on the client to approve the list.
+            </p>
+          ) : phase === 'identifying' ? (
             <p className="text-muted-foreground border-border rounded-xl border border-dashed px-4 py-8 text-center text-sm">
               Client shared raw footage — submit a numbered clips folder from the{' '}
               <strong className="text-foreground">Clip identification</strong> column.

@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Copy, Link2, Mic, FolderOpen } from 'lucide-react'
+import { Copy, Lightbulb, Link2, Mic, FolderOpen } from 'lucide-react'
 import type { AdminBatchFolder, BatchIntakePath } from '@/types/pathB'
 import { STUDIO_DRIVE_READER_EMAIL } from '@/lib/studioDrive'
 import { useTheme } from '@/theme'
+import { useIdeasMutations } from '@/hooks/api/pathB/useIdeasMutations'
 import {
   toIntakePath,
   useSubmitBatchIntakeMutation,
@@ -12,10 +13,13 @@ type Props = {
   batch: AdminBatchFolder
 }
 
+type IntakeChoice = BatchIntakePath | 'idea_first'
+
 export function ClientBatchIntakeCard({ batch }: Props) {
   const { theme } = useTheme()
   const intakeMutation = useSubmitBatchIntakeMutation(batch.id)
-  const [path, setPath] = useState<BatchIntakePath>(
+  const { requestIdeas } = useIdeasMutations(batch.id)
+  const [path, setPath] = useState<IntakeChoice>(
     batch.intakePath ?? 'source_media',
   )
   const [url, setUrl] = useState(
@@ -36,6 +40,7 @@ export function ClientBatchIntakeCard({ batch }: Props) {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (path === 'idea_first') return
     const trimmed = url.trim()
     if (!trimmed || intakeMutation.isPending) return
     intakeMutation.mutate({
@@ -129,6 +134,26 @@ export function ClientBatchIntakeCard({ batch }: Props) {
                 </span>
               </span>
             </label>
+            <label className="border-border hover:border-primary/30 flex cursor-pointer items-start gap-2 rounded-lg border p-2.5">
+              <input
+                type="radio"
+                name={`intake-path-${batch.id}`}
+                checked={path === 'idea_first'}
+                onChange={() => {
+                  setPath('idea_first')
+                }}
+                className="mt-0.5"
+              />
+              <span className="text-xs leading-snug">
+                <span className="text-foreground font-semibold">
+                  I need ideas first
+                </span>
+                <span className="text-muted-foreground block">
+                  No footage yet — your SMM researches video ideas, you approve the
+                  list, then you record and send footage.
+                </span>
+              </span>
+            </label>
           </fieldset>
 
           {path === 'clips_ready' && (
@@ -162,6 +187,27 @@ export function ClientBatchIntakeCard({ batch }: Props) {
             </div>
           )}
 
+          {path === 'idea_first' ? (
+            <div className="space-y-2">
+              <div className="flex items-start gap-2 rounded-lg border border-[var(--border)] bg-[var(--muted)]/20 p-2.5">
+                <Lightbulb className="mt-0.5 size-3.5 shrink-0" style={{ color: primary }} aria-hidden />
+                <p className="text-muted-foreground text-[10px] leading-snug">
+                  We'll notify your SMM to start researching ideas. You'll review the list here
+                  before recording anything.
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={requestIdeas.isPending}
+                onClick={() => {
+                  requestIdeas.mutate()
+                }}
+                className="bg-primary text-primary-foreground disabled:opacity-50 w-full rounded-lg py-1.5 text-xs font-semibold"
+              >
+                {requestIdeas.isPending ? 'Requesting…' : 'Request ideas'}
+              </button>
+            </div>
+          ) : (
           <form onSubmit={handleSubmit} className="space-y-2">
             <label
               htmlFor={`intake-url-${batch.id}`}
@@ -204,6 +250,7 @@ export function ClientBatchIntakeCard({ batch }: Props) {
                   : 'Submit link'}
             </button>
           </form>
+          )}
         </div>
       )}
     </div>

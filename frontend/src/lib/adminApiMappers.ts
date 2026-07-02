@@ -85,6 +85,8 @@ export function mapBatchFolder(api: AdminBatchFolderResponse): AdminBatchFolder 
     clipOwnerKind: (api.clipOwnerKind as 'smm' | 'editor' | null) ?? null,
     thumbnailOwnerKind: (api.thumbnailOwnerKind as 'smm' | 'editor' | null) ?? null,
     titleOwnerKind: (api.titleOwnerKind as 'smm' | 'editor' | null) ?? null,
+    ideaList: api.ideaList ?? null,
+    pipelineStage: api.pipelineStage,
     demoStage: api.demoStage ?? api.pipelineStage,
     batchSchedule: api.batchSchedule
       ? {

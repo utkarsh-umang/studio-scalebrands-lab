@@ -4,6 +4,7 @@ import { ClientAttentionStrip } from '@/components/client/ClientAttentionStrip'
 import { History } from 'lucide-react'
 import { BatchActivityModal } from '@/components/BatchActivityModal'
 import { ClientBatchFolderRow } from '@/components/client/ClientBatchFolderRow'
+import { ClientIdeaPanel } from '@/components/client/ClientIdeaPanel'
 import { ClientCardDetailModal } from '@/components/client/ClientCardDetailModal'
 import { ClientPageTitleRow } from '@/components/client/ClientPageTitleRow'
 import { ClientBatchIntakeCard } from '@/components/client/ClientBatchIntakeCard'
@@ -145,6 +146,11 @@ export function ClientBoard() {
               <ClientBatchIntakeCard batch={selectedBatch} />
             </div>
           )}
+          {['idea_research', 'idea_review', 'idea_footage_pending'].includes(
+            selectedBatch.pipelineStage ?? '',
+          ) ? (
+            <ClientIdeaPanel batch={selectedBatch} />
+          ) : null}
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
               <p className="text-muted-foreground text-[10px] font-semibold uppercase tracking-[0.12em]">

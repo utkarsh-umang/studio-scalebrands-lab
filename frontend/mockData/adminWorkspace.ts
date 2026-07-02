@@ -35,7 +35,7 @@ export type AdminClientProfile = {
 export type AdminBatchFolderStatus = 'active' | 'completed'
 
 /** How the client kicks off the batch. */
-export type BatchIntakePath = 'source_media' | 'clips_ready'
+export type BatchIntakePath = 'source_media' | 'clips_ready' | 'idea_first'
 
 /**
  * Clip identification lifecycle (source_media path only).
@@ -127,6 +127,10 @@ export type AdminBatchFolder = {
   clipOwnerKind?: 'smm' | 'editor' | null
   thumbnailOwnerKind?: 'smm' | 'editor' | null
   titleOwnerKind?: 'smm' | 'editor' | null
+  /** Path A: the SMM-researched idea list awaiting / after client approval. */
+  ideaList?: string[] | null
+  /** Raw pipeline stage (e.g. idea_research, idea_review, idea_footage_pending). */
+  pipelineStage?: string
   /** Ties row to Path B demo catalog (dev / Storybook) */
   demoStage?: PathBDemoStage
 }

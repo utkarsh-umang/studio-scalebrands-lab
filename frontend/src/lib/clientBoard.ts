@@ -157,6 +157,8 @@ export function videoNeedsClientFinalReview(video: AdminVideoTicket): boolean {
 
 export function batchNeedsClientIntake(batch: AdminBatchFolder): boolean {
   if (batch.status !== 'active') return false
+  // Path A: once ideas are requested, intake is done (idea flow takes over).
+  if (batch.intakePath === 'idea_first') return false
   if (!batch.intakePath) return true
   // clipReviewPhase is set the moment intake is submitted, so any value means the
   // client already completed intake even if sourceMediaUrl is absent in mock data.
