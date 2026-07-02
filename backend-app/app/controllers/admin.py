@@ -16,6 +16,7 @@ from app.schemas.admin import (
     AdminPipelineResponse,
     AdminVideoTicketResponse,
     CreateBatchRequest,
+    CreditHistoryResponse,
     DecommissionClientRequest,
     ProvisionClientRequest,
     ProvisionClientResponse,
@@ -96,6 +97,15 @@ async def update_client_team(
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> AdminClientProfileResponse:
     return await admin_clients_service.update_team(session, client_id, body)
+
+
+@router.get("/clients/{client_id}/credit-history", response_model=CreditHistoryResponse)
+async def get_credit_history(
+    client_id: UUID,
+    _admin: AdminUser,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> CreditHistoryResponse:
+    return await admin_clients_service.list_credit_history(session, client_id)
 
 
 @router.patch("/clients/{client_id}/brand-guidelines", response_model=AdminClientProfileResponse)

@@ -1,5 +1,6 @@
 """Admin API request/response schemas (B1)."""
 
+from datetime import datetime
 from typing import Any
 from uuid import UUID
 
@@ -175,6 +176,19 @@ class SetBatchAssignmentsRequest(CamelModel):
     clip_owner_kind: str | None = None
     thumbnail_owner_kind: str | None = None
     title_owner_kind: str | None = None
+
+
+class CreditAdjustmentDto(CamelModel):
+    id: UUID
+    amount: int
+    kind: str
+    note: str | None = None
+    batch_id: UUID | None = None
+    at: datetime
+
+
+class CreditHistoryResponse(CamelModel):
+    items: list[CreditAdjustmentDto] = []
 
 
 class QaCommentDto(CamelModel):

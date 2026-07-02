@@ -3,6 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { AdminBatchFolderResponse } from '../models/AdminBatchFolderResponse';
+import type { CreditHistoryResponse } from '../models/CreditHistoryResponse';
 import type { AdminClientListResponse } from '../models/AdminClientListResponse';
 import type { AdminDeadlinesResponse } from '../models/AdminDeadlinesResponse';
 import type { SetVideoDeadlineRequest } from '../models/SetVideoDeadlineRequest';
@@ -142,6 +143,26 @@ export class AdminService {
             },
             body: requestBody,
             mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Get Credit History
+     * @param clientId
+     * @returns CreditHistoryResponse Successful Response
+     * @throws ApiError
+     */
+    public static getCreditHistoryApiV1AdminClientsClientIdCreditHistoryGet(
+        clientId: string,
+    ): CancelablePromise<CreditHistoryResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/admin/clients/{client_id}/credit-history',
+            path: {
+                'client_id': clientId,
+            },
             errors: {
                 422: `Validation Error`,
             },

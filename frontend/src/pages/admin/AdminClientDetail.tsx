@@ -10,6 +10,7 @@ import {
 } from 'react-router-dom'
 import { AdminVideoKanban } from '@/components/admin/AdminVideoKanban'
 import { BatchActivityModal } from '@/components/BatchActivityModal'
+import { CreditHistoryModal } from '@/components/admin/CreditHistoryModal'
 import { BatchOwnershipControls } from '@/components/path-b/BatchOwnershipControls'
 import { ClientCredentialsModal } from '@/components/admin/ClientCredentialsModal'
 import { CreateBatchFolderModal } from '@/components/admin/CreateBatchFolderModal'
@@ -63,6 +64,7 @@ export function AdminClientDetail() {
   const [createOpen, setCreateOpen] = useState(false)
   const [activityOpen, setActivityOpen] = useState(false)
   const [topUpOpen, setTopUpOpen] = useState(false)
+  const [creditHistoryOpen, setCreditHistoryOpen] = useState(false)
   const [decommissionOpen, setDecommissionOpen] = useState(false)
   const [credentialsOpen, setCredentialsOpen] = useState(
     () =>
@@ -219,6 +221,16 @@ export function AdminClientDetail() {
               >
                 <Coins className="size-4" aria-hidden />
                 Top up credits
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setCreditHistoryOpen(true)
+                }}
+                className="border-border bg-background text-muted-foreground hover:text-foreground hover:border-primary/35 inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition-colors"
+              >
+                <History className="size-4" aria-hidden />
+                Credit history
               </button>
               <button
                 type="button"
@@ -642,6 +654,15 @@ export function AdminClientDetail() {
         open={activityOpen}
         onClose={() => {
           setActivityOpen(false)
+        }}
+      />
+
+      <CreditHistoryModal
+        clientId={creditHistoryOpen ? client.id : null}
+        clientName={client.displayName}
+        open={creditHistoryOpen}
+        onClose={() => {
+          setCreditHistoryOpen(false)
         }}
       />
     </>

@@ -17,6 +17,8 @@ from app.schemas.admin import (
     AdminClientListResponse,
     AdminClientProfileResponse,
     CredentialsResponse,
+    CreditAdjustmentDto,
+    CreditHistoryResponse,
     DecommissionClientRequest,
     ProvisionClientRequest,
     ProvisionClientResponse,
@@ -241,3 +243,31 @@ async def update_brand_guidelines(
     session.add(profile)
     await session.flush()
     return await _build_profile_response(session, profile)
+
+
+async def list_credit_history(
+    session: AsyncSession,
+    client_id: UUID,
+) -> CreditHistoryResponse:
+    """Read-only credit ledger for a client (top-ups + batch debits)."""
+    await get_profile_or_404(session, client_id)
+    rows = (
+        await session.execute(
+            select(CreditAdjustment)
+            .where(CreditAdjustment.client_id == client_id)
+            .order_by(CreditAdjustment.created_at.desc())
+        )
+    ).scalars().all()
+    return CreditHistoryResponse(
+        items=[
+            CreditAdjustmentDto(
+                id=row.id,
+                amount=row.amount,
+                kind=row.kind,
+                note=row.note,
+                batch_id=row.batch_id,
+                at=row.created_at,
+            )
+            for row in rows
+        ]
+    )

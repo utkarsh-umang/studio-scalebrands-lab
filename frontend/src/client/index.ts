@@ -37,6 +37,8 @@ export type { ClientQaRequest } from './models/ClientQaRequest';
 export type { ClientRevisionTriageRequest } from './models/ClientRevisionTriageRequest';
 export type { ClientWorkspaceResponse } from './models/ClientWorkspaceResponse';
 export type { CreateBatchRequest } from './models/CreateBatchRequest';
+export type { CreditAdjustmentDto } from './models/CreditAdjustmentDto';
+export type { CreditHistoryResponse } from './models/CreditHistoryResponse';
 export type { CredentialsResponse } from './models/CredentialsResponse';
 export type { DecommissionClientRequest } from './models/DecommissionClientRequest';
 export type { DeliverableDriveSyncRequest } from './models/DeliverableDriveSyncRequest';
