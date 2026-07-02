@@ -1,8 +1,15 @@
 import type { AdminBatchFolder, AdminVideoTicket } from '@/types/pathB'
 
+/** Path A idea stages — the editor is not involved until footage arrives. */
+const IDEA_STAGES = ['idea_research', 'idea_review', 'idea_footage_pending']
+
 /** Batch is on the editor's desk (clips approved or client sent clips folder). */
 export function batchReadyForEditorWork(batch: AdminBatchFolder): boolean {
   if (batch.status !== 'active') return false
+  if (batch.intakePath === 'idea_first') {
+    // Ready once ideas are approved and footage sent (past the idea stages).
+    return !IDEA_STAGES.includes(batch.pipelineStage ?? '')
+  }
   if (batch.intakePath === 'clips_ready') {
     return Boolean(batch.clipsFolderUrl?.trim())
   }
@@ -11,6 +18,9 @@ export function batchReadyForEditorWork(batch: AdminBatchFolder): boolean {
 
 export function batchAwaitingClips(batch: AdminBatchFolder): boolean {
   if (batch.status !== 'active') return false
+  if (batch.intakePath === 'idea_first') {
+    return IDEA_STAGES.includes(batch.pipelineStage ?? '')
+  }
   if (batch.intakePath === 'clips_ready') return false
   return batch.clipReviewPhase !== 'approved'
 }
@@ -133,6 +143,8 @@ export type EditorAttentionItem = {
 export function batchNeedsEditorFindClips(batch: AdminBatchFolder): boolean {
   if (batch.status !== 'active') return false
   if (batch.intakePath === 'clips_ready') return false
+  // Path A skips clip identification — ideas were locked before footage.
+  if (batch.intakePath === 'idea_first') return false
   const source = batch.sourceMediaUrl?.trim() || batch.footageUrl?.trim()
   if (!source) return false
   if (batch.clipsFolderUrl?.trim()) return false

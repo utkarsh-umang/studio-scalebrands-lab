@@ -164,6 +164,8 @@ export function toSmmPathBVideoCard(
 export function batchNeedsClipIdentification(batch: AdminBatchFolder): boolean {
   if (batch.status !== 'active') return false
   if (batch.intakePath === 'clips_ready') return false
+  // Path A skips clip identification — footage arrives after ideas are approved.
+  if (batch.intakePath === 'idea_first') return false
   const source = batch.sourceMediaUrl?.trim() || batch.footageUrl?.trim()
   if (!source) return false
   if (batch.clipsFolderUrl?.trim()) return false
