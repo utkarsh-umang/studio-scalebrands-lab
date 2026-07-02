@@ -9,6 +9,8 @@ type Props = {
   diagnostics?: DriveDiagnosticsDto | null
   slot: Slot
   unmapped?: { name: string; reason: string }[]
+  /** Only render when something is wrong (suppress the green "all loaded" state). */
+  problemsOnly?: boolean
   className?: string
 }
 
@@ -82,13 +84,14 @@ const toneClass: Record<Tone, string> = {
   error: 'border-destructive/35 bg-destructive/5 text-foreground',
 }
 
-export function DriveAccessNotice({ diagnostics, slot, unmapped, className = '' }: Props) {
+export function DriveAccessNotice({ diagnostics, slot, unmapped, problemsOnly = false, className = '' }: Props) {
   const [copied, setCopied] = useState(false)
   if (!diagnostics) return null
 
   const names = unmappedNames(unmapped, slot)
   const notice = slot === 'clips' ? clipsNotice(diagnostics, names) : deliverablesNotice(diagnostics, names)
   if (!notice) return null
+  if (problemsOnly && notice.tone === 'ok') return null
 
   const email = diagnostics.serviceAccountEmail ?? undefined
   const Icon = notice.tone === 'ok' ? CheckCircle2 : notice.tone === 'warn' ? Info : AlertTriangle

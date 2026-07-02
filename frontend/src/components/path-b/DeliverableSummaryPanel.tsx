@@ -3,6 +3,8 @@ import { ExternalLink } from 'lucide-react'
 import type { AdminBatchFolder, AdminVideoTicket } from '@/types/pathB'
 import { DriveVideoPreview } from '@/components/drive/DriveVideoPreview'
 import { DeliverableAccordion, type DeliverableAccordionStatus } from '@/components/path-b/DeliverableAccordion'
+import { DriveAccessNotice } from '@/components/path-b/DriveAccessNotice'
+import type { DriveDiagnosticsDto } from '@/client'
 import {
   deliverablePortraitPlayerBoxClass,
   qaPortraitChromeClass,
@@ -28,7 +30,7 @@ type Props = {
   batch: AdminBatchFolder
   deliverableIndex: number
   ticket?: AdminVideoTicket
-  manifest?: BatchDriveManifest
+  manifest?: BatchDriveManifest & { diagnostics?: DriveDiagnosticsDto | null }
   titleEditable?: boolean
   onSaveTitle?: (title: string) => void
   onSyncDrive?: () => void
@@ -141,6 +143,13 @@ export function DeliverableSummaryPanel({
         className,
       ].join(' ')}
     >
+      <DriveAccessNotice
+        diagnostics={manifest?.diagnostics}
+        slot="deliverables"
+        unmapped={manifest?.unmapped}
+        problemsOnly
+        className="m-3"
+      />
       <DeliverableAccordion
         id={`deliverable-${deliverableIndex}-raw`}
         title="Raw footage"
