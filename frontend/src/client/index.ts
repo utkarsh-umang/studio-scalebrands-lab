@@ -27,6 +27,8 @@ export { BatchClipReviewPhase } from './models/BatchClipReviewPhase';
 export type { BatchDetailResponse } from './models/BatchDetailResponse';
 export { BatchIntakePath } from './models/BatchIntakePath';
 export { BatchStatus } from './models/BatchStatus';
+export type { BatchActivityItem } from './models/BatchActivityItem';
+export type { BatchActivityResponse } from './models/BatchActivityResponse';
 export type { BatchDriveManifestResponse } from './models/BatchDriveManifestResponse';
 export type { BrandGuidelinesResponse } from './models/BrandGuidelinesResponse';
 export { BrandGuidelinesSource } from './models/BrandGuidelinesSource';
@@ -90,6 +92,7 @@ export { UserRole } from './models/UserRole';
 export type { ValidationError } from './models/ValidationError';
 export { VideoPipelineOwner } from './models/VideoPipelineOwner';
 
+export { ActivityService } from './services/ActivityService';
 export { AdminService } from './services/AdminService';
 export { AuthService } from './services/AuthService';
 export { BatchesService } from './services/BatchesService';

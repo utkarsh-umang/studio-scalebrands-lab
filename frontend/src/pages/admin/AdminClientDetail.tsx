@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, Coins, ExternalLink, KeyRound, Pencil } from 'lucide-react'
+import { ArrowLeft, Coins, ExternalLink, History, KeyRound, Pencil } from 'lucide-react'
 import {
   Link,
   Navigate,
@@ -9,6 +9,7 @@ import {
   useSearchParams,
 } from 'react-router-dom'
 import { AdminVideoKanban } from '@/components/admin/AdminVideoKanban'
+import { BatchActivityModal } from '@/components/BatchActivityModal'
 import { ClientCredentialsModal } from '@/components/admin/ClientCredentialsModal'
 import { CreateBatchFolderModal } from '@/components/admin/CreateBatchFolderModal'
 import { DecommissionClientModal } from '@/components/admin/DecommissionClientModal'
@@ -58,6 +59,7 @@ export function AdminClientDetail() {
   const provisionCredentials = locationState?.credentials
 
   const [createOpen, setCreateOpen] = useState(false)
+  const [activityOpen, setActivityOpen] = useState(false)
   const [topUpOpen, setTopUpOpen] = useState(false)
   const [decommissionOpen, setDecommissionOpen] = useState(false)
   const [credentialsOpen, setCredentialsOpen] = useState(
@@ -479,6 +481,16 @@ export function AdminClientDetail() {
               </span>
             ) : null}
           </p>
+          <button
+            type="button"
+            onClick={() => {
+              setActivityOpen(true)
+            }}
+            className="text-muted-foreground hover:text-foreground border-border hover:border-primary/35 mt-1 inline-flex w-fit items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors"
+          >
+            <History className="size-3.5" aria-hidden />
+            Activity &amp; approvals
+          </button>
           <AdminVideoKanban
             tickets={batchTickets}
             onDeadlineChange={(videoId, deadlineAt) => {
@@ -604,6 +616,14 @@ export function AdminClientDetail() {
               setSearchParams({ batch: folder.id })
               setCreateOpen(false)
             })
+        }}
+      />
+      <BatchActivityModal
+        batchId={activityOpen ? (selectedBatch?.id ?? null) : null}
+        batchTitle={selectedBatch?.title}
+        open={activityOpen}
+        onClose={() => {
+          setActivityOpen(false)
         }}
       />
     </>
