@@ -1,6 +1,7 @@
 """Login identity for all roles."""
 
 import uuid
+from datetime import datetime
 
 from sqlmodel import Field
 
@@ -26,6 +27,8 @@ class User(Base, table=True):
         index=True,
     )
     is_active: bool = Field(default=True)
+    # When the user last opened their notifications inbox (for unread counts).
+    notifications_last_seen_at: datetime | None = Field(default=None)
 
     def touch_updated_at(self) -> None:
         self.updated_at = utc_now()
