@@ -6,13 +6,37 @@ from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.db.base import utc_now
 from app.models.batch import Batch
 from app.models.client_profile import ClientProfile
 from app.models.enums import BatchStatus, PipelineStage
 from app.models.video_ticket import VideoTicket
-from app.schemas.admin import AdminBatchFolderResponse, CreateBatchRequest
+from app.schemas.admin import (
+    AdminBatchFolderResponse,
+    CreateBatchRequest,
+    SetBatchAssignmentsRequest,
+)
 from app.services.admin_helpers import assert_client_active, get_profile_or_404
 from app.services.admin_mappers import batch_to_response, video_to_response
+
+_OWNER_KINDS = {"smm", "editor"}
+
+
+def _validate_owner_kind(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = value.strip().lower()
+    if not normalized:
+        return None
+    if normalized not in _OWNER_KINDS:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "error_code": "VALIDATION_ERROR",
+                "message": "Owner must be 'smm' or 'editor'",
+            },
+        )
+    return normalized
 
 
 async def list_batches_for_client(
@@ -85,6 +109,31 @@ async def create_batch(
         credit_cost=body.credit_cost,
         credits_debited=False,
     )
+    session.add(batch)
+    await session.flush()
+    await session.refresh(batch)
+    return batch_to_response(batch)
+
+
+async def set_batch_assignments(
+    session: AsyncSession,
+    batch_id: UUID,
+    body: SetBatchAssignmentsRequest,
+) -> AdminBatchFolderResponse:
+    """Set which shared team member (smm | editor) owns each shared step.
+
+    Full replace: an omitted / null field clears that assignment.
+    """
+    batch = await session.get(Batch, batch_id)
+    if batch is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"error_code": "NOT_FOUND", "message": f"Batch {batch_id} not found"},
+        )
+    batch.clip_owner_kind = _validate_owner_kind(body.clip_owner_kind)
+    batch.thumbnail_owner_kind = _validate_owner_kind(body.thumbnail_owner_kind)
+    batch.title_owner_kind = _validate_owner_kind(body.title_owner_kind)
+    batch.updated_at = utc_now()
     session.add(batch)
     await session.flush()
     await session.refresh(batch)

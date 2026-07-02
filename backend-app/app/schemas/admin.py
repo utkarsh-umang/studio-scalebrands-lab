@@ -166,6 +166,15 @@ class AdminBatchFolderResponse(CamelModel):
     pipeline_stage: PipelineStage
     demo_stage: PipelineStage | None = None
     batch_schedule: dict[str, Any] | None = None
+    clip_owner_kind: str | None = None
+    thumbnail_owner_kind: str | None = None
+    title_owner_kind: str | None = None
+
+
+class SetBatchAssignmentsRequest(CamelModel):
+    clip_owner_kind: str | None = None
+    thumbnail_owner_kind: str | None = None
+    title_owner_kind: str | None = None
 
 
 class QaCommentDto(CamelModel):

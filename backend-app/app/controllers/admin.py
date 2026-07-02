@@ -15,14 +15,15 @@ from app.schemas.admin import (
     AdminDeadlinesResponse,
     AdminPipelineResponse,
     AdminVideoTicketResponse,
-    SetVideoDeadlineRequest,
-    SetVideoDeadlineResponse,
     CreateBatchRequest,
     DecommissionClientRequest,
     ProvisionClientRequest,
     ProvisionClientResponse,
     ProvisionStaffRequest,
     ProvisionStaffResponse,
+    SetBatchAssignmentsRequest,
+    SetVideoDeadlineRequest,
+    SetVideoDeadlineResponse,
     StaffListResponse,
     TopUpCreditsRequest,
     UpdateBrandGuidelinesRequest,
@@ -124,6 +125,16 @@ async def create_batch(
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> AdminBatchFolderResponse:
     return await admin_batches_service.create_batch(session, client_id, body)
+
+
+@router.patch("/batches/{batch_id}/assignments", response_model=AdminBatchFolderResponse)
+async def set_batch_assignments(
+    batch_id: UUID,
+    body: SetBatchAssignmentsRequest,
+    _admin: AdminUser,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> AdminBatchFolderResponse:
+    return await admin_batches_service.set_batch_assignments(session, batch_id, body)
 
 
 @router.get(

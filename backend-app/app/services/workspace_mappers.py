@@ -73,6 +73,9 @@ def batch_to_dto(batch: Batch) -> AdminBatchFolderResponse:
         pipeline_stage=batch.pipeline_stage,
         demo_stage=batch.pipeline_stage,
         batch_schedule=batch.batch_schedule,
+        clip_owner_kind=batch.clip_owner_kind,
+        thumbnail_owner_kind=batch.thumbnail_owner_kind,
+        title_owner_kind=batch.title_owner_kind,
     )
 
 

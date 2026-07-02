@@ -47,5 +47,10 @@ class Batch(Base, table=True):
     editor_deliverables_drive_url: str | None = Field(default=None, max_length=2048)
     credit_cost: int = Field(default=0)
     credits_debited: bool = Field(default=False)
+    # Which shared team member (smm | editor) owns each shared step. The CSM used
+    # to decide this offline; null = unassigned.
+    clip_owner_kind: str | None = Field(default=None, max_length=16)
+    thumbnail_owner_kind: str | None = Field(default=None, max_length=16)
+    title_owner_kind: str | None = Field(default=None, max_length=16)
     batch_schedule: dict[str, Any] | None = Field(default=None, sa_column=Column(JSONB, nullable=True))
     completed_at: datetime | None = Field(default=None)
