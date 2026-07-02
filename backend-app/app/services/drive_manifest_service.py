@@ -1,14 +1,17 @@
-"""Live Google Drive manifest fetch via service account.
+"""Live Google Drive manifest fetch + media streaming via a service account.
 
-Mirrors scripts/sync-drive-manifest.ts but runs on demand per batch: given a
-batch's clips / deliverables folder URLs, list the numbered media through the
-service account and return a manifest. This is what makes a pasted Drive link
-actually load files (previously only an offline script populated a static
-mockData manifest keyed to one demo batch).
+Two jobs:
+1. Given a batch's clips / deliverables folder URLs, list the numbered media
+   through the service account and return a manifest (+ access diagnostics so the
+   UI can say exactly what is wrong: not shared vs. misnamed vs. empty).
+2. Expose a service-account access token + folder access checks so the backend
+   can stream file bytes itself, instead of relying on the viewer being logged
+   into Google (which is what caused the "sign in to your Google account" wall).
 """
 
 from __future__ import annotations
 
+import json
 import os
 import re
 from datetime import UTC, datetime
@@ -89,22 +92,60 @@ def _resolve_key_path() -> Path:
 
 
 @lru_cache(maxsize=1)
-def _build_drive() -> Any:
+def _get_credentials() -> Any:
     try:
         from google.oauth2 import service_account
+    except ImportError as exc:  # pragma: no cover - dependency guard
+        raise DriveManifestError(
+            "Google Drive client libraries are not installed.",
+            code="DRIVE_NOT_CONFIGURED",
+        ) from exc
+    return service_account.Credentials.from_service_account_file(
+        str(_resolve_key_path()), scopes=DRIVE_SCOPES
+    )
+
+
+@lru_cache(maxsize=1)
+def _build_drive() -> Any:
+    try:
         from googleapiclient.discovery import build
     except ImportError as exc:  # pragma: no cover - dependency guard
         raise DriveManifestError(
             "Google Drive client libraries are not installed.",
             code="DRIVE_NOT_CONFIGURED",
         ) from exc
-
-    key_path = _resolve_key_path()
-    credentials = service_account.Credentials.from_service_account_file(
-        str(key_path), scopes=DRIVE_SCOPES
-    )
     # cache_discovery=False avoids noisy warnings on modern oauth2 stacks.
-    return build("drive", "v3", credentials=credentials, cache_discovery=False)
+    return build("drive", "v3", credentials=_get_credentials(), cache_discovery=False)
+
+
+def get_service_account_email() -> str | None:
+    """The service-account address folders must be shared with (for UI hints)."""
+    try:
+        data = json.loads(_resolve_key_path().read_text())
+        return data.get("client_email")
+    except (DriveManifestError, OSError, ValueError):
+        return None
+
+
+def _access_token_blocking() -> str:
+    from google.auth.transport.requests import Request
+
+    creds = _get_credentials()
+    if not creds.valid:
+        creds.refresh(Request())
+    return creds.token
+
+
+async def get_access_token() -> str:
+    """Valid service-account bearer token (refreshed as needed), off the loop."""
+    from fastapi.concurrency import run_in_threadpool
+
+    try:
+        return await run_in_threadpool(_access_token_blocking)
+    except DriveManifestError:
+        raise
+    except Exception as exc:
+        raise DriveManifestError(f"Drive auth failed: {exc}") from exc
 
 
 def _is_folder(mime_type: str | None) -> bool:
@@ -132,6 +173,17 @@ def _list_children(drive: Any, folder_id: str) -> list[dict[str, Any]]:
         if not page_token:
             break
     return files
+
+
+def _folder_accessible(drive: Any, folder_id: str) -> bool:
+    """True if the service account can actually see this folder (i.e. it's shared)."""
+    try:
+        drive.files().get(
+            fileId=folder_id, fields="id", supportsAllDrives=True
+        ).execute()
+        return True
+    except Exception:
+        return False
 
 
 def _map_indexed_files(
@@ -162,6 +214,10 @@ def _map_indexed_files(
     return entries, unmapped
 
 
+def _count_media_files(files: list[dict[str, Any]]) -> int:
+    return sum(1 for f in files if f.get("id") and f.get("name") and not _is_folder(f.get("mimeType")))
+
+
 def _find_subfolder_id(drive: Any, parent_id: str, names: list[str]) -> str | None:
     wanted = {n.lower() for n in names}
     for child in _list_children(drive, parent_id):
@@ -173,6 +229,20 @@ def _find_subfolder_id(drive: Any, parent_id: str, names: list[str]) -> str | No
 
 def _now_iso() -> str:
     return datetime.now(UTC).isoformat()
+
+
+def _slot_status(linked: bool, folder_id: str | None, accessible: bool, total: int, mapped: int) -> str:
+    if not linked:
+        return "not_linked"
+    if linked and not folder_id:
+        return "bad_link"
+    if not accessible:
+        return "no_access"
+    if total == 0:
+        return "empty"
+    if mapped < total:
+        return "partial"
+    return "ok"
 
 
 def _fetch_manifest_blocking(
@@ -193,35 +263,76 @@ def _fetch_manifest_blocking(
     videos: list[dict[str, Any]] = []
     thumbnails: list[dict[str, Any]] = []
 
+    # ── Clips folder ──
     clips_id = parse_drive_folder_id(clips_folder_url)
+    clips_accessible = False
+    clips_total = 0
     if clips_folder_url and not clips_id:
         unmapped.append({"name": "(clips)", "reason": "Could not parse folder id from URL"})
     if clips_id:
-        clips, clip_unmapped = _map_indexed_files(_list_children(drive, clips_id), "clips")
-        unmapped.extend(clip_unmapped)
+        clips_accessible = _folder_accessible(drive, clips_id)
+        if clips_accessible:
+            clip_files = _list_children(drive, clips_id)
+            clips_total = _count_media_files(clip_files)
+            clips, clip_unmapped = _map_indexed_files(clip_files, "clips")
+            unmapped.extend(clip_unmapped)
+    clips_diag = {
+        "linked": bool(clips_folder_url),
+        "accessible": clips_accessible,
+        "total": clips_total,
+        "numbered": len(clips),
+        "status": _slot_status(bool(clips_folder_url), clips_id, clips_accessible, clips_total, len(clips)),
+    }
 
+    # ── Deliverables folder (videos/ + thumbnails/) ──
     deliverables_id = parse_drive_folder_id(deliverables_folder_url)
+    deliverables_accessible = False
+    has_videos_sub = False
+    has_thumbs_sub = False
+    videos_total = 0
+    thumbs_total = 0
     if deliverables_folder_url and not deliverables_id:
         unmapped.append({"name": "(deliverables)", "reason": "Could not parse folder id from URL"})
     if deliverables_id:
-        video_folder_id = _find_subfolder_id(drive, deliverables_id, ["video", "videos"])
-        thumb_folder_id = _find_subfolder_id(drive, deliverables_id, ["thumbnail", "thumbnails"])
-        if video_folder_id:
-            videos, v_unmapped = _map_indexed_files(
-                _list_children(drive, video_folder_id), "videos"
-            )
-            unmapped.extend(v_unmapped)
-        else:
-            unmapped.append({"name": "(folder)", "reason": "No Video subfolder in deliverables drive"})
-        if thumb_folder_id:
-            thumbnails, t_unmapped = _map_indexed_files(
-                _list_children(drive, thumb_folder_id), "thumbnails"
-            )
-            unmapped.extend(t_unmapped)
-        else:
-            unmapped.append(
-                {"name": "(folder)", "reason": "No Thumbnail subfolder in deliverables drive"}
-            )
+        deliverables_accessible = _folder_accessible(drive, deliverables_id)
+        if deliverables_accessible:
+            video_folder_id = _find_subfolder_id(drive, deliverables_id, ["video", "videos"])
+            thumb_folder_id = _find_subfolder_id(drive, deliverables_id, ["thumbnail", "thumbnails"])
+            has_videos_sub = video_folder_id is not None
+            has_thumbs_sub = thumb_folder_id is not None
+            if video_folder_id:
+                video_files = _list_children(drive, video_folder_id)
+                videos_total = _count_media_files(video_files)
+                videos, v_unmapped = _map_indexed_files(video_files, "videos")
+                unmapped.extend(v_unmapped)
+            else:
+                unmapped.append({"name": "(folder)", "reason": "No Video subfolder in deliverables drive"})
+            if thumb_folder_id:
+                thumb_files = _list_children(drive, thumb_folder_id)
+                thumbs_total = _count_media_files(thumb_files)
+                thumbnails, t_unmapped = _map_indexed_files(thumb_files, "thumbnails")
+                unmapped.extend(t_unmapped)
+            else:
+                unmapped.append(
+                    {"name": "(folder)", "reason": "No Thumbnail subfolder in deliverables drive"}
+                )
+    deliverables_total = videos_total + thumbs_total
+    deliverables_mapped = len(videos) + len(thumbnails)
+    deliv_status = _slot_status(
+        bool(deliverables_folder_url), deliverables_id, deliverables_accessible,
+        deliverables_total, deliverables_mapped,
+    )
+    if deliverables_accessible and (not has_videos_sub or not has_thumbs_sub):
+        deliv_status = "missing_subfolders"
+    deliverables_diag = {
+        "linked": bool(deliverables_folder_url),
+        "accessible": deliverables_accessible,
+        "hasVideosSubfolder": has_videos_sub,
+        "hasThumbnailsSubfolder": has_thumbs_sub,
+        "videos": len(videos),
+        "thumbnails": len(thumbnails),
+        "status": deliv_status,
+    }
 
     return {
         "batchId": batch_id,
@@ -230,6 +341,11 @@ def _fetch_manifest_blocking(
         "videos": videos,
         "thumbnails": thumbnails,
         "unmapped": unmapped,
+        "diagnostics": {
+            "serviceAccountEmail": get_service_account_email(),
+            "clips": clips_diag,
+            "deliverables": deliverables_diag,
+        },
     }
 
 

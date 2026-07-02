@@ -16,6 +16,30 @@ class DriveUnmappedEntryDto(CamelModel):
     reason: str
 
 
+class DriveClipsDiagnosticsDto(CamelModel):
+    linked: bool
+    accessible: bool
+    total: int
+    numbered: int
+    status: str
+
+
+class DriveDeliverablesDiagnosticsDto(CamelModel):
+    linked: bool
+    accessible: bool
+    has_videos_subfolder: bool
+    has_thumbnails_subfolder: bool
+    videos: int
+    thumbnails: int
+    status: str
+
+
+class DriveDiagnosticsDto(CamelModel):
+    service_account_email: str | None = None
+    clips: DriveClipsDiagnosticsDto
+    deliverables: DriveDeliverablesDiagnosticsDto
+
+
 class BatchDriveManifestResponse(CamelModel):
     batch_id: str
     synced_at: str
@@ -23,3 +47,4 @@ class BatchDriveManifestResponse(CamelModel):
     videos: list[DriveMediaEntryDto] = []
     thumbnails: list[DriveMediaEntryDto] = []
     unmapped: list[DriveUnmappedEntryDto] = []
+    diagnostics: DriveDiagnosticsDto | None = None
