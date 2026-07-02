@@ -16,6 +16,7 @@ class NotificationItemDto(CamelModel):
     message: str
     since: datetime
     unread: bool
+    deadline_at: datetime | None = None
 
 
 class NotificationInboxResponse(CamelModel):

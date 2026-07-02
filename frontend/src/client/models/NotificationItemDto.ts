@@ -12,4 +12,5 @@ export type NotificationItemDto = {
     message: string;
     since: string;
     unread: boolean;
+    deadlineAt?: (string | null);
 };

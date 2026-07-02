@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/auth'
 import type { AuthUser } from '@/auth/types'
 import type { NotificationItemDto } from '@/client'
+import { DeadlineChip } from '@/components/path-b/DeadlineChip'
 import {
   useMarkNotificationsSeenMutation,
   useNotificationsQuery,
@@ -111,7 +112,10 @@ export function NotificationBell() {
                         }}
                         className="hover:bg-muted/50 border-border/60 flex w-full flex-col items-start gap-0.5 border-b px-3.5 py-2.5 text-left last:border-b-0"
                       >
-                        <span className="text-foreground text-sm font-medium">{item.message}</span>
+                        <span className="flex w-full items-center justify-between gap-2">
+                          <span className="text-foreground text-sm font-medium">{item.message}</span>
+                          {item.deadlineAt ? <DeadlineChip deadlineAt={item.deadlineAt} /> : null}
+                        </span>
                         <span className="text-muted-foreground text-xs">
                           {item.batchTitle} · {relativeTime(item.since)}
                         </span>

@@ -113,11 +113,24 @@ async def list_inbox(session: AsyncSession, user: CurrentUser) -> dict:
                 "message": _message(ticket.pipeline_stage, ticket.deliverable_index),
                 "since": since,
                 "unread": is_unread,
+                "deadlineAt": ticket.deadline_at,
             }
         )
 
-    items.sort(key=lambda i: _aware(i["since"]), reverse=True)
-    return {"items": items, "unreadCount": unread_count, "lastSeenAt": last_seen}
+    # Deadline items first (soonest / most overdue at top), then the rest by recency.
+    with_deadline = sorted(
+        (i for i in items if i["deadlineAt"]), key=lambda i: _aware(i["deadlineAt"])
+    )
+    without_deadline = sorted(
+        (i for i in items if not i["deadlineAt"]),
+        key=lambda i: _aware(i["since"]),
+        reverse=True,
+    )
+    return {
+        "items": with_deadline + without_deadline,
+        "unreadCount": unread_count,
+        "lastSeenAt": last_seen,
+    }
 
 
 async def mark_seen(session: AsyncSession, user: CurrentUser) -> dict:
