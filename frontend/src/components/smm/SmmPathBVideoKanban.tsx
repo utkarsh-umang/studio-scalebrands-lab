@@ -1,4 +1,5 @@
 import { CalendarClock, Film, MessageSquareWarning, Scissors } from 'lucide-react'
+import { DeadlineChip } from '@/components/path-b/DeadlineChip'
 import type { AdminBatchFolder } from '@/types/pathB'
 import {
   SMM_PATH_B_COLUMNS,
@@ -146,6 +147,9 @@ export function SmmPathBVideoKanban({
                               ? `${card.videoSchedule.platform} · ${new Date(card.videoSchedule.goLiveAt).toLocaleDateString()}`
                               : card.stageLabel}
                           </p>
+                          {card.deadlineAt ? (
+                            <DeadlineChip deadlineAt={card.deadlineAt} className="mt-1.5" />
+                          ) : null}
                           {actionable ? (
                             <span
                               className="mt-1.5 inline-block rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide"
