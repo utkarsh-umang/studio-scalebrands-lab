@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { ExternalLink } from 'lucide-react'
 import { ClipsReviewPanel } from '@/components/drive/ClipsReviewPanel'
 import { StudioModalShell } from '@/components/StudioModalShell'
+import { DriveAccessNotice } from '@/components/path-b/DriveAccessNotice'
 import { DriveSyncButton } from '@/components/path-b/DriveSyncButton'
 import { DriveSyncMeta } from '@/components/path-b/DriveSyncMeta'
 import { useDriveManifestSync } from '@/hooks/useDriveManifestSync'
@@ -145,6 +146,13 @@ export function NumberedClipsModal({
       {error && !manifest ? (
         <p className="text-destructive mb-3 shrink-0 text-xs leading-relaxed">{error}</p>
       ) : null}
+
+      <DriveAccessNotice
+        diagnostics={manifest?.diagnostics}
+        slot="clips"
+        unmapped={manifest?.unmapped}
+        className="mb-3 shrink-0"
+      />
 
       {statusBanner ? (
         <div className="border-primary/25 bg-primary/5 text-foreground mb-3 shrink-0 rounded-xl border px-4 py-3 text-sm leading-relaxed">

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { DriveService } from '@/client'
-import type { BatchDriveManifestResponse } from '@/client'
+import type { BatchDriveManifestResponse, DriveDiagnosticsDto } from '@/client'
 import type { BatchDriveManifest } from '@/lib/driveMedia'
 import { getManifestForBatch } from '@/lib/driveMedia'
 
@@ -10,7 +10,12 @@ import { getManifestForBatch } from '@/lib/driveMedia'
  * back to the bundled `DRIVE_MANIFESTS` for offline demo batches.
  */
 
-function toManifest(res: BatchDriveManifestResponse): BatchDriveManifest {
+/** Manifest plus the backend's access diagnostics (why files did / didn't load). */
+export type ManifestWithDiagnostics = BatchDriveManifest & {
+  diagnostics?: DriveDiagnosticsDto | null
+}
+
+function toManifest(res: BatchDriveManifestResponse): ManifestWithDiagnostics {
   return {
     batchId: res.batchId,
     syncedAt: res.syncedAt,
@@ -18,16 +23,17 @@ function toManifest(res: BatchDriveManifestResponse): BatchDriveManifest {
     videos: res.videos ?? [],
     thumbnails: res.thumbnails ?? [],
     unmapped: res.unmapped ?? [],
+    diagnostics: res.diagnostics ?? null,
   }
 }
 
-async function fetchManifest(batchId: string): Promise<BatchDriveManifest> {
+async function fetchManifest(batchId: string): Promise<ManifestWithDiagnostics> {
   const res = await DriveService.getBatchDriveManifestApiV1DriveBatchesBatchIdManifestGet(batchId)
   return toManifest(res)
 }
 
 export function useDriveManifestSync(batchId: string, resetKey?: string | number) {
-  const [override, setOverride] = useState<BatchDriveManifest | undefined>()
+  const [override, setOverride] = useState<ManifestWithDiagnostics | undefined>()
   const [syncing, setSyncing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const reqRef = useRef(0)
@@ -53,9 +59,10 @@ export function useDriveManifestSync(batchId: string, resetKey?: string | number
       })
   }, [batchId, resetKey])
 
-  const manifest = override ?? getManifestForBatch(batchId)
+  const manifest: ManifestWithDiagnostics | undefined =
+    override ?? getManifestForBatch(batchId)
 
-  const sync = useCallback(async (): Promise<BatchDriveManifest | undefined> => {
+  const sync = useCallback(async (): Promise<ManifestWithDiagnostics | undefined> => {
     const req = ++reqRef.current
     setSyncing(true)
     setError(null)
