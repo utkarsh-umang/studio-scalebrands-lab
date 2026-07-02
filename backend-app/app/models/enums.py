@@ -27,6 +27,7 @@ class BatchStatus(str, Enum):
 class BatchIntakePath(str, Enum):
     source_media = "source_media"
     clips_ready = "clips_ready"
+    idea_first = "idea_first"
 
 
 class BatchClipReviewPhase(str, Enum):
@@ -38,6 +39,11 @@ class BatchClipReviewPhase(str, Enum):
 
 class PipelineStage(str, Enum):
     intake_pending = "intake_pending"
+    # Path A (idea-first)
+    idea_research = "idea_research"
+    idea_review = "idea_review"
+    idea_footage_pending = "idea_footage_pending"
+    # Path B (raw-footage / clips-ready)
     clips_identifying = "clips_identifying"
     clip_client_review = "clip_client_review"
     clips_ready_intake = "clips_ready_intake"

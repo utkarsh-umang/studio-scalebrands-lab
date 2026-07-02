@@ -16,6 +16,9 @@ from app.models.video_ticket import VideoTicket
 
 STAGE_LABELS: dict[PipelineStage, str] = {
     PipelineStage.intake_pending: "Awaiting client intake",
+    PipelineStage.idea_research: "Idea research",
+    PipelineStage.idea_review: "Idea approval",
+    PipelineStage.idea_footage_pending: "Awaiting footage",
     PipelineStage.clips_identifying: "Clip identification",
     PipelineStage.clip_client_review: "Clip review",
     PipelineStage.clips_ready_intake: "Clips ready — production",
@@ -35,12 +38,18 @@ def stage_label(stage: PipelineStage) -> str:
 
 
 def owner_for_stage(stage: PipelineStage) -> VideoPipelineOwner:
-    if stage in (PipelineStage.clip_client_review, PipelineStage.client_qa):
+    if stage in (
+        PipelineStage.clip_client_review,
+        PipelineStage.client_qa,
+        PipelineStage.idea_review,
+        PipelineStage.idea_footage_pending,
+    ):
         return VideoPipelineOwner.client
     if stage in (
         PipelineStage.clips_identifying,
         PipelineStage.smm_qa,
         PipelineStage.revision_via_smm,
+        PipelineStage.idea_research,
     ):
         return VideoPipelineOwner.smm
     if stage in (
@@ -115,6 +124,64 @@ def apply_clips_ready_intake(batch: Batch, url: str) -> None:
 
 
 CLIP_REVIEW_GATE_TITLE = "Clip approval"
+IDEA_GATE_TITLE = "Video ideas"
+
+
+# ── Path A (idea-first) ──
+
+
+def apply_request_ideas(batch: Batch) -> None:
+    """Client asks for ideas — no footage yet. SMM starts researching."""
+    now = utc_now()
+    batch.intake_path = BatchIntakePath.idea_first
+    batch.pipeline_stage = PipelineStage.idea_research
+    batch.updated_at = now
+
+
+def apply_submit_ideas(batch: Batch, ideas: list[str]) -> None:
+    now = utc_now()
+    batch.idea_list = ideas
+    batch.pipeline_stage = PipelineStage.idea_review
+    batch.updated_at = now
+
+
+def apply_approve_ideas(batch: Batch) -> None:
+    now = utc_now()
+    batch.pipeline_stage = PipelineStage.idea_footage_pending
+    batch.updated_at = now
+
+
+def apply_reject_ideas(batch: Batch) -> None:
+    now = utc_now()
+    batch.pipeline_stage = PipelineStage.idea_research
+    batch.updated_at = now
+
+
+def apply_submit_idea_footage(batch: Batch, url: str) -> None:
+    """Ideas were approved; client sends footage → straight to production (no clip review)."""
+    now = utc_now()
+    batch.source_media_url = url
+    batch.pipeline_stage = PipelineStage.pre_split_production
+    batch.updated_at = now
+
+
+def create_idea_gate_ticket(batch: Batch) -> VideoTicket:
+    state = video_state_for_stage(
+        PipelineStage.idea_research,
+        released_to_client_final_review=False,
+    )
+    return VideoTicket(
+        batch_id=batch.id,
+        client_id=batch.client_id,
+        title=IDEA_GATE_TITLE,
+        deliverable_index=None,
+        pipeline_stage=state.pipeline_stage,
+        pipeline_owner=state.pipeline_owner,
+        stage_label=state.stage_label,
+        deadline_role=state.deadline_role,
+        editor_workflow_phase=state.editor_workflow_phase,
+        released_to_client_final_review=state.released_to_client_final_review,
+    )
 
 
 def apply_video_transition(

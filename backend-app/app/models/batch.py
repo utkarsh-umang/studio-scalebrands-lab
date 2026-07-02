@@ -52,5 +52,7 @@ class Batch(Base, table=True):
     clip_owner_kind: str | None = Field(default=None, max_length=16)
     thumbnail_owner_kind: str | None = Field(default=None, max_length=16)
     title_owner_kind: str | None = Field(default=None, max_length=16)
+    # Path A (idea-first): the SMM-researched idea list the client approves.
+    idea_list: list[Any] | None = Field(default=None, sa_column=Column(JSONB, nullable=True))
     batch_schedule: dict[str, Any] | None = Field(default=None, sa_column=Column(JSONB, nullable=True))
     completed_at: datetime | None = Field(default=None)

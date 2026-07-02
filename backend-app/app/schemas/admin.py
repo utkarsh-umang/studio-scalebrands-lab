@@ -170,6 +170,7 @@ class AdminBatchFolderResponse(CamelModel):
     clip_owner_kind: str | None = None
     thumbnail_owner_kind: str | None = None
     title_owner_kind: str | None = None
+    idea_list: list[str] | None = None
 
 
 class SetBatchAssignmentsRequest(CamelModel):
