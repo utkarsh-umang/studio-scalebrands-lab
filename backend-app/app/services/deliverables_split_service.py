@@ -19,6 +19,7 @@ from app.models.qa_comment import QaComment
 from app.models.video_ticket import VideoTicket
 from app.schemas.clips import BatchVideosResponse
 from app.schemas.deliverables import DeliverableTitleInput, SubmitDeliverablesDriveRequest
+from app.services.activity_service import record_activity
 from app.services.batch_command_response import build_batch_videos_response, load_batch_tickets
 from app.services.path_b_transitions import (
     apply_deliverables_split,
@@ -171,6 +172,14 @@ async def submit_deliverables_drive(
     for index in range(1, n + 1):
         title = titles_by_index.get(index) or default_deliverable_title(index)
         session.add(create_split_deliverable_ticket(batch, index, title))
+
+    record_activity(
+        session,
+        batch_id=batch.id,
+        actor=user,
+        action="deliverables_submitted",
+        summary=f"Editor submitted deliverables — split “{batch.title}” into {n} video(s)",
+    )
 
     await session.flush()
     await session.refresh(batch)

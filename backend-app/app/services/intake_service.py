@@ -11,6 +11,7 @@ from app.models.batch import Batch
 from app.models.enums import BatchIntakePath, BatchStatus, UserRole
 from app.models.video_ticket import VideoTicket
 from app.schemas.intake import SubmitBatchIntakeResponse
+from app.services.activity_service import record_activity
 from app.services.admin_helpers import assert_client_active, get_profile_or_404
 from app.services.path_b_transitions import (
     apply_clips_ready_intake,
@@ -112,6 +113,19 @@ async def submit_client_intake(
                 "message": "Invalid intake path",
             },
         )
+
+    kind = (
+        "raw footage"
+        if intake_path == BatchIntakePath.source_media
+        else "a clips folder"
+    )
+    record_activity(
+        session,
+        batch_id=batch.id,
+        actor=user,
+        action="intake_submitted",
+        summary=f"Client submitted {kind} for “{batch.title}”",
+    )
 
     await session.flush()
     await session.refresh(batch)

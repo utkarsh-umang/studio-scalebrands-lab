@@ -6,6 +6,8 @@ import { SmmAttentionStrip } from '@/components/smm/SmmAttentionStrip'
 import { SmmBatchFolderRow } from '@/components/smm/SmmBatchFolderRow'
 import { SmmClientRevisionModal } from '@/components/smm/SmmClientRevisionModal'
 import { SmmFindClipsModal } from '@/components/smm/SmmFindClipsModal'
+import { History } from 'lucide-react'
+import { BatchActivityModal } from '@/components/BatchActivityModal'
 import { BatchOwnershipControls } from '@/components/path-b/BatchOwnershipControls'
 import { SmmPathBVideoKanban } from '@/components/smm/SmmPathBVideoKanban'
 import { SmmProductionModal } from '@/components/smm/SmmProductionModal'
@@ -59,6 +61,7 @@ export function SmmBoard() {
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null)
   const [findClipsOpen, setFindClipsOpen] = useState(false)
   const [clipsViewOpen, setClipsViewOpen] = useState(false)
+  const [activityOpen, setActivityOpen] = useState(false)
   const [scheduleVideoId, setScheduleVideoId] = useState<string | null>(null)
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null)
   const [revisionThenProductionId, setRevisionThenProductionId] = useState<string | null>(
@@ -166,6 +169,16 @@ export function SmmBoard() {
               titleOwnerKind={selectedBatch.titleOwnerKind ?? null}
               className="pt-1"
             />
+            <button
+              type="button"
+              onClick={() => {
+                setActivityOpen(true)
+              }}
+              className="text-muted-foreground hover:text-foreground border-border hover:border-primary/35 mt-1.5 inline-flex w-fit items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors"
+            >
+              <History className="size-3.5" aria-hidden />
+              Activity
+            </button>
           </div>
 
           {phase === 'identifying' ? (
@@ -289,6 +302,15 @@ export function SmmBoard() {
           }}
         />
       ) : null}
+
+      <BatchActivityModal
+        batchId={activityOpen ? (selectedBatch?.id ?? null) : null}
+        batchTitle={selectedBatch?.title}
+        open={activityOpen}
+        onClose={() => {
+          setActivityOpen(false)
+        }}
+      />
     </>
   )
 }

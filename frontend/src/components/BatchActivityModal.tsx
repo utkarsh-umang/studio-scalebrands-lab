@@ -22,6 +22,9 @@ type Props = {
 type Tone = 'positive' | 'negative' | 'neutral'
 
 const ACTION_META: Record<string, { icon: LucideIcon; tone: Tone }> = {
+  intake_submitted: { icon: CircleDot, tone: 'neutral' },
+  clips_submitted_for_review: { icon: CircleDot, tone: 'neutral' },
+  deliverables_submitted: { icon: CircleDot, tone: 'neutral' },
   clips_approved: { icon: CheckCircle2, tone: 'positive' },
   clips_rejected: { icon: XCircle, tone: 'negative' },
   smm_qa_approved: { icon: CheckCircle2, tone: 'positive' },

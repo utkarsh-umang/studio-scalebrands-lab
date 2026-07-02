@@ -178,6 +178,14 @@ async def submit_clips_folder(
     if not has_clip_review:
         session.add(create_clip_review_gate_ticket(batch))
 
+    record_activity(
+        session,
+        batch_id=batch.id,
+        actor=user,
+        action="clips_submitted_for_review",
+        summary=f"Submitted clips for client review — “{batch.title}”",
+    )
+
     await session.flush()
     await session.refresh(batch)
     return await build_batch_videos_response(session, batch)

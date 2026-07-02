@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '@/auth'
 import { ClientAttentionStrip } from '@/components/client/ClientAttentionStrip'
+import { History } from 'lucide-react'
+import { BatchActivityModal } from '@/components/BatchActivityModal'
 import { ClientBatchFolderRow } from '@/components/client/ClientBatchFolderRow'
 import { ClientCardDetailModal } from '@/components/client/ClientCardDetailModal'
 import { ClientPageTitleRow } from '@/components/client/ClientPageTitleRow'
@@ -42,6 +44,7 @@ export function ClientBoard() {
 
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null)
   const [openVideoId, setOpenVideoId] = useState<string | null>(null)
+  const [activityOpen, setActivityOpen] = useState(false)
 
   useEffect(() => {
     const openId = searchParams.get('openVideo')
@@ -143,9 +146,21 @@ export function ClientBoard() {
             </div>
           )}
           <div className="space-y-2">
-            <p className="text-muted-foreground text-[10px] font-semibold uppercase tracking-[0.12em]">
-              {selectedBatch.title} — videos
-            </p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-muted-foreground text-[10px] font-semibold uppercase tracking-[0.12em]">
+                {selectedBatch.title} — videos
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setActivityOpen(true)
+                }}
+                className="text-muted-foreground hover:text-foreground border-border hover:border-primary/35 inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors"
+              >
+                <History className="size-3.5" aria-hidden />
+                Activity
+              </button>
+            </div>
             <ClientVideoKanban
               batch={selectedBatch}
               videos={batchVideos}
@@ -165,6 +180,15 @@ export function ClientBoard() {
         batchTitle={selectedBatch?.title ?? ''}
         onClose={() => {
           setOpenVideoId(null)
+        }}
+      />
+
+      <BatchActivityModal
+        batchId={activityOpen ? (selectedBatch?.id ?? null) : null}
+        batchTitle={selectedBatch?.title}
+        open={activityOpen}
+        onClose={() => {
+          setActivityOpen(false)
         }}
       />
     </>
