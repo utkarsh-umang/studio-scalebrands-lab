@@ -136,6 +136,9 @@ export function DeliverableSummaryPanel({
     return <DriveSyncButton onSync={onSyncDrive} syncing={driveSyncing} label="Sync" />
   }
 
+  const ownerSuffix = (kind?: 'smm' | 'editor' | null) =>
+    kind === 'smm' ? ' · SMM' : kind === 'editor' ? ' · Editor' : ''
+
   return (
     <div
       className={[
@@ -238,7 +241,7 @@ export function DeliverableSummaryPanel({
 
       <DeliverableAccordion
         id={`deliverable-${deliverableIndex}-thumbnail`}
-        title={`Thumbnail #${deliverableIndex}`}
+        title={`Thumbnail #${deliverableIndex}${ownerSuffix(batch.thumbnailOwnerKind)}`}
         status={sectionStatus.thumbnail}
         open={openSections.has('thumbnail')}
         onOpenChange={(open) => {
@@ -279,7 +282,7 @@ export function DeliverableSummaryPanel({
 
       <DeliverableAccordion
         id={`deliverable-${deliverableIndex}-title`}
-        title="Video title"
+        title={`Video title${ownerSuffix(batch.titleOwnerKind)}`}
         status={sectionStatus.title}
         open={openSections.has('title')}
         onOpenChange={(open) => {
