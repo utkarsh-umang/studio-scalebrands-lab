@@ -341,8 +341,11 @@ async def submit_to_smm_qa(
             detail={
                 "error_code": "VALIDATION_ERROR",
                 "message": "Deliverable is not ready for SMM QA",
-                "readiness": readiness_to_dto(readiness).model_dump(by_alias=True),
-                "missing": missing,
+                # Nest under `details` so the error handler passes it through.
+                "details": {
+                    "readiness": readiness_to_dto(readiness).model_dump(by_alias=True),
+                    "missing": missing,
+                },
             },
         )
 

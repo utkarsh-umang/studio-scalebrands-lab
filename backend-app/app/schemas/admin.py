@@ -210,6 +210,7 @@ class AdminVideoTicketResponse(CamelModel):
     client_id: UUID
     title: str
     owner: VideoPipelineOwner
+    pipeline_stage: PipelineStage
     stage_label: str
     deadline_role: str | None = None
     deadline_at: str | None = None

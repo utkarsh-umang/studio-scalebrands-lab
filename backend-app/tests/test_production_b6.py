@@ -134,7 +134,7 @@ async def test_submit_not_ready_returns_422_with_missing(client: AsyncClient) ->
         json={},
     )
     assert submit.status_code == 422
-    detail = submit.json()["detail"]
+    detail = submit.json()["details"]
     assert "video" in detail["missing"]
     assert "thumbnail" in detail["missing"]
     assert "title" in detail["missing"]

@@ -115,32 +115,20 @@ async def test_client_reject_clips_returns_to_smm(client: AsyncClient) -> None:
 @pytest.mark.anyio
 async def test_clips_ready_batch_rejects_b4_routes(client: AsyncClient) -> None:
     admin_headers = await _login(client, "admin@scalebrandslab.demo")
-    provision = await client.post(
-        f"{config.API_V1_STR}/admin/clients",
-        headers=admin_headers,
-        json={
-            "loginId": f"b4.skip.{uuid4().hex[:8]}@scalebrandslab.demo",
-            "displayName": "B4 Skip Client",
-            "password": "testpass12",
-            "initialCredits": 10,
-        },
+    client_headers = await _login(client, "client@scalebrandslab.demo")
+    # Use the demo client so the demo SMM is deterministically assigned to it.
+    client_ws = await client.get(
+        f"{config.API_V1_STR}/client/workspace", headers=client_headers
     )
-    assert provision.status_code == 200
-    client_id = provision.json()["client"]["id"]
-    credentials = provision.json()["credentials"]
+    client_id = client_ws.json()["client"]["id"]
 
     batch_create = await client.post(
         f"{config.API_V1_STR}/admin/clients/{client_id}/batches",
         headers=admin_headers,
-        json={"title": "Clips Ready Skip", "creditCost": 1},
+        json={"title": f"Clips Ready Skip {uuid4().hex[:8]}", "creditCost": 1},
     )
     batch_id = batch_create.json()["id"]
 
-    client_headers = await _login(
-        client,
-        credentials["email"],
-        credentials["password"],
-    )
     intake = await client.post(
         f"{config.API_V1_STR}/client/batches/{batch_id}/intake",
         headers=client_headers,

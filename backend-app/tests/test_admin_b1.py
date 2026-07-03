@@ -1,13 +1,14 @@
 """B1 admin API tests."""
 
+from uuid import uuid4
+
 import pytest
 from httpx import AsyncClient
 
 from app.core.config import config
 
 
-@pytest.fixture
-async def admin_headers(client: AsyncClient) -> dict[str, str]:
+async def _admin_headers(client: AsyncClient) -> dict[str, str]:
     login = await client.post(
         f"{config.API_V1_STR}/auth/login",
         json={"email": "admin@scalebrandslab.demo", "password": "demo1234"},
@@ -32,7 +33,8 @@ async def test_admin_routes_forbid_non_admin(
 
 
 @pytest.mark.anyio
-async def test_list_clients(client: AsyncClient, admin_headers: dict[str, str]) -> None:
+async def test_list_clients(client: AsyncClient) -> None:
+    admin_headers = await _admin_headers(client)
     response = await client.get(
         f"{config.API_V1_STR}/admin/clients",
         headers=admin_headers,
@@ -46,10 +48,10 @@ async def test_list_clients(client: AsyncClient, admin_headers: dict[str, str]) 
 @pytest.mark.anyio
 async def test_provision_client_and_duplicate_email(
     client: AsyncClient,
-    admin_headers: dict[str, str],
 ) -> None:
+    admin_headers = await _admin_headers(client)
     payload = {
-        "loginId": "b1.test.client@scalebrandslab.demo",
+        "loginId": f"b1.test.{uuid4().hex[:8]}@scalebrandslab.demo",
         "displayName": "B1 Test Client",
         "password": "testpass12",
         "initialCredits": 12,
@@ -85,13 +87,13 @@ async def test_provision_client_and_duplicate_email(
 @pytest.mark.anyio
 async def test_batch_number_sequence_and_decommission_blocks_create(
     client: AsyncClient,
-    admin_headers: dict[str, str],
 ) -> None:
+    admin_headers = await _admin_headers(client)
     provision = await client.post(
         f"{config.API_V1_STR}/admin/clients",
         headers=admin_headers,
         json={
-            "loginId": "b1.batch.client@scalebrandslab.demo",
+            "loginId": f"b1.batch.{uuid4().hex[:8]}@scalebrandslab.demo",
             "displayName": "B1 Batch Client",
             "password": "testpass12",
             "initialCredits": 20,
@@ -133,12 +135,13 @@ async def test_batch_number_sequence_and_decommission_blocks_create(
 
 
 @pytest.mark.anyio
-async def test_top_up_credits(client: AsyncClient, admin_headers: dict[str, str]) -> None:
+async def test_top_up_credits(client: AsyncClient) -> None:
+    admin_headers = await _admin_headers(client)
     provision = await client.post(
         f"{config.API_V1_STR}/admin/clients",
         headers=admin_headers,
         json={
-            "loginId": "b1.topup.client@scalebrandslab.demo",
+            "loginId": f"b1.topup.{uuid4().hex[:8]}@scalebrandslab.demo",
             "displayName": "B1 Top Up",
             "password": "testpass12",
             "initialCredits": 5,
@@ -155,7 +158,8 @@ async def test_top_up_credits(client: AsyncClient, admin_headers: dict[str, str]
 
 
 @pytest.mark.anyio
-async def test_pipeline_endpoint(client: AsyncClient, admin_headers: dict[str, str]) -> None:
+async def test_pipeline_endpoint(client: AsyncClient) -> None:
+    admin_headers = await _admin_headers(client)
     response = await client.get(
         f"{config.API_V1_STR}/admin/pipeline",
         headers=admin_headers,

@@ -130,7 +130,9 @@ async def _batch_ready_for_scheduling(
 
 @pytest.mark.anyio
 async def test_schedule_one_video_leaves_batch_active(client: AsyncClient) -> None:
-    batch_id, ticket_ids, smm_headers, _, _ = await _batch_ready_for_scheduling(client)
+    batch_id, ticket_ids, smm_headers, _, _ = await _batch_ready_for_scheduling(
+        client, deliverable_count=2
+    )
 
     response = await client.post(
         f"{config.API_V1_STR}/videos/{ticket_ids[0]}/schedule",

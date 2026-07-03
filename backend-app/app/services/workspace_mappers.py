@@ -131,6 +131,7 @@ def video_to_dto(
         client_id=ticket.client_id,
         title=ticket.title,
         owner=ticket.pipeline_owner,
+        pipeline_stage=ticket.pipeline_stage,
         stage_label=ticket.stage_label or "",
         deadline_role=ticket.deadline_role,
         deadline_at=_iso_datetime(ticket.deadline_at),
