@@ -16,7 +16,11 @@ import {
 import { useDriveManifestSync } from '@/hooks/useDriveManifestSync'
 import { deliverableIndexForTicket } from '@/lib/driveMedia'
 import { driveSyncRequestFromManifest } from '@/lib/productionDriveSync'
-import { readinessForDeliverable } from '@/lib/pathBDeliverables'
+import {
+  readinessForDeliverable,
+  submitReadinessForDeliverable,
+} from '@/lib/pathBDeliverables'
+import { apiErrorMessage } from '@/lib/apiError'
 import {
   smmCanEditEditorDeliverable,
   smmInAssetPrepFlow,
@@ -57,6 +61,28 @@ export function SmmProductionModal({
   const editorAssist = smmCanEditEditorDeliverable(ticket, batch)
   const canReturnToQa = smmOwnedPrep && readiness.allReady
   const folderUrl = batch.editorDeliverablesDriveUrl?.trim() ?? ''
+
+  /** Same trap as the editor modal: record the Drive files before submitting,
+   *  or the server rejects a deliverable the UI showed as ready. */
+  const handleReturnToQa = async () => {
+    try {
+      if (!submitReadinessForDeliverable(ticket).allReady) {
+        const nextManifest = await sync()
+        const body = driveSyncRequestFromManifest(index, nextManifest)
+        if (body) await driveSync.mutateAsync(body)
+      }
+      await submitToSmmQa.mutateAsync()
+      onClose()
+    } catch {
+      // Stay open so the message below is readable.
+    }
+  }
+
+  const sendError = submitToSmmQa.isError
+    ? apiErrorMessage(submitToSmmQa.error, 'Could not return this video to SMM QA.')
+    : driveSync.isError
+      ? apiErrorMessage(driveSync.error, 'Could not record the Drive files.')
+      : null
 
   const handleSyncDrive = async () => {
     const nextManifest = await sync()
@@ -127,15 +153,19 @@ export function SmmProductionModal({
             titleReady={readiness.titleReady}
             showChecklist={false}
             ctaLabel="Return to SMM QA"
-            ctaDisabled={!canReturnToQa || submitToSmmQa.isPending}
+            ctaDisabled={
+              !canReturnToQa || submitToSmmQa.isPending || driveSync.isPending || syncing
+            }
             onCta={() => {
-              submitToSmmQa.mutate(undefined, {
-                onSuccess: () => {
-                  onClose()
-                },
-              })
+              void handleReturnToQa()
             }}
           />
+        ) : null}
+
+        {sendError ? (
+          <p className="text-destructive text-xs leading-relaxed" role="alert">
+            {sendError}
+          </p>
         ) : null}
       </div>
     </StudioModalShell>

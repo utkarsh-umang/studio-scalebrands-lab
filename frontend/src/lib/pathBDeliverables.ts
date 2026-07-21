@@ -41,6 +41,29 @@ function entryFromTicketSlots(
   }
 }
 
+/**
+ * Readiness as the *server* computes it — from the ticket's persisted Drive
+ * slots only (see readiness_service.compute_readiness).
+ *
+ * readinessForDeliverable below is deliberately more generous: it also accepts a
+ * live manifest entry, so the UI can show a file that exists on Drive but has
+ * not been recorded on the ticket yet. Submitting is gated on *this* one, or the
+ * server rejects a request the UI showed as ready.
+ */
+export function submitReadinessForDeliverable(
+  ticket: AdminVideoTicket | undefined,
+): DeliverableReadiness {
+  const videoReady = Boolean(entryFromTicketSlots(ticket, 'video'))
+  const thumbnailReady = Boolean(entryFromTicketSlots(ticket, 'thumbnail'))
+  const titleReady = Boolean(ticket?.editorPublishTitle?.trim())
+  return {
+    videoReady,
+    thumbnailReady,
+    titleReady,
+    allReady: videoReady && thumbnailReady && titleReady,
+  }
+}
+
 export function readinessForDeliverable(
   batchId: string,
   deliverableIndex: number,

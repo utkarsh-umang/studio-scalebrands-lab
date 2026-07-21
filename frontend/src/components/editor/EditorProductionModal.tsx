@@ -17,7 +17,11 @@ import { useDriveManifestSync } from '@/hooks/useDriveManifestSync'
 import { editorNeedsProductionWork } from '@/lib/editorBoard'
 import { deliverableIndexForTicket } from '@/lib/driveMedia'
 import { driveSyncRequestFromManifest } from '@/lib/productionDriveSync'
-import { readinessForDeliverable } from '@/lib/pathBDeliverables'
+import {
+  readinessForDeliverable,
+  submitReadinessForDeliverable,
+} from '@/lib/pathBDeliverables'
+import { apiErrorMessage } from '@/lib/apiError'
 
 type Props = {
   batch: AdminBatchFolder
@@ -59,6 +63,33 @@ export function EditorProductionModal({
     if (!body) return
     driveSync.mutate(body)
   }
+
+  /**
+   * The server only counts Drive files that were recorded on the ticket, so a
+   * deliverable the UI shows as ready (because the manifest lists it) can still
+   * be rejected if the sync was never persisted. Record it first, then submit —
+   * otherwise the button appears to do nothing.
+   */
+  const handleSendToSmmQa = async () => {
+    try {
+      if (!submitReadinessForDeliverable(ticket).allReady) {
+        const nextManifest = await sync()
+        const body = driveSyncRequestFromManifest(index, nextManifest)
+        if (body) await driveSync.mutateAsync(body)
+      }
+      await submitToSmmQa.mutateAsync()
+      onClose()
+    } catch {
+      // Left open on purpose: the message below explains what failed, and
+      // closing would hide it. Mutation state carries the error.
+    }
+  }
+
+  const sendError = submitToSmmQa.isError
+    ? apiErrorMessage(submitToSmmQa.error, 'Could not send this video to SMM QA.')
+    : driveSync.isError
+      ? apiErrorMessage(driveSync.error, 'Could not record the Drive files.')
+      : null
 
   return (
     <StudioModalShell
@@ -113,19 +144,23 @@ export function EditorProductionModal({
           titleReady={readiness.titleReady}
           showChecklist={false}
           ctaLabel="Send to SMM QA"
-          ctaDisabled={!canSendSmm || submitToSmmQa.isPending}
+          ctaDisabled={
+            !canSendSmm || submitToSmmQa.isPending || driveSync.isPending || syncing
+          }
           onCta={
             canSendSmm
               ? () => {
-                  submitToSmmQa.mutate(undefined, {
-                    onSuccess: () => {
-                      onClose()
-                    },
-                  })
+                  void handleSendToSmmQa()
                 }
               : undefined
           }
         />
+
+        {sendError ? (
+          <p className="text-destructive text-xs leading-relaxed" role="alert">
+            {sendError}
+          </p>
+        ) : null}
 
         {!editorNeedsProductionWork(ticket) ? (
           <p className="text-muted-foreground text-xs leading-relaxed">
