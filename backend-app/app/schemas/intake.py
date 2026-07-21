@@ -10,6 +10,10 @@ class SubmitBatchIntakeRequest(CamelModel):
     url: str
 
 
+class SubmitClientThumbnailsRequest(CamelModel):
+    url: str
+
+
 class SubmitBatchIntakeResponse(CamelModel):
     batch: AdminBatchFolderResponse
     videos: list[AdminVideoTicketResponse]

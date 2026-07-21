@@ -32,6 +32,9 @@ export type AdminClientProfile = {
   }
 }
 
+/** Owner of a shared step. 'client' = the client supplies that asset themselves. */
+export type BatchStepOwnerKind = 'smm' | 'editor' | 'client' | null
+
 export type AdminBatchFolderStatus = 'active' | 'completed'
 
 /** How the client kicks off the batch. */
@@ -123,10 +126,19 @@ export type AdminBatchFolder = {
    * Set when the editor shares the link after uploading finals.
    */
   editorDeliverablesDriveUrl?: string
-  /** Which shared team member owns each shared step (CSM used to decide offline). */
-  clipOwnerKind?: 'smm' | 'editor' | null
-  thumbnailOwnerKind?: 'smm' | 'editor' | null
-  titleOwnerKind?: 'smm' | 'editor' | null
+  /**
+   * Flat numbered folder of thumbnails supplied by the client themselves. Only
+   * used when thumbnailOwnerKind is 'client'; supersedes the editor drive's
+   * Thumbnails subfolder when set.
+   */
+  clientThumbnailsFolderUrl?: string
+  /**
+   * Who owns each shared step. 'smm' | 'editor' is the CSM's offline call;
+   * 'client' means the client supplies that asset themselves.
+   */
+  clipOwnerKind?: BatchStepOwnerKind
+  thumbnailOwnerKind?: BatchStepOwnerKind
+  titleOwnerKind?: BatchStepOwnerKind
   /** Path A: the SMM-researched idea list awaiting / after client approval. */
   ideaList?: string[] | null
   /** Raw pipeline stage (e.g. idea_research, idea_review, idea_footage_pending). */

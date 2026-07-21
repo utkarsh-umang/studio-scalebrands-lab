@@ -162,6 +162,7 @@ class AdminBatchFolderResponse(CamelModel):
     clip_review_phase: BatchClipReviewPhase | None = None
     clips_folder_url: str | None = None
     editor_deliverables_drive_url: str | None = None
+    client_thumbnails_folder_url: str | None = None
     credit_cost: int
     credits_debited: bool
     pipeline_stage: PipelineStage

@@ -13,6 +13,12 @@ class UpdateProductionRequest(CamelModel):
     editor_publish_title: str | None = Field(default=None, alias="editorPublishTitle")
 
 
+class SetClientTitleRequest(CamelModel):
+    """Client-owned title for one deliverable (writes editorPublishTitle)."""
+
+    title: str
+
+
 class DriveMediaEntryInput(CamelModel):
     index: int
     drive_file_id: str = Field(alias="driveFileId")

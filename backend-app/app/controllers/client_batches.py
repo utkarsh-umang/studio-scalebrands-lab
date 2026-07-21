@@ -13,7 +13,11 @@ from app.schemas.clips import (
     BatchVideosResponse,
     RejectBatchClipsRequest,
 )
-from app.schemas.intake import SubmitBatchIntakeRequest, SubmitBatchIntakeResponse
+from app.schemas.intake import (
+    SubmitBatchIntakeRequest,
+    SubmitBatchIntakeResponse,
+    SubmitClientThumbnailsRequest,
+)
 from app.services import clips_service, intake_service
 
 router = APIRouter(prefix="/client", tags=["client"])
@@ -34,6 +38,24 @@ async def submit_batch_intake(
         current_user,
         batch_id,
         body.intake_path,
+        body.url,
+    )
+
+
+@router.post(
+    "/batches/{batch_id}/thumbnails-folder",
+    response_model=SubmitBatchIntakeResponse,
+)
+async def submit_client_thumbnails_folder(
+    batch_id: UUID,
+    body: SubmitClientThumbnailsRequest,
+    current_user: Annotated[CurrentUser, Depends(require_roles("client"))],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> SubmitBatchIntakeResponse:
+    return await intake_service.submit_client_thumbnails_folder(
+        session,
+        current_user,
+        batch_id,
         body.url,
     )
 

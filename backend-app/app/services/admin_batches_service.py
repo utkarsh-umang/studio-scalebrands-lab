@@ -19,7 +19,9 @@ from app.schemas.admin import (
 from app.services.admin_helpers import assert_client_active, get_profile_or_404
 from app.services.admin_mappers import batch_to_response, video_to_response
 
-_OWNER_KINDS = {"smm", "editor"}
+# Who owns a shared step. "client" covers clients who supply their own
+# thumbnails/titles rather than having the team produce them.
+_OWNER_KINDS = {"smm", "editor", "client"}
 
 
 def _validate_owner_kind(value: str | None) -> str | None:
@@ -33,7 +35,7 @@ def _validate_owner_kind(value: str | None) -> str | None:
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail={
                 "error_code": "VALIDATION_ERROR",
-                "message": "Owner must be 'smm' or 'editor'",
+                "message": "Owner must be 'smm', 'editor', or 'client'",
             },
         )
     return normalized

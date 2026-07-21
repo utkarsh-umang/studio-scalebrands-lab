@@ -10,6 +10,7 @@ export type {
   AdminBatchFolder,
   AdminBatchFolderStatus,
   BatchIntakePath,
+  BatchStepOwnerKind,
   BatchClipReviewPhase,
   BatchFootageFile,
   VideoQaTimestampFlag,

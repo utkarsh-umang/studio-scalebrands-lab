@@ -34,10 +34,21 @@ class DriveDeliverablesDiagnosticsDto(CamelModel):
     status: str
 
 
+class DriveClientThumbnailsDiagnosticsDto(CamelModel):
+    """Client-supplied thumbnails folder — flat and numbered, like clips."""
+
+    linked: bool
+    accessible: bool
+    total: int
+    numbered: int
+    status: str
+
+
 class DriveDiagnosticsDto(CamelModel):
     service_account_email: str | None = None
     clips: DriveClipsDiagnosticsDto
     deliverables: DriveDeliverablesDiagnosticsDto
+    client_thumbnails: DriveClientThumbnailsDiagnosticsDto | None = None
 
 
 class BatchDriveManifestResponse(CamelModel):

@@ -520,6 +520,7 @@ export function AdminClientDetail() {
               titleOwnerKind={selectedBatch.titleOwnerKind ?? null}
               smmName={client.assignedSmmName}
               editorName={client.assignedEditorName}
+              clientName={client.displayName}
               onChange={(next) => {
                 setBatchAssignments.mutate(next)
               }}

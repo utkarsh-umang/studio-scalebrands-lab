@@ -24,6 +24,7 @@ from app.schemas.production import (
     SubmitToSmmQaResponse,
     UpdateProductionRequest,
 )
+from app.services.activity_service import record_activity
 from app.services.path_b_transitions import apply_video_transition
 from app.services.readiness_service import DeliverableReadiness, compute_readiness
 from app.services.workspace_access import assert_employee_batch_access, assert_video_access
@@ -206,6 +207,27 @@ def _entry_to_slot_dict(entry: DriveMediaEntryInput) -> dict[str, Any]:
     return payload
 
 
+def _validate_title(raw: str, field: str) -> str:
+    trimmed = raw.strip()
+    if not trimmed:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "error_code": "VALIDATION_ERROR",
+                "message": f"{field} cannot be empty",
+            },
+        )
+    if len(trimmed) > MAX_TITLE_LENGTH:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "error_code": "VALIDATION_ERROR",
+                "message": f"Title must be at most {MAX_TITLE_LENGTH} characters",
+            },
+        )
+    return trimmed
+
+
 async def update_production(
     session: AsyncSession,
     user: CurrentUser,
@@ -216,26 +238,59 @@ async def update_production(
     _assert_employee_production_access(user, ticket, batch)
 
     if payload.editor_publish_title is not None:
-        trimmed = payload.editor_publish_title.strip()
-        if not trimmed:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail={
-                    "error_code": "VALIDATION_ERROR",
-                    "message": "editorPublishTitle cannot be empty",
-                },
-            )
-        if len(trimmed) > MAX_TITLE_LENGTH:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail={
-                    "error_code": "VALIDATION_ERROR",
-                    "message": f"Title must be at most {MAX_TITLE_LENGTH} characters",
-                },
-            )
-        ticket.editor_publish_title = trimmed
+        ticket.editor_publish_title = _validate_title(
+            payload.editor_publish_title, "editorPublishTitle"
+        )
         ticket.updated_at = utc_now()
         session.add(ticket)
+
+    await session.flush()
+    await session.refresh(ticket)
+    batch.updated_at = utc_now()
+    session.add(batch)
+    return await _ticket_response(session, ticket, batch)
+
+
+async def set_client_title(
+    session: AsyncSession,
+    user: CurrentUser,
+    video_ticket_id: UUID,
+    title: str,
+) -> ProductionTicketResponse:
+    """Client writes the publish title for one deliverable.
+
+    Only allowed when the admin marked the batch's title step as client-owned;
+    otherwise the title belongs to the team and the client must not overwrite it.
+    """
+    if user.role != UserRole.client:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"error_code": "FORBIDDEN", "message": "Client role required"},
+        )
+    ticket, batch = await _get_ticket_and_batch(session, user, video_ticket_id)
+    if (batch.title_owner_kind or "") != "client":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error_code": "FORBIDDEN",
+                "message": "The title for this batch is owned by the Scale Brands Lab team",
+            },
+        )
+
+    ticket.editor_publish_title = _validate_title(title, "title")
+    ticket.updated_at = utc_now()
+    session.add(ticket)
+
+    record_activity(
+        session,
+        batch_id=batch.id,
+        actor=user,
+        video_ticket_id=ticket.id,
+        deliverable_index=ticket.deliverable_index,
+        action="client_title_submitted",
+        summary=f"Client set the title for clip {ticket.deliverable_index}",
+        detail=ticket.editor_publish_title,
+    )
 
     await session.flush()
     await session.refresh(ticket)

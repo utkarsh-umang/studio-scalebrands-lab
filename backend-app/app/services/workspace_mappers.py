@@ -68,6 +68,7 @@ def batch_to_dto(batch: Batch) -> AdminBatchFolderResponse:
         clip_review_phase=batch.clip_review_phase,
         clips_folder_url=batch.clips_folder_url,
         editor_deliverables_drive_url=batch.editor_deliverables_drive_url,
+        client_thumbnails_folder_url=batch.client_thumbnails_folder_url,
         credit_cost=batch.credit_cost,
         credits_debited=batch.credits_debited,
         pipeline_stage=batch.pipeline_stage,

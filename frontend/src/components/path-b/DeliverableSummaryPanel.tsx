@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { ExternalLink } from 'lucide-react'
-import type { AdminBatchFolder, AdminVideoTicket } from '@/types/pathB'
+import type { AdminBatchFolder, AdminVideoTicket, BatchStepOwnerKind } from '@/types/pathB'
 import { DriveVideoPreview } from '@/components/drive/DriveVideoPreview'
 import { DeliverableAccordion, type DeliverableAccordionStatus } from '@/components/path-b/DeliverableAccordion'
 import { DriveAccessNotice } from '@/components/path-b/DriveAccessNotice'
@@ -143,8 +143,14 @@ export function DeliverableSummaryPanel({
     return <DriveSyncButton onSync={onSyncDrive} syncing={driveSyncing} label="Sync" />
   }
 
-  const ownerSuffix = (kind?: 'smm' | 'editor' | null) =>
-    kind === 'smm' ? ' · SMM' : kind === 'editor' ? ' · Editor' : ''
+  const ownerSuffix = (kind?: BatchStepOwnerKind) =>
+    kind === 'smm'
+      ? ' · SMM'
+      : kind === 'editor'
+        ? ' · Editor'
+        : kind === 'client'
+          ? ' · Client'
+          : ''
 
   return (
     <div

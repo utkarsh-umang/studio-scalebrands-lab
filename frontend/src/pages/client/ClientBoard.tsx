@@ -8,6 +8,7 @@ import { ClientIdeaPanel } from '@/components/client/ClientIdeaPanel'
 import { ClientCardDetailModal } from '@/components/client/ClientCardDetailModal'
 import { ClientPageTitleRow } from '@/components/client/ClientPageTitleRow'
 import { ClientBatchIntakeCard } from '@/components/client/ClientBatchIntakeCard'
+import { ClientThumbnailsFolderCard } from '@/components/client/ClientThumbnailsFolderCard'
 import { ClientVideoKanban } from '@/components/client/ClientVideoKanban'
 import {
   batchNeedsClientIntake,
@@ -144,6 +145,14 @@ export function ClientBoard() {
                 Start this batch — we need your link
               </p>
               <ClientBatchIntakeCard batch={selectedBatch} />
+            </div>
+          )}
+          {selectedBatch.thumbnailOwnerKind === 'client' && (
+            <div className="space-y-2">
+              <p className="text-muted-foreground text-[10px] font-semibold uppercase tracking-[0.12em]">
+                Thumbnails — yours to send
+              </p>
+              <ClientThumbnailsFolderCard batch={selectedBatch} />
             </div>
           )}
           {['idea_research', 'idea_review', 'idea_footage_pending'].includes(

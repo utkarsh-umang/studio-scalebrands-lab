@@ -45,6 +45,10 @@ class Batch(Base, table=True):
     source_media_url: str | None = Field(default=None, max_length=2048)
     clips_folder_url: str | None = Field(default=None, max_length=2048)
     editor_deliverables_drive_url: str | None = Field(default=None, max_length=2048)
+    # Clients who make their own thumbnails send a flat numbered folder of their
+    # own, separately from (and usually later than) the editor's deliverables
+    # root. When set, it supersedes the deliverables thumbnails/ subfolder.
+    client_thumbnails_folder_url: str | None = Field(default=None, max_length=2048)
     credit_cost: int = Field(default=0)
     credits_debited: bool = Field(default=False)
     # Which shared team member (smm | editor) owns each shared step. The CSM used

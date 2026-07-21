@@ -59,6 +59,72 @@ async def _get_owned_active_batch(
     return batch
 
 
+async def submit_client_thumbnails_folder(
+    session: AsyncSession,
+    user: CurrentUser,
+    batch_id: UUID,
+    url: str,
+) -> SubmitBatchIntakeResponse:
+    """Client links their own thumbnails folder.
+
+    Deliberately separate from intake: clients who make their own thumbnails
+    usually send them well after the clips, once they have seen the cuts. Can be
+    re-submitted to correct a wrong link — the manifest re-reads it every sync.
+    """
+    await assert_client_role(user)
+    batch = await _get_owned_active_batch(session, user, batch_id)
+
+    if (batch.thumbnail_owner_kind or "") != "client":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error_code": "FORBIDDEN",
+                "message": "Thumbnails for this batch are produced by the Scale Brands Lab team",
+            },
+        )
+
+    trimmed = url.strip()
+    if not trimmed:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"error_code": "VALIDATION_ERROR", "message": "URL is required"},
+        )
+    if len(trimmed) > MAX_INTAKE_URL_LENGTH:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "error_code": "VALIDATION_ERROR",
+                "message": f"URL must be at most {MAX_INTAKE_URL_LENGTH} characters",
+            },
+        )
+
+    batch.client_thumbnails_folder_url = trimmed
+    session.add(batch)
+
+    record_activity(
+        session,
+        batch_id=batch.id,
+        actor=user,
+        action="client_thumbnails_submitted",
+        summary=f"Client sent a thumbnails folder for “{batch.title}”",
+    )
+
+    await session.flush()
+    await session.refresh(batch)
+
+    tickets_result = await session.execute(
+        select(VideoTicket)
+        .where(VideoTicket.batch_id == batch.id)
+        .order_by(VideoTicket.deliverable_index.nullsfirst(), VideoTicket.created_at),
+    )
+    tickets = list(tickets_result.scalars().all())
+
+    return SubmitBatchIntakeResponse(
+        batch=batch_to_dto(batch),
+        videos=[video_to_dto(ticket) for ticket in tickets],
+    )
+
+
 async def submit_client_intake(
     session: AsyncSession,
     user: CurrentUser,

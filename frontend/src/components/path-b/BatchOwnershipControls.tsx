@@ -1,7 +1,10 @@
 import { Scissors, Image, Type } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
-export type OwnerKind = 'smm' | 'editor' | null
+export type OwnerKind = 'smm' | 'editor' | 'client' | null
+
+/** Selectable owners, in the order they appear as toggles. */
+const OWNER_KINDS = ['smm', 'editor', 'client'] as const
 
 export type BatchOwnership = {
   clipOwnerKind: OwnerKind
@@ -12,7 +15,9 @@ export type BatchOwnership = {
 type Props = BatchOwnership & {
   smmName?: string
   editorName?: string
-  /** When provided, renders interactive SMM/Editor toggles (admin). Else read-only. */
+  /** Shown on the client toggle — clients who supply their own thumbnails/titles. */
+  clientName?: string
+  /** When provided, renders interactive owner toggles (admin). Else read-only. */
   onChange?: (next: BatchOwnership) => void
   className?: string
 }
@@ -25,9 +30,15 @@ const ROWS: Row[] = [
   { key: 'titleOwnerKind', label: 'Title', Icon: Type },
 ]
 
-function ownerLabel(kind: OwnerKind, smmName?: string, editorName?: string): string {
+function ownerLabel(
+  kind: OwnerKind,
+  smmName?: string,
+  editorName?: string,
+  clientName?: string,
+): string {
   if (kind === 'smm') return smmName ?? 'SMM'
   if (kind === 'editor') return editorName ?? 'Editor'
+  if (kind === 'client') return clientName ?? 'Client'
   return 'Unassigned'
 }
 
@@ -37,6 +48,7 @@ export function BatchOwnershipControls({
   titleOwnerKind,
   smmName,
   editorName,
+  clientName,
   onChange,
   className = '',
 }: Props) {
@@ -51,7 +63,7 @@ export function BatchOwnershipControls({
             <Icon className="size-3 opacity-70" aria-hidden />
             {label}:{' '}
             <span className={current[key] ? 'text-foreground font-medium' : 'italic'}>
-              {ownerLabel(current[key], smmName, editorName)}
+              {ownerLabel(current[key], smmName, editorName, clientName)}
             </span>
           </span>
         ))}
@@ -72,7 +84,7 @@ export function BatchOwnershipControls({
             <Icon className="size-3.5 opacity-70" aria-hidden />
             {label}
           </span>
-          {(['smm', 'editor'] as const).map((kind) => {
+          {OWNER_KINDS.map((kind) => {
             const active = current[key] === kind
             return (
               <button
@@ -88,7 +100,7 @@ export function BatchOwnershipControls({
                     : 'border-border text-muted-foreground hover:text-foreground',
                 ].join(' ')}
               >
-                {ownerLabel(kind, smmName, editorName)}
+                {ownerLabel(kind, smmName, editorName, clientName)}
               </button>
             )
           })}

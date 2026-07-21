@@ -57,6 +57,7 @@ async def get_batch_drive_manifest(
             str(batch.id),
             batch.clips_folder_url,
             batch.editor_deliverables_drive_url,
+            batch.client_thumbnails_folder_url,
         )
     except DriveManifestError as exc:
         raise HTTPException(

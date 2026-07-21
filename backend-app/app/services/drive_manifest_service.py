@@ -249,13 +249,20 @@ def _fetch_manifest_blocking(
     batch_id: str,
     clips_folder_url: str | None,
     deliverables_folder_url: str | None,
+    client_thumbnails_folder_url: str | None = None,
 ) -> dict[str, Any]:
-    """Blocking Drive fetch — run via a threadpool from async callers."""
-    if not clips_folder_url and not deliverables_folder_url:
+    """Blocking Drive fetch — run via a threadpool from async callers.
+
+    When the client supplies their own thumbnails, they send a flat numbered
+    folder of their own and it wins over the deliverables thumbnails/ subfolder,
+    which in that arrangement is not expected to exist at all.
+    """
+    if not clips_folder_url and not deliverables_folder_url and not client_thumbnails_folder_url:
         raise DriveManifestError(
             "This batch has no Drive folder linked yet.",
             code="DRIVE_NO_FOLDER",
         )
+    client_thumbs_linked = bool(client_thumbnails_folder_url)
 
     drive = _build_drive()
     unmapped: list[dict[str, str]] = []
@@ -307,12 +314,12 @@ def _fetch_manifest_blocking(
                 unmapped.extend(v_unmapped)
             else:
                 unmapped.append({"name": "(folder)", "reason": "No Video subfolder in deliverables drive"})
-            if thumb_folder_id:
+            if thumb_folder_id and not client_thumbs_linked:
                 thumb_files = _list_children(drive, thumb_folder_id)
                 thumbs_total = _count_media_files(thumb_files)
                 thumbnails, t_unmapped = _map_indexed_files(thumb_files, "thumbnails")
                 unmapped.extend(t_unmapped)
-            else:
+            elif not thumb_folder_id and not client_thumbs_linked:
                 unmapped.append(
                     {"name": "(folder)", "reason": "No Thumbnail subfolder in deliverables drive"}
                 )
@@ -322,7 +329,11 @@ def _fetch_manifest_blocking(
         bool(deliverables_folder_url), deliverables_id, deliverables_accessible,
         deliverables_total, deliverables_mapped,
     )
-    if deliverables_accessible and (not has_videos_sub or not has_thumbs_sub):
+    # A missing thumbnails/ subfolder is only a fault when the editor is the one
+    # expected to supply thumbnails.
+    if deliverables_accessible and (
+        not has_videos_sub or (not has_thumbs_sub and not client_thumbs_linked)
+    ):
         deliv_status = "missing_subfolders"
     deliverables_diag = {
         "linked": bool(deliverables_folder_url),
@@ -332,6 +343,36 @@ def _fetch_manifest_blocking(
         "videos": len(videos),
         "thumbnails": len(thumbnails),
         "status": deliv_status,
+    }
+
+    # ── Client-supplied thumbnails folder (flat, numbered — like clips) ──
+    client_thumbs_id = parse_drive_folder_id(client_thumbnails_folder_url)
+    client_thumbs_accessible = False
+    client_thumbs_total = 0
+    if client_thumbnails_folder_url and not client_thumbs_id:
+        unmapped.append(
+            {"name": "(client thumbnails)", "reason": "Could not parse folder id from URL"}
+        )
+    if client_thumbs_id:
+        client_thumbs_accessible = _folder_accessible(drive, client_thumbs_id)
+        if client_thumbs_accessible:
+            thumb_files = _list_children(drive, client_thumbs_id)
+            client_thumbs_total = _count_media_files(thumb_files)
+            thumbnails, t_unmapped = _map_indexed_files(thumb_files, "thumbnails")
+            unmapped.extend(t_unmapped)
+            deliverables_diag["thumbnails"] = len(thumbnails)
+    client_thumbs_diag = {
+        "linked": client_thumbs_linked,
+        "accessible": client_thumbs_accessible,
+        "total": client_thumbs_total,
+        "numbered": len(thumbnails) if client_thumbs_linked else 0,
+        "status": _slot_status(
+            client_thumbs_linked,
+            client_thumbs_id,
+            client_thumbs_accessible,
+            client_thumbs_total,
+            len(thumbnails) if client_thumbs_linked else 0,
+        ),
     }
 
     return {
@@ -345,6 +386,7 @@ def _fetch_manifest_blocking(
             "serviceAccountEmail": get_service_account_email(),
             "clips": clips_diag,
             "deliverables": deliverables_diag,
+            "clientThumbnails": client_thumbs_diag,
         },
     }
 
@@ -353,6 +395,7 @@ async def fetch_manifest_for_batch(
     batch_id: str,
     clips_folder_url: str | None,
     deliverables_folder_url: str | None,
+    client_thumbnails_folder_url: str | None = None,
 ) -> dict[str, Any]:
     """Async wrapper — Drive's client is blocking, so offload to a thread."""
     from fastapi.concurrency import run_in_threadpool
@@ -363,6 +406,7 @@ async def fetch_manifest_for_batch(
             batch_id,
             clips_folder_url,
             deliverables_folder_url,
+            client_thumbnails_folder_url,
         )
     except DriveManifestError:
         raise

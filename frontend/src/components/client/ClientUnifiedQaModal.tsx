@@ -18,6 +18,7 @@ import { deliverableIndexForTicket, getMediaEntry } from '@/lib/driveMedia'
 import { readinessForDeliverable } from '@/lib/pathBDeliverables'
 import { flagsToQaComments } from '@/lib/qaComments'
 import type { VideoReviewFeedback } from '@/components/VideoDeliverableReviewPanel'
+import { ClientTitleField } from '@/components/client/ClientTitleField'
 
 function clientQaRowStatus(row: DeliverableSidebarRow): string {
   if (!row.ticket) return 'Preview only'
@@ -219,6 +220,10 @@ export function ClientUnifiedQaModal({
                   actionsDisabled={false}
                 />
               )}
+
+              {batch.titleOwnerKind === 'client' && view === 'summary' && qaTicket ? (
+                <ClientTitleField ticket={qaTicket} />
+              ) : null}
 
               {canAct && view === 'summary' ? (
                 <button
