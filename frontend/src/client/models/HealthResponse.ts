@@ -6,7 +6,6 @@ export type HealthResponse = {
     status: string;
     environment: string;
     postgres: string;
-    mongo: string;
     redis: string;
 };
 

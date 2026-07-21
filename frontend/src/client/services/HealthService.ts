@@ -10,7 +10,7 @@ export class HealthService {
     /**
      * Health
      * Health check with per-store connectivity status.
-     * Returns 200 with status for Postgres, MongoDB, and Redis.
+     * Returns 200 with status for Postgres and Redis.
      * @returns HealthResponse Successful Response
      * @throws ApiError
      */

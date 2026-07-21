@@ -5,7 +5,7 @@ Monorepo: FastAPI backend + React TypeScript frontend. All commands run from the
 ## Quick start
 
 1. **Install Task** (if needed): https://taskfile.dev/installation
-2. **Install Docker** (for Postgres, MongoDB, Redis)
+2. **Install Docker** (for Postgres, Redis)
 
 3. **Create `.env`**
    ```bash
@@ -15,7 +15,7 @@ Monorepo: FastAPI backend + React TypeScript frontend. All commands run from the
 
 4. **Start infra + backend**
    ```bash
-   task dev:infra    # Start Postgres, MongoDB, Redis (Docker)
+   task dev:infra    # Start Postgres, Redis (Docker)
    task backend:up   # Migrate + start uvicorn
    ```
    API: http://localhost:8000
@@ -46,7 +46,7 @@ task dev:docker:detach   # background
 
 | Task | Description |
 |------|-------------|
-| `task dev:infra` | Start Postgres, MongoDB, Redis (Docker) |
+| `task dev:infra` | Start Postgres, Redis (Docker) |
 | `task dev:docker` | Full stack in Docker (infra + backend + frontend) |
 | `task dev:docker:detach` | Same, detached |
 | `task dev:down` | Stop Docker compose (infra + app containers) |
@@ -69,14 +69,14 @@ task dev:docker:detach   # background
 ├── .env                 # Your secrets (create from .env.example)
 ├── .env.example         # Env template
 ├── Taskfile.yml         # Root task runner
-├── docker-compose.yml   # Local infra (Postgres, MongoDB, Redis)
+├── docker-compose.yml   # Local infra (Postgres, Redis)
 ├── backend-app/         # FastAPI backend
 └── frontend/            # React frontend
 ```
 
 ## Local dev flow
 
-- **Infra:** Docker (Postgres, MongoDB, Redis) — `task dev:infra`
+- **Infra:** Docker (Postgres, Redis) — `task dev:infra`
 - **App on host:** uvicorn — `task backend:up`; Vite — `task frontend:run`
 - **App in Docker:** `task dev:docker` (compose binds source for reload)
 

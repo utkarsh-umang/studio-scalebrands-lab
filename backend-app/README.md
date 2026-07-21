@@ -1,6 +1,6 @@
 # FastAPI Backend
 
-Production-ready FastAPI backend with dual database support (Postgres + MongoDB), Redis caching, and a clear layered architecture. Designed for the fullstack-template monorepo.
+Production-ready FastAPI backend with Postgres, Redis caching, and a clear layered architecture. Designed for the fullstack-template monorepo.
 
 ---
 
@@ -9,10 +9,9 @@ Production-ready FastAPI backend with dual database support (Postgres + MongoDB)
 | Store | Technology | Use for |
 |-------|------------|---------|
 | **Postgres** | SQLModel, asyncpg, Alembic | Users, auth, transactional data, relations, JOINs |
-| **MongoDB** | PyMongo/Motor | Documents, JSON blobs, flexible schemas, logs |
 | **Redis** | redis-py | Caching, sessions, rate limiting |
 
-**Architecture:** Controllers (thin) → Services (logic) → DB / Mongo / Cache
+**Architecture:** Controllers (thin) → Services (logic) → DB / Cache
 
 ---
 
@@ -22,7 +21,7 @@ This backend lives in `backend-app/`. **All commands run from the repo root** us
 
 ```bash
 # From repo root
-task dev:infra      # Start Postgres, MongoDB, Redis (Docker)
+task dev:infra      # Start Postgres, Redis (Docker)
 task backend:up     # Migrate + start uvicorn
 ```
 
@@ -34,7 +33,7 @@ Do not run `poetry` or `uvicorn` from inside `backend-app/` in normal workflows�
 
 - Python 3.11+
 - Task (taskfile.dev)
-- Docker (for Postgres, MongoDB, Redis)
+- Docker (for Postgres, Redis)
 - Poetry (managed via Task)
 
 ---
@@ -47,7 +46,7 @@ The app loads config from the **repo root `.env`** (or `backend-app/local.env` a
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `ENVIRONMENT` | `local` | `local` / `uat` / `prod`. Affects MongoDB driver (sync vs async) and GCP secrets. |
+| `ENVIRONMENT` | `local` | `local` / `uat` / `prod`. Affects GCP secrets. |
 | `SECRET_KEY` | `change-me-in-production` | **Change in production.** Used for signing, JWT, etc. |
 | `CORS_ORIGINS` | `["http://localhost:3000"]` | Allowed frontend origins. JSON array or comma-separated. |
 | `API_V1_STR` | `/api/v1` | API prefix. Versioned routes live under this path. |
@@ -62,15 +61,6 @@ The app loads config from the **repo root `.env`** (or `backend-app/local.env` a
 | `POSTGRES_PASSWORD` | `postgres` | Database password. **Change in production.** |
 | `POSTGRES_DB` | `myapp` | Database name. Must match `docker-compose` for local dev. |
 
-### MongoDB
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `MONGO_LOCAL_URI` | `mongodb://localhost:27017` | Local MongoDB URI. Use `mongodb://mongo:27017` if app runs in Docker. |
-| `MONGO_PROD_URI` | _(none)_ | Prod URI (if not using GCP Secret Manager). |
-| `MONGO_DB_NAME` | `myapp_docs` | Default database for documents. |
-| `MONGO_TEST_DB_NAME` | `myapp_docs_test` | Database used when `is_test_write=True` (tests). |
-
 ### Redis
 
 | Variable | Default | Description |
@@ -84,13 +74,12 @@ The app loads config from the **repo root `.env`** (or `backend-app/local.env` a
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `GCP_PROJECT_ID` | _(none)_ | GCP project for Secret Manager. |
-| `GCP_SECRET_NAME` | _(none)_ | Secret name containing MongoDB URI. When set, URI is fetched from GCP instead of env. |
+| `GCP_SECRET_NAME` | _(none)_ | Secret name for prod secrets, when using Secret Manager instead of env vars. |
 
 ### What to change
 
 - **Local dev:** Defaults work with `task dev:infra` (Docker). No changes needed unless ports conflict.
 - **Production:** Set `SECRET_KEY`, `POSTGRES_PASSWORD`, `CORS_ORIGINS`, `ENVIRONMENT=prod`, and DB/Redis hosts.
-- **Port conflicts:** If 27017 is in use, change `MONGO_LOCAL_URI` (e.g. `mongodb://localhost:27018`) and update `docker-compose` MongoDB port mapping.
 
 ---
 
@@ -125,16 +114,11 @@ backend-app/
 │   ├── core/              # Config, errors, auth contract
 │   │   ├── config.py      # Pydantic Settings (loads .env)
 │   │   ├── errors/        # Custom exceptions + handlers
-│   │   └── auth.py        # get_current_user, require_roles (implement these)
+│   │   └── auth.py        # get_current_user, require_roles
 │   ├── db/                # Postgres
 │   │   ├── session.py     # AsyncSession, get_db_session
 │   │   └── base.py        # Base model (id, created_at, updated_at)
 │   ├── models/            # SQLModel ORM models (import here for Alembic)
-│   ├── mongo/             # MongoDB
-│   │   ├── connection_manager.py
-│   │   ├── get_connection.py
-│   │   ├── insert.py, read.py, delete.py, upsert.py
-│   │   └── helpers.py
 │   ├── cache/             # Redis
 │   │   └── redis_client.py
 │   ├── controllers/       # API routes (thin, delegate to services)
@@ -146,20 +130,6 @@ backend-app/
 ├── pyproject.toml
 └── tests/
 ```
-
----
-
-## Database Guide
-
-| Use Postgres (SQLModel) for | Use MongoDB for |
-|-----------------------------|-----------------|
-| Users, auth, roles | Large/nested JSON documents |
-| Orders, payments, transactions | File metadata, content blobs |
-| Rigid schemas, relations | Flexible/evolving schemas |
-| JOINs, SQL aggregations | Logs, analytics, audit trails |
-| Config, feature flags | Caching-adjacent storage |
-
-**Rule of thumb:** Spreadsheet → Postgres. JSON file → MongoDB.
 
 ---
 
@@ -177,25 +147,11 @@ backend-app/
 1. Create `app/controllers/your_resource.py` with an `APIRouter`
 2. Register in `app/controllers/__init__.py` or `main.py`
 
-### Use MongoDB
-
-```python
-from app.mongo.insert import insert_document
-from app.mongo.read import fetch_from_collection
-from app.schemas.common import StatusOr
-
-result = insert_document("documents", {"title": "My Doc", "content": {...}})
-if result.success:
-    doc_id = result.data["inserted_id"]
-```
-
 ### Add auth
 
 1. Implement `get_current_user` in `app/core/auth.py` (JWT, OAuth, etc.)
 2. Return a `CurrentUser` (or subclass)
 3. Use `Depends(get_current_user)` and `require_roles` in protected routes
-
-The template raises `NotImplementedError` until you implement these.
 
 ---
 
@@ -203,7 +159,7 @@ The template raises `NotImplementedError` until you implement these.
 
 | Task | Description |
 |------|-------------|
-| `task dev:infra` | Start Postgres, MongoDB, Redis (Docker) |
+| `task dev:infra` | Start Postgres, Redis (Docker) |
 | `task dev:down` | Stop Docker infra |
 | `task backend:install` | Install Python deps (Poetry) |
 | `task backend:up` | Migrate + start uvicorn |
@@ -221,13 +177,13 @@ The template raises `NotImplementedError` until you implement these.
 task backend:test
 ```
 
-Tests use `tests/conftest.py` for fixtures. Health check tests run without real DBs; integration tests can use `MONGO_TEST_DB_NAME` and a test Postgres DB.
+Tests use `tests/conftest.py` for fixtures.
 
 ---
 
 ## Production
 
-- **Infra:** Postgres, MongoDB, Redis as managed services or containers
+- **Infra:** Postgres, Redis as managed services or containers
 - **App:** Run uvicorn in a container; or use Gunicorn + uvicorn workers
 - **Env:** Set `ENVIRONMENT=prod`, strong `SECRET_KEY`, real DB URIs
-- **GCP:** Optional—use Secret Manager for MongoDB URI when `GCP_PROJECT_ID` and `GCP_SECRET_NAME` are set
+- **GCP:** Optional—use Secret Manager for secrets when `GCP_PROJECT_ID` and `GCP_SECRET_NAME` are set

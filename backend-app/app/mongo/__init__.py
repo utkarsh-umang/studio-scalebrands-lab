@@ -1,1 +1,0 @@
-"""MongoDB document storage layer."""

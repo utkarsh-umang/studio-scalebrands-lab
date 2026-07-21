@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "backend-app"
 version = "0.1.0"
-description = "FastAPI backend with Postgres, MongoDB, Redis"
+description = "FastAPI backend with Postgres, Redis"
 authors = []
 readme = "README.md"
 packages = [{include = "app"}]
@@ -15,8 +15,6 @@ sqlmodel = "^0.0.22"
 asyncpg = "^0.30.0"
 greenlet = "^3.0.0"
 alembic = "^1.14.0"
-pymongo = "^4.10.0"
-motor = "^3.6.0"
 redis = "^5.2.0"
 bcrypt = "^4.2.0"
 python-jose = {extras = ["cryptography"], version = "^3.3.0"}

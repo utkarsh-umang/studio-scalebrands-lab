@@ -28,7 +28,7 @@ export function Home() {
           <div className="text-success mt-2 text-sm">
             <p>API connected. Status: {data.status}</p>
             <p className="text-muted-foreground mt-1">
-              Postgres: {data.postgres} · Mongo: {data.mongo} · Redis: {data.redis}
+              Postgres: {data.postgres} · Redis: {data.redis}
             </p>
           </div>
         )}

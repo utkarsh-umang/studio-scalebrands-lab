@@ -14,9 +14,9 @@ vars:
 tasks:
   # ── Dev (Docker infra) ──
   dev:infra:
-    desc: Start Postgres, MongoDB, Redis (Docker only — use dev:docker for app containers)
+    desc: Start Postgres, Redis (Docker only — use dev:docker for app containers)
     cmds:
-      - docker compose up -d postgres mongo redis
+      - docker compose up -d postgres redis
 
   dev:down:
     desc: Stop Docker infra
@@ -24,7 +24,7 @@ tasks:
       - docker compose down
 
   dev:docker:
-    desc: Start Postgres, MongoDB, Redis + backend + frontend (Docker)
+    desc: Start Postgres, Redis + backend + frontend (Docker)
     cmds:
       - docker compose up --build
 

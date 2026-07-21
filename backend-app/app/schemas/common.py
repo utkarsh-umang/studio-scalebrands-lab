@@ -18,5 +18,4 @@ class HealthResponse(BaseModel):
     status: str
     environment: str
     postgres: str
-    mongo: str
     redis: str
