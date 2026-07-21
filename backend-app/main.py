@@ -1,14 +1,26 @@
 """FastAPI application entry point."""
 
 import uuid
+import warnings
 
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+# Optional[X] = Field(alias=...) fields on our CamelModel schemas (e.g.
+# SubmitDeliverablesDriveRequest.deliverables, SetVideoDeadlineRequest.deadline_at)
+# make pydantic-core re-apply the raw FieldInfo while building the Optional's
+# union schema and warn that the alias "has no effect" — the alias is honored
+# fine at (de)serialization time; confirmed harmless (QA report 2026-06-28).
+# Must run before any `app.schemas.*` module is imported (schema classes build
+# their core schema at class-definition time), so this sits above those imports.
+from pydantic.warnings import UnsupportedFieldAttributeWarning
 
-from app.controllers import api_v1_router
-from app.controllers.health import router as health_router
-from app.core.config import config
-from app.core.errors.exceptions import register_exception_handlers
+warnings.filterwarnings("ignore", category=UnsupportedFieldAttributeWarning)
+
+from fastapi import FastAPI  # noqa: E402
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+
+from app.controllers import api_v1_router  # noqa: E402
+from app.controllers.health import router as health_router  # noqa: E402
+from app.core.config import config  # noqa: E402
+from app.core.errors.exceptions import register_exception_handlers  # noqa: E402
 
 
 class RequestIdMiddleware:
@@ -33,10 +45,17 @@ def add_request_id_middleware(app: FastAPI) -> None:
     app.add_middleware(RequestIdMiddleware)
 
 
+# /docs, /redoc, and /openapi.json expose the full API surface (routes, schemas,
+# auth requirements) to anyone who finds the URL — fine in dev, not something to
+# leave open on the public prod domain.
+_docs_enabled = config.ENVIRONMENT != "prod"
+
 app = FastAPI(
     title="FastAPI Backend",
     version="0.1.0",
-    openapi_url="/openapi.json",
+    openapi_url="/openapi.json" if _docs_enabled else None,
+    docs_url="/docs" if _docs_enabled else None,
+    redoc_url="/redoc" if _docs_enabled else None,
 )
 
 app.add_middleware(

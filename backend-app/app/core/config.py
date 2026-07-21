@@ -36,12 +36,9 @@ class Settings(BaseSettings):
     POSTGRES_USER: str = "postgres"
     POSTGRES_PASSWORD: str = "postgres"
     POSTGRES_DB: str = "myapp"
-
-    # ── MongoDB ──
-    MONGO_LOCAL_URI: str = "mongodb://localhost:27017"
-    MONGO_PROD_URI: str | None = None
-    MONGO_DB_NAME: str = "myapp_docs"
-    MONGO_TEST_DB_NAME: str = "myapp_docs_test"
+    # Managed Postgres (Neon, etc.) requires TLS; local Docker Postgres doesn't
+    # have it configured, so this defaults off and prod sets it explicitly.
+    POSTGRES_SSL: bool = False
 
     # ── Redis ──
     REDIS_HOST: str = "localhost"
@@ -57,10 +54,11 @@ class Settings(BaseSettings):
 
     @property
     def DATABASE_URL(self) -> str:
-        return (
+        url = (
             f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
             f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
         )
+        return f"{url}?ssl=require" if self.POSTGRES_SSL else url
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod

@@ -37,6 +37,10 @@ openapi.json
 
 **/secrets/
 *.json
+!firebase.json
 .cursor
 .gstack/
 docker-compose.override.yml
+
+# Firebase CLI local cache (hosting deploy metadata, not config)
+.firebase/

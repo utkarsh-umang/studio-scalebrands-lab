@@ -1,0 +1,44 @@
+# Production image for Cloud Run.
+# Multi-stage: builder installs deps into a venv; runtime copies only the venv +
+# app code, so the shipped image doesn't carry build-essential/poetry/apt caches.
+# No --reload, no dev bind mount, no baked-in seed/demo data.
+
+FROM python:3.11-slim-bookworm AS builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir poetry==1.8.5
+
+WORKDIR /app
+
+ENV POETRY_VIRTUALENVS_IN_PROJECT=true \
+    POETRY_NO_INTERACTION=1 \
+    PYTHONUNBUFFERED=1
+
+COPY pyproject.toml poetry.lock ./
+RUN poetry install --no-ansi --no-root --without dev
+
+COPY . .
+RUN poetry install --no-ansi --without dev
+
+
+FROM python:3.11-slim-bookworm AS runtime
+
+WORKDIR /app
+
+ENV PYTHONUNBUFFERED=1 \
+    PATH="/app/.venv/bin:$PATH"
+
+RUN groupadd --system app && useradd --system --gid app app
+
+COPY --from=builder /app /app
+
+USER app
+
+# Cloud Run injects $PORT (defaults to 8080) and expects the container to
+# listen on it — hardcoding 8000 here would break the deploy.
+EXPOSE 8080
+
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8080}"]

@@ -8,3 +8,8 @@ __pycache__
 .git
 .env
 local.env
+# Service account key — never bake credentials into an image layer.
+# Prod injects this via Secret Manager / a mounted env var instead.
+secrets/
+tests/
+migrations/versions/__pycache__
