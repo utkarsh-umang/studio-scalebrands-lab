@@ -112,6 +112,10 @@ export function DeliverableSummaryPanel({
     : getMediaEntry(batch.id, 'thumbnails', deliverableIndex)
 
   const rawUrl = batch.sourceMediaUrl?.trim() || batch.footageUrl?.trim()
+  // A clips-ready batch never has raw footage — the client hands over finished
+  // clips — so showing an empty "Raw footage" row flagged missing is wrong: it
+  // reports a gap that cannot be filled and is not required to proceed.
+  const showRawFootage = batch.intakePath !== 'clips_ready' || Boolean(rawUrl)
 
   const videoReady = readiness?.videoReady ?? Boolean(videoEntry)
   const thumbnailReady = readiness?.thumbnailReady ?? Boolean(thumbEntry)
@@ -166,30 +170,32 @@ export function DeliverableSummaryPanel({
         problemsOnly
         className="m-3"
       />
-      <DeliverableAccordion
-        id={`deliverable-${deliverableIndex}-raw`}
-        title="Raw footage"
-        status={sectionStatus.raw}
-        statusLabel={rawUrl ? 'Linked' : undefined}
-        open={openSections.has('raw')}
-        onOpenChange={(open) => {
-          setSectionOpen('raw', open)
-        }}
-      >
-        {rawUrl ? (
-          <a
-            href={rawUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary inline-flex items-center gap-1.5 text-sm font-medium underline-offset-2 hover:underline"
-          >
-            Open source
-            <ExternalLink className="size-3.5 opacity-70" aria-hidden />
-          </a>
-        ) : (
-          <p className="text-muted-foreground text-sm">No source link on this batch.</p>
-        )}
-      </DeliverableAccordion>
+      {showRawFootage ? (
+        <DeliverableAccordion
+          id={`deliverable-${deliverableIndex}-raw`}
+          title="Raw footage"
+          status={sectionStatus.raw}
+          statusLabel={rawUrl ? 'Linked' : undefined}
+          open={openSections.has('raw')}
+          onOpenChange={(open) => {
+            setSectionOpen('raw', open)
+          }}
+        >
+          {rawUrl ? (
+            <a
+              href={rawUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary inline-flex items-center gap-1.5 text-sm font-medium underline-offset-2 hover:underline"
+            >
+              Open source
+              <ExternalLink className="size-3.5 opacity-70" aria-hidden />
+            </a>
+          ) : (
+            <p className="text-muted-foreground text-sm">No source link on this batch.</p>
+          )}
+        </DeliverableAccordion>
+      ) : null}
 
       <DeliverableAccordion
         id={`deliverable-${deliverableIndex}-clip`}

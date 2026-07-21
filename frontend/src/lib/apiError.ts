@@ -1,29 +1,36 @@
 import { ApiError } from '@/client'
 
+type ErrorBody = {
+  // The shape http_exception_handler emits (app/core/errors/exceptions.py):
+  // flat error_code / message / details — NOT FastAPI's default {detail}.
+  message?: string
+  details?: { missing?: unknown } | null
+  // FastAPI's own validation errors bypass that handler and keep `detail`.
+  detail?: unknown
+}
+
 /**
- * Human-readable message for a failed mutation.
+ * Human-readable message for a failed request.
  *
- * The backend raises HTTPException with a dict detail — see
- * app/core/errors/exceptions.py — so the useful text is at body.detail.message,
- * with body.detail.missing listing unmet deliverables on a readiness 422.
- * Without this, a rejected request surfaced as nothing at all in the UI.
+ * Without this, a rejected mutation surfaced as nothing at all: React Query
+ * recorded the error and no call site ever read it.
  */
 export function apiErrorMessage(error: unknown, fallback = 'Something went wrong.'): string {
   if (!(error instanceof ApiError)) {
     return error instanceof Error && error.message ? error.message : fallback
   }
-  const detail = (error.body as { detail?: unknown } | undefined)?.detail
+  const body = error.body as ErrorBody | undefined
 
-  if (typeof detail === 'string') return detail
+  const message =
+    typeof body?.message === 'string' && body.message.trim()
+      ? body.message
+      : typeof body?.detail === 'string' && body.detail.trim()
+        ? body.detail
+        : fallback
 
-  if (detail && typeof detail === 'object') {
-    const { message, missing } = detail as { message?: string; missing?: unknown }
-    const base = typeof message === 'string' && message.trim() ? message : fallback
-    if (Array.isArray(missing) && missing.length > 0) {
-      return `${base} Missing: ${missing.join(', ')}.`
-    }
-    return base
+  const missing = body?.details?.missing
+  if (Array.isArray(missing) && missing.length > 0) {
+    return `${message} Missing: ${missing.join(', ')}.`
   }
-
-  return error.message || fallback
+  return message
 }

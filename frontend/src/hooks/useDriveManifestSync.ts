@@ -3,6 +3,7 @@ import { DriveService } from '@/client'
 import type { BatchDriveManifestResponse, DriveDiagnosticsDto } from '@/client'
 import type { BatchDriveManifest } from '@/lib/driveMedia'
 import { getManifestForBatch } from '@/lib/driveMedia'
+import { apiErrorMessage } from '@/lib/apiError'
 
 /**
  * Live Drive manifest for a batch. Fetches from the backend (service account)
@@ -72,10 +73,12 @@ export function useDriveManifestSync(batchId: string, resetKey?: string | number
       return next
     } catch (err) {
       if (reqRef.current === req) {
-        const message =
-          (err as { body?: { detail?: { message?: string } } })?.body?.detail?.message ??
-          'Could not load files from Drive. Check the folder is shared with the service account.'
-        setError(message)
+        setError(
+          apiErrorMessage(
+            err,
+            'Could not load files from Drive. Check the folder is shared with the service account.',
+          ),
+        )
       }
       return undefined
     } finally {
