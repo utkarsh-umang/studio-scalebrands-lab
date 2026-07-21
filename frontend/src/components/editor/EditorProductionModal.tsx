@@ -18,6 +18,7 @@ import { editorNeedsProductionWork } from '@/lib/editorBoard'
 import { deliverableIndexForTicket } from '@/lib/driveMedia'
 import { driveSyncRequestFromManifest } from '@/lib/productionDriveSync'
 import {
+  entryMissingForSubmitter,
   readinessForDeliverable,
   submitReadinessForDeliverable,
 } from '@/lib/pathBDeliverables'
@@ -54,7 +55,11 @@ export function EditorProductionModal({
 
   if (!open) return null
 
-  const canSendSmm = editorNeedsProductionWork(ticket) && readiness.allReady
+  // Only what the editor owns gates the handoff — an SMM- or client-owned
+  // thumbnail/title is completed later, and client release still needs all three.
+  const canSendSmm =
+    editorNeedsProductionWork(ticket) &&
+    entryMissingForSubmitter(readiness, batch, 'editor').length === 0
   const folderUrl = batch.editorDeliverablesDriveUrl?.trim() ?? ''
 
   const handleSyncDrive = async () => {

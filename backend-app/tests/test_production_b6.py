@@ -125,7 +125,12 @@ async def test_production_ready_and_submit_to_smm_qa(client: AsyncClient) -> Non
 
 
 @pytest.mark.anyio
-async def test_submit_not_ready_returns_422_with_missing(client: AsyncClient) -> None:
+async def test_submit_without_video_returns_422_with_missing(client: AsyncClient) -> None:
+    """With owners unassigned, only the video gates entry to SMM QA.
+
+    Thumbnail and title are the admin's to assign; an unassigned one is not the
+    editor's problem, and the client-release gate still requires all three.
+    """
     _, ticket_id, editor_headers = await _split_batch_for_production(client)
 
     submit = await client.post(
@@ -135,9 +140,7 @@ async def test_submit_not_ready_returns_422_with_missing(client: AsyncClient) ->
     )
     assert submit.status_code == 422
     detail = submit.json()["details"]
-    assert "video" in detail["missing"]
-    assert "thumbnail" in detail["missing"]
-    assert "title" in detail["missing"]
+    assert detail["missing"] == ["video"]
 
 
 @pytest.mark.anyio

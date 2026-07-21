@@ -1,4 +1,4 @@
-import type { AdminVideoTicket } from '@/types/pathB'
+import type { AdminBatchFolder, AdminVideoTicket } from '@/types/pathB'
 import type { BatchDriveManifest, DriveMediaEntry } from '@/lib/driveMedia'
 import { getMediaEntry } from '@/lib/driveMedia'
 
@@ -39,6 +39,26 @@ function entryFromTicketSlots(
     mimeType: String((raw as { mimeType?: string }).mimeType ?? ''),
     modifiedTime: String((raw as { modifiedTime?: string }).modifiedTime ?? ''),
   }
+}
+
+/**
+ * Assets that must exist before this submitter can hand a video to SMM QA.
+ * Mirrors production_service.entry_missing_for_submitter — keep them in step.
+ *
+ * Only the video plus assets explicitly assigned to this role are required. An
+ * unassigned owner is the admin's call and must not block the editor, and the
+ * all-three requirement still applies at client release.
+ */
+export function entryMissingForSubmitter(
+  readiness: DeliverableReadiness,
+  batch: Pick<AdminBatchFolder, 'thumbnailOwnerKind' | 'titleOwnerKind'>,
+  role: 'editor' | 'smm',
+): string[] {
+  const missing: string[] = []
+  if (!readiness.videoReady) missing.push('video')
+  if (batch.thumbnailOwnerKind === role && !readiness.thumbnailReady) missing.push('thumbnail')
+  if (batch.titleOwnerKind === role && !readiness.titleReady) missing.push('title')
+  return missing
 }
 
 /**

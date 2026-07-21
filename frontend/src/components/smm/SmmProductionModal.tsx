@@ -17,6 +17,7 @@ import { useDriveManifestSync } from '@/hooks/useDriveManifestSync'
 import { deliverableIndexForTicket } from '@/lib/driveMedia'
 import { driveSyncRequestFromManifest } from '@/lib/productionDriveSync'
 import {
+  entryMissingForSubmitter,
   readinessForDeliverable,
   submitReadinessForDeliverable,
 } from '@/lib/pathBDeliverables'
@@ -59,7 +60,8 @@ export function SmmProductionModal({
 
   const smmOwnedPrep = smmInAssetPrepFlow(ticket)
   const editorAssist = smmCanEditEditorDeliverable(ticket, batch)
-  const canReturnToQa = smmOwnedPrep && readiness.allReady
+  const canReturnToQa =
+    smmOwnedPrep && entryMissingForSubmitter(readiness, batch, 'smm').length === 0
   const folderUrl = batch.editorDeliverablesDriveUrl?.trim() ?? ''
 
   /** Same trap as the editor modal: record the Drive files before submitting,

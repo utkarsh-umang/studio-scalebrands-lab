@@ -96,6 +96,37 @@ def _editor_needs_production_work(ticket: VideoTicket) -> bool:
     return _is_production_like_stage(ticket)
 
 
+def entry_missing_for_submitter(
+    readiness: DeliverableReadiness,
+    batch: Batch,
+    employee_kind: EmployeeKind | None,
+) -> list[str]:
+    """Assets the submitter must provide before a video can enter internal QA.
+
+    Deliberately narrower than full readiness. The all-three requirement belongs
+    at client release (qa_service.submit_smm_qa_review), which is what actually
+    protects the client from an incomplete package. Enforcing it here too blocked
+    the editor on steps they do not own — an SMM-owned title is normally written
+    during review, i.e. after this handoff, so the editor could never hand off at
+    all. Same deadlock, worse, when the thumbnail belongs to the client.
+
+    An unassigned owner is an admin decision, not the editor's, so it does not
+    block: only the video (always the editor's, and the thing being reviewed)
+    plus assets explicitly assigned to this submitter are required.
+    """
+    missing: list[str] = []
+    if not readiness.video_ready:
+        missing.append("video")
+
+    owner = employee_kind.value if employee_kind else None
+    if owner:
+        if batch.thumbnail_owner_kind == owner and not readiness.thumbnail_ready:
+            missing.append("thumbnail")
+        if batch.title_owner_kind == owner and not readiness.title_ready:
+            missing.append("title")
+    return missing
+
+
 def _smm_in_asset_prep_flow(ticket: VideoTicket) -> bool:
     if ticket.pipeline_owner != VideoPipelineOwner.smm:
         return False
@@ -389,8 +420,8 @@ async def submit_to_smm_qa(
             },
         )
 
-    if not readiness.all_ready:
-        missing = readiness.missing_fields()
+    missing = entry_missing_for_submitter(readiness, batch, user.employee_kind)
+    if missing:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail={

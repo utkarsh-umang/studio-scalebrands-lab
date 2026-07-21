@@ -67,14 +67,21 @@ export function DeliverableReadinessStrip({
         <p className="text-muted-foreground text-xs leading-relaxed">
           {allReady
             ? 'All deliverables are ready — you can send this video to the next step.'
-            : 'Expand missing sections above, upload to Drive, sync, then continue.'}
+            : onCta
+              ? // Enabled while something is still outstanding means the rest
+                // belongs to someone else — do not send them off to fix it.
+                'Your part is done — you can hand this on. The remaining assets are owned by someone else.'
+              : 'Expand missing sections above, upload to Drive, sync, then continue.'}
         </p>
       )}
       {onCta ? (
         <button
           type="button"
           onClick={onCta}
-          disabled={!allReady || ctaDisabled}
+          // Whether the CTA is allowed is the caller's call, not this strip's:
+          // entering SMM QA needs only the assets the submitter owns, so
+          // re-deriving allReady here would veto a legitimate handoff.
+          disabled={ctaDisabled}
           className="bg-primary text-primary-foreground hover:bg-primary/90 shrink-0 rounded-xl px-5 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
         >
           {ctaLabel}
