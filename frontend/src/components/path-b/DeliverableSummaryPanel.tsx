@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ExternalLink } from 'lucide-react'
 import type { AdminBatchFolder, AdminVideoTicket } from '@/types/pathB'
 import { DriveVideoPreview } from '@/components/drive/DriveVideoPreview'
@@ -76,15 +76,17 @@ export function DeliverableSummaryPanel({
   )
   const [titleDraft, setTitleDraft] = useState(ticket?.editorPublishTitle ?? '')
 
-  useEffect(() => {
+  // Reset the draft/open-sections state during render (not in an effect) when the
+  // underlying ticket/deliverable identity changes, per
+  // https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
+  const titleSyncKey = `${ticket?.id ?? ''}|${ticket?.editorPublishTitle ?? ''}`
+  const [prevTitleSyncKey, setPrevTitleSyncKey] = useState(titleSyncKey)
+  if (titleSyncKey !== prevTitleSyncKey) {
+    setPrevTitleSyncKey(titleSyncKey)
     setTitleDraft(ticket?.editorPublishTitle ?? '')
-  }, [ticket?.editorPublishTitle, ticket?.id])
+  }
 
-  useEffect(() => {
-    setOpenSections(
-      buildInitialOpen(defaultOpenSections, autoExpandMissing, readiness),
-    )
-  }, [
+  const openSectionsKey = [
     batch.id,
     deliverableIndex,
     autoExpandMissing,
@@ -92,7 +94,12 @@ export function DeliverableSummaryPanel({
     readiness?.thumbnailReady,
     readiness?.titleReady,
     defaultOpenSections.join(','),
-  ])
+  ].join('|')
+  const [prevOpenSectionsKey, setPrevOpenSectionsKey] = useState(openSectionsKey)
+  if (openSectionsKey !== prevOpenSectionsKey) {
+    setPrevOpenSectionsKey(openSectionsKey)
+    setOpenSections(buildInitialOpen(defaultOpenSections, autoExpandMissing, readiness))
+  }
 
   const clipEntry = manifest
     ? manifest.clips.find((c) => c.index === deliverableIndex)

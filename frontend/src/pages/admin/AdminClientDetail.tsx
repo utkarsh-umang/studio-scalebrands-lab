@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ArrowLeft, Coins, ExternalLink, History, KeyRound, Pencil } from 'lucide-react'
 import {
   Link,
@@ -111,13 +111,17 @@ export function AdminClientDetail() {
 
   const creditsDebitedTotal = clientQuery.data?.creditsDebitedTotal ?? 0
 
-  useEffect(() => {
-    if (!client) return
+  // Reset the edit drafts during render (not in an effect) when the client
+  // data identity changes, per
+  // https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
+  const [prevClient, setPrevClient] = useState(client)
+  if (client && client !== prevClient) {
+    setPrevClient(client)
     setDraftSmmId(client.assignedSmmId)
     setDraftEditorId(client.assignedEditorId)
     setDraftSummary(client.brandGuidelines.summary)
     setDraftGoogleDocUrl(client.brandGuidelines.googleDocUrl ?? '')
-  }, [client])
+  }
 
   if (!clientId) {
     return <Navigate to="/admin" replace />
