@@ -141,8 +141,8 @@ async def test_editor_is_blocked_on_their_own_thumbnail(client: AsyncClient) -> 
 
 
 @pytest.mark.anyio
-async def test_client_release_still_requires_everything(client: AsyncClient) -> None:
-    """The gate that actually protects the client is unchanged."""
+async def test_client_release_still_requires_team_owned_assets(client: AsyncClient) -> None:
+    """An SMM-owned title is the team's to produce, so it still gates release."""
     ticket_id, editor_headers = await _batch_with_video_only(client, title_owner="smm")
     assert (await _submit(client, ticket_id, editor_headers)).status_code == 200
 
@@ -153,5 +153,103 @@ async def test_client_release_still_requires_everything(client: AsyncClient) -> 
         json={"action": "approve"},
     )
     assert approved.status_code == 422, approved.text
-    body = approved.json()
-    assert "fully ready" in body["message"].lower()
+    missing = approved.json()["details"]["missing"]
+    assert "title" in missing
+    assert "thumbnail" in missing
+
+
+@pytest.mark.anyio
+async def test_smm_writes_their_title_during_qa_then_approves(client: AsyncClient) -> None:
+    """The dead end: the SMM must be able to fill their own assets while reviewing."""
+    ticket_id, editor_headers = await _batch_with_video_only(
+        client, title_owner="smm", thumbnail_owner="smm"
+    )
+    assert (await _submit(client, ticket_id, editor_headers)).status_code == 200
+
+    smm_headers = await _login(client, "smm@scalebrandslab.demo")
+    titled = await client.patch(
+        f"{config.API_V1_STR}/videos/{ticket_id}/production",
+        headers=smm_headers,
+        json={"editorPublishTitle": "Written by the SMM during review"},
+    )
+    assert titled.status_code == 200, titled.text
+
+    synced = await client.post(
+        f"{config.API_V1_STR}/videos/{ticket_id}/drive-sync",
+        headers=smm_headers,
+        json={"deliverableIndex": 1, "thumbnail": _drive_entry(1, "thumbnail")},
+    )
+    assert synced.status_code == 200, synced.text
+
+    approved = await client.post(
+        f"{config.API_V1_STR}/videos/{ticket_id}/smm-qa",
+        headers=smm_headers,
+        json={"action": "approve"},
+    )
+    assert approved.status_code == 200, approved.text
+    assert approved.json()["ticket"]["pipelineStage"] == "client_qa"
+
+
+@pytest.mark.anyio
+async def test_client_owned_thumbnail_does_not_block_client_release(
+    client: AsyncClient,
+) -> None:
+    """The client may send thumbnails last — QA of the video should not wait."""
+    ticket_id, editor_headers = await _batch_with_video_only(
+        client, thumbnail_owner="client", title_owner="smm"
+    )
+    assert (await _submit(client, ticket_id, editor_headers)).status_code == 200
+
+    smm_headers = await _login(client, "smm@scalebrandslab.demo")
+    await client.patch(
+        f"{config.API_V1_STR}/videos/{ticket_id}/production",
+        headers=smm_headers,
+        json={"editorPublishTitle": "Title from SMM"},
+    )
+    approved = await client.post(
+        f"{config.API_V1_STR}/videos/{ticket_id}/smm-qa",
+        headers=smm_headers,
+        json={"action": "approve"},
+    )
+    assert approved.status_code == 200, approved.text
+    assert approved.json()["ticket"]["pipelineStage"] == "client_qa"
+
+
+@pytest.mark.anyio
+async def test_scheduling_refuses_a_missing_thumbnail(client: AsyncClient) -> None:
+    """Publishing is the backstop: everything must exist, whoever owned it."""
+    ticket_id, editor_headers = await _batch_with_video_only(
+        client, thumbnail_owner="client", title_owner="smm"
+    )
+    await _submit(client, ticket_id, editor_headers)
+
+    smm_headers = await _login(client, "smm@scalebrandslab.demo")
+    client_headers = await _login(client, "client@scalebrandslab.demo")
+    await client.patch(
+        f"{config.API_V1_STR}/videos/{ticket_id}/production",
+        headers=smm_headers,
+        json={"editorPublishTitle": "Title from SMM"},
+    )
+    await client.post(
+        f"{config.API_V1_STR}/videos/{ticket_id}/smm-qa",
+        headers=smm_headers,
+        json={"action": "approve"},
+    )
+    # Client approves the package even though their thumbnail is still missing.
+    await client.post(
+        f"{config.API_V1_STR}/client/videos/{ticket_id}/client-qa",
+        headers=client_headers,
+        json={"action": "approve"},
+    )
+
+    scheduled = await client.post(
+        f"{config.API_V1_STR}/videos/{ticket_id}/schedule",
+        headers=smm_headers,
+        json={
+            "platform": "YouTube Shorts",
+            "goLiveDate": "2026-08-01",
+            "goLiveTime": "18:30",
+        },
+    )
+    assert scheduled.status_code == 422, scheduled.text
+    assert scheduled.json()["details"]["missing"] == ["thumbnail"]

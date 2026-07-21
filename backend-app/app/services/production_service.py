@@ -127,6 +127,28 @@ def entry_missing_for_submitter(
     return missing
 
 
+def client_release_missing(readiness: DeliverableReadiness, batch: Batch) -> list[str]:
+    """Assets that must exist before the client sees the package.
+
+    Excludes client-owned assets: a client who makes their own thumbnails may
+    legitimately send them at the last step, and blocking internal QA on that
+    would stall the video over an asset the team cannot produce. Unassigned
+    assets are still required — unassigned defaults to internal, and this is the
+    last internal checkpoint before the client sees anything.
+
+    Publishing is backstopped separately (schedule_service), where everything
+    must be present regardless of who owned it.
+    """
+    missing: list[str] = []
+    if not readiness.video_ready:
+        missing.append("video")
+    if batch.thumbnail_owner_kind != "client" and not readiness.thumbnail_ready:
+        missing.append("thumbnail")
+    if batch.title_owner_kind != "client" and not readiness.title_ready:
+        missing.append("title")
+    return missing
+
+
 def _smm_in_asset_prep_flow(ticket: VideoTicket) -> bool:
     if ticket.pipeline_owner != VideoPipelineOwner.smm:
         return False
@@ -181,6 +203,13 @@ def _assert_employee_production_access(
                         "message": "Ticket is not in SMM asset prep",
                     },
                 )
+            return
+        # An SMM reviewing a video may still need to write their own title or
+        # record a thumbnail: the editor now hands off as soon as *their* part is
+        # done, so SMM-owned assets are routinely filled in during review. Without
+        # this the ticket dead-ends — no way to add the title, and approving is
+        # refused for the same missing title.
+        if ticket.pipeline_stage == PipelineStage.smm_qa:
             return
         if _smm_in_asset_prep_flow(ticket) or _smm_can_edit_editor_deliverable(
             ticket,

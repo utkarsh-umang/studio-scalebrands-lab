@@ -27,6 +27,7 @@ from app.schemas.schedule import (
     ScheduleVideoResponse,
 )
 from app.services.activity_service import record_activity
+from app.services.readiness_service import compute_readiness
 from app.services.path_b_transitions import apply_video_transition, is_clip_review_gate_ticket
 from app.services.workspace_access import assert_employee_batch_access, assert_video_access
 from app.services.workspace_mappers import batch_to_dto, video_to_dto
@@ -169,6 +170,20 @@ async def schedule_video(
         )
 
     _assert_schedulable_ticket(ticket, batch)
+
+    readiness = compute_readiness(ticket, batch)
+    if not readiness.all_ready:
+        # The real backstop. The earlier gates deliberately let a client-owned
+        # asset arrive late, so this is the first point where everything must be
+        # present — you cannot publish a video with no thumbnail or title.
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "error_code": "VALIDATION_ERROR",
+                "message": "Everything must be in place before scheduling",
+                "details": {"missing": readiness.missing_fields()},
+            },
+        )
 
     apply_video_transition(
         ticket,

@@ -37,6 +37,7 @@ from app.services.path_b_transitions import (
     apply_video_transition,
     is_clip_review_gate_ticket,
 )
+from app.services.production_service import client_release_missing
 from app.services.readiness_service import compute_readiness
 from app.services.workspace_access import assert_employee_batch_access, assert_video_access
 from app.services.workspace_mappers import (
@@ -424,19 +425,23 @@ async def submit_smm_qa_review(
             session.add(row)
     elif payload.action == "approve":
         readiness = compute_readiness(ticket, batch)
-        if not readiness.all_ready:
+        missing = client_release_missing(readiness, batch)
+        if missing:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail={
                     "error_code": "VALIDATION_ERROR",
-                    "message": "Deliverable must be fully ready before client release",
-                    "readiness": DeliverableReadinessDto(
-                        video_ready=readiness.video_ready,
-                        thumbnail_ready=readiness.thumbnail_ready,
-                        title_ready=readiness.title_ready,
-                        all_ready=readiness.all_ready,
-                    ).model_dump(by_alias=True),
-                    "missing": readiness.missing_fields(),
+                    "message": "Deliverable must be ready before client release",
+                    # Nest under `details` so the error handler passes it through.
+                    "details": {
+                        "readiness": DeliverableReadinessDto(
+                            video_ready=readiness.video_ready,
+                            thumbnail_ready=readiness.thumbnail_ready,
+                            title_ready=readiness.title_ready,
+                            all_ready=readiness.all_ready,
+                        ).model_dump(by_alias=True),
+                        "missing": missing,
+                    },
                 },
             )
         _apply_smm_qa_approve(ticket)
@@ -576,19 +581,25 @@ async def submit_client_qa(
             session.add(row)
     elif payload.action == "approve":
         readiness = compute_readiness(ticket, batch)
-        if not readiness.all_ready:
+        # Same rule as release: a client approving their own package must not be
+        # blocked by an asset they themselves still owe. schedule_video is the
+        # backstop that refuses to publish while anything is genuinely absent.
+        missing = client_release_missing(readiness, batch)
+        if missing:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail={
                     "error_code": "VALIDATION_ERROR",
-                    "message": "Deliverable must be fully ready before scheduling",
-                    "readiness": DeliverableReadinessDto(
-                        video_ready=readiness.video_ready,
-                        thumbnail_ready=readiness.thumbnail_ready,
-                        title_ready=readiness.title_ready,
-                        all_ready=readiness.all_ready,
-                    ).model_dump(by_alias=True),
-                    "missing": readiness.missing_fields(),
+                    "message": "Deliverable must be ready before scheduling",
+                    "details": {
+                        "readiness": DeliverableReadinessDto(
+                            video_ready=readiness.video_ready,
+                            thumbnail_ready=readiness.thumbnail_ready,
+                            title_ready=readiness.title_ready,
+                            all_ready=readiness.all_ready,
+                        ).model_dump(by_alias=True),
+                        "missing": missing,
+                    },
                 },
             )
         apply_video_transition(
