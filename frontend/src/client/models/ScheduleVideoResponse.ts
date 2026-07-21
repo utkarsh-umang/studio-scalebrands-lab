@@ -8,5 +8,6 @@ import type { ScheduleVideoClientResponse } from './ScheduleVideoClientResponse'
 export type ScheduleVideoResponse = {
     ticket: AdminVideoTicketResponse;
     batch: AdminBatchFolderResponse;
-    client?: ScheduleVideoClientResponse | null;
+    client?: (ScheduleVideoClientResponse | null);
 };
+

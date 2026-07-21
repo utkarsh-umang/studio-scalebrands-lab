@@ -4,8 +4,15 @@
 /* eslint-disable */
 import type { TimestampFlagInput } from './TimestampFlagInput';
 export type ClientQaRequest = {
-    action: 'approve' | 'reject';
-    commentBody?: string | null;
-    timestampFlags?: Array<TimestampFlagInput> | null;
-    generalNote?: string | null;
+    action: ClientQaRequest.action;
+    commentBody?: (string | null);
+    timestampFlags?: (Array<TimestampFlagInput> | null);
+    generalNote?: (string | null);
 };
+export namespace ClientQaRequest {
+    export enum action {
+        APPROVE = 'approve',
+        REJECT = 'reject',
+    }
+}
+

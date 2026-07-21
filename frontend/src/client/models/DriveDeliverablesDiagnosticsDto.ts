@@ -11,3 +11,4 @@ export type DriveDeliverablesDiagnosticsDto = {
     thumbnails: number;
     status: string;
 };
+

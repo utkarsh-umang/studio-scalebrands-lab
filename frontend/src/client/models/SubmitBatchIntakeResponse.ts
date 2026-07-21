@@ -8,3 +8,4 @@ export type SubmitBatchIntakeResponse = {
     batch: AdminBatchFolderResponse;
     videos: Array<AdminVideoTicketResponse>;
 };
+

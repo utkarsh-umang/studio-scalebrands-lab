@@ -6,3 +6,4 @@ export type ApproveBatchClipsRequest = {
     videoTicketId: string;
     clipCount?: (number | null);
 };
+

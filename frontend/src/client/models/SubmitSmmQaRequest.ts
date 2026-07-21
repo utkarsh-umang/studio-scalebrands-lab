@@ -4,8 +4,15 @@
 /* eslint-disable */
 import type { TimestampFlagInput } from './TimestampFlagInput';
 export type SubmitSmmQaRequest = {
-    action: 'approve' | 'send_back';
-    commentBody?: string | null;
-    timestampFlags?: Array<TimestampFlagInput> | null;
-    generalNote?: string | null;
+    action: SubmitSmmQaRequest.action;
+    commentBody?: (string | null);
+    timestampFlags?: (Array<TimestampFlagInput> | null);
+    generalNote?: (string | null);
 };
+export namespace SubmitSmmQaRequest {
+    export enum action {
+        APPROVE = 'approve',
+        SEND_BACK = 'send_back',
+    }
+}
+

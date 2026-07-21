@@ -5,6 +5,7 @@
 import type { DeliverableTitleInput } from './DeliverableTitleInput';
 export type SubmitDeliverablesDriveRequest = {
     deliverablesDriveUrl: string;
-    deliverableCount?: number | null;
-    deliverables?: Array<DeliverableTitleInput> | null;
+    deliverableCount?: (number | null);
+    deliverables?: (Array<DeliverableTitleInput> | null);
 };
+

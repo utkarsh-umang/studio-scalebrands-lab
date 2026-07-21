@@ -5,3 +5,4 @@
 export type SubmitIdeaFootageRequest = {
     url: string;
 };
+

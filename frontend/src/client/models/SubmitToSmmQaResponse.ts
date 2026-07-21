@@ -7,5 +7,6 @@ import type { DeliverableReadinessDto } from './DeliverableReadinessDto';
 export type SubmitToSmmQaResponse = {
     ticket: AdminVideoTicketResponse;
     readiness: DeliverableReadinessDto;
-    missing: Array<string>;
+    missing?: Array<string>;
 };
+

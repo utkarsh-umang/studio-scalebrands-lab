@@ -5,3 +5,4 @@
 export type SubmitIdeasRequest = {
     ideas: Array<string>;
 };
+

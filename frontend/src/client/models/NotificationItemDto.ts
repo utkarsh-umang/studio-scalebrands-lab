@@ -14,3 +14,4 @@ export type NotificationItemDto = {
     unread: boolean;
     deadlineAt?: (string | null);
 };
+

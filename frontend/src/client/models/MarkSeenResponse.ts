@@ -5,3 +5,4 @@
 export type MarkSeenResponse = {
     lastSeenAt: string;
 };
+

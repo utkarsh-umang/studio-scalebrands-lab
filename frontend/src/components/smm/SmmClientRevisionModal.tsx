@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { ExternalLink } from 'lucide-react'
+import { ClientRevisionTriageRequest } from '@/client'
 import type { AdminBatchFolder, AdminVideoTicket } from '@/types/pathB'
 import { StudioModalShell } from '@/components/StudioModalShell'
 import { DeliverableSummaryPanel, DriveSyncButton, DriveSyncMeta } from '@/components/path-b'
@@ -102,13 +103,13 @@ export function SmmClientRevisionModal({
             clientComments={clientComments}
             onRouteToEditor={() => {
               triageRevision.mutate(
-                { videoTicketId: ticket.id, body: { route: 'editor' } },
+                { videoTicketId: ticket.id, body: { route: ClientRevisionTriageRequest.route.EDITOR } },
                 { onSuccess: onClose },
               )
             }}
             onUpdateAssets={() => {
               triageRevision.mutate(
-                { videoTicketId: ticket.id, body: { route: 'smm_assets' } },
+                { videoTicketId: ticket.id, body: { route: ClientRevisionTriageRequest.route.SMM_ASSETS } },
                 {
                   onSuccess: () => {
                     onClose()

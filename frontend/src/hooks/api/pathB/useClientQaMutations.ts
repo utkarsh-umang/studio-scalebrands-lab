@@ -1,9 +1,9 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
+  ClientQaRequest,
+  ClientRevisionTriageRequest,
   ClientService,
   VideosService,
-  type ClientQaRequest,
-  type ClientRevisionTriageRequest,
 } from '@/client'
 import type { VideoReviewFeedback } from '@/components/VideoDeliverableReviewPanel'
 import { workspaceQueryKeys } from '@/hooks/api/workspace/workspaceQueryKeys'
@@ -24,7 +24,7 @@ export function clientQaRejectBody(
     note: marker.text,
   }))
   return {
-    action: 'reject',
+    action: ClientQaRequest.action.REJECT,
     commentBody: generalNote || undefined,
     generalNote: generalNote || undefined,
     timestampFlags: timestampFlags.length > 0 ? timestampFlags : undefined,

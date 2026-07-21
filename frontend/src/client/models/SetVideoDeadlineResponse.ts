@@ -6,3 +6,4 @@ import type { AdminVideoTicketResponse } from './AdminVideoTicketResponse';
 export type SetVideoDeadlineResponse = {
     ticket: AdminVideoTicketResponse;
 };
+

@@ -3,5 +3,6 @@
 /* tslint:disable */
 /* eslint-disable */
 export type UpdateProductionRequest = {
-    editorPublishTitle?: string | null;
+    editorPublishTitle?: (string | null);
 };
+

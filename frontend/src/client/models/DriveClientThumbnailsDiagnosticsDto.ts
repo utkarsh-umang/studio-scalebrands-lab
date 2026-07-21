@@ -2,7 +2,10 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type DriveClipsDiagnosticsDto = {
+/**
+ * Client-supplied thumbnails folder — flat and numbered, like clips.
+ */
+export type DriveClientThumbnailsDiagnosticsDto = {
     linked: boolean;
     accessible: boolean;
     total: number;

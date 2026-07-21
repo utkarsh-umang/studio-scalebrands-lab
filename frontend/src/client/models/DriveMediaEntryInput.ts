@@ -6,6 +6,7 @@ export type DriveMediaEntryInput = {
     index: number;
     driveFileId: string;
     name: string;
-    mimeType?: string | null;
-    modifiedTime?: string | null;
+    mimeType?: (string | null);
+    modifiedTime?: (string | null);
 };
+

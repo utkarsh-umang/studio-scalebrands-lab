@@ -3,24 +3,24 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { AdminBatchFolderResponse } from '../models/AdminBatchFolderResponse';
-import type { CreditHistoryResponse } from '../models/CreditHistoryResponse';
 import type { AdminClientListResponse } from '../models/AdminClientListResponse';
-import type { AdminDeadlinesResponse } from '../models/AdminDeadlinesResponse';
-import type { SetVideoDeadlineRequest } from '../models/SetVideoDeadlineRequest';
-import type { SetVideoDeadlineResponse } from '../models/SetVideoDeadlineResponse';
 import type { AdminClientProfileResponse } from '../models/AdminClientProfileResponse';
+import type { AdminDeadlinesResponse } from '../models/AdminDeadlinesResponse';
 import type { AdminPipelineResponse } from '../models/AdminPipelineResponse';
 import type { AdminVideoTicketResponse } from '../models/AdminVideoTicketResponse';
 import type { CreateBatchRequest } from '../models/CreateBatchRequest';
+import type { CreditHistoryResponse } from '../models/CreditHistoryResponse';
 import type { DecommissionClientRequest } from '../models/DecommissionClientRequest';
 import type { ProvisionClientRequest } from '../models/ProvisionClientRequest';
 import type { ProvisionClientResponse } from '../models/ProvisionClientResponse';
 import type { ProvisionStaffRequest } from '../models/ProvisionStaffRequest';
 import type { ProvisionStaffResponse } from '../models/ProvisionStaffResponse';
+import type { SetBatchAssignmentsRequest } from '../models/SetBatchAssignmentsRequest';
+import type { SetVideoDeadlineRequest } from '../models/SetVideoDeadlineRequest';
+import type { SetVideoDeadlineResponse } from '../models/SetVideoDeadlineResponse';
 import type { StaffListResponse } from '../models/StaffListResponse';
 import type { TopUpCreditsRequest } from '../models/TopUpCreditsRequest';
 import type { UpdateBrandGuidelinesRequest } from '../models/UpdateBrandGuidelinesRequest';
-import type { SetBatchAssignmentsRequest } from '../models/SetBatchAssignmentsRequest';
 import type { UpdateClientTeamRequest } from '../models/UpdateClientTeamRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
@@ -169,30 +169,6 @@ export class AdminService {
         });
     }
     /**
-     * Set Batch Assignments
-     * @param batchId
-     * @param requestBody
-     * @returns AdminBatchFolderResponse Successful Response
-     * @throws ApiError
-     */
-    public static setBatchAssignmentsApiV1AdminBatchesBatchIdAssignmentsPatch(
-        batchId: string,
-        requestBody: SetBatchAssignmentsRequest,
-    ): CancelablePromise<AdminBatchFolderResponse> {
-        return __request(OpenAPI, {
-            method: 'PATCH',
-            url: '/api/v1/admin/batches/{batch_id}/assignments',
-            path: {
-                'batch_id': batchId,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
      * Update Brand Guidelines
      * @param clientId
      * @param requestBody
@@ -252,6 +228,30 @@ export class AdminService {
             url: '/api/v1/admin/clients/{client_id}/batches',
             path: {
                 'client_id': clientId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Set Batch Assignments
+     * @param batchId
+     * @param requestBody
+     * @returns AdminBatchFolderResponse Successful Response
+     * @throws ApiError
+     */
+    public static setBatchAssignmentsApiV1AdminBatchesBatchIdAssignmentsPatch(
+        batchId: string,
+        requestBody: SetBatchAssignmentsRequest,
+    ): CancelablePromise<AdminBatchFolderResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/admin/batches/{batch_id}/assignments',
+            path: {
+                'batch_id': batchId,
             },
             body: requestBody,
             mediaType: 'application/json',

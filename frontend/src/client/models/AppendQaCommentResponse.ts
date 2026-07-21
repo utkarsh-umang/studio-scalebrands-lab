@@ -8,3 +8,4 @@ export type AppendQaCommentResponse = {
     ticket: AdminVideoTicketResponse;
     comment: QaCommentDto;
 };
+

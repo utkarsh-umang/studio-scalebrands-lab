@@ -28,4 +28,34 @@ export class DriveService {
             },
         });
     }
+    /**
+     * Stream Drive File
+     * Stream a Drive file's bytes via the service account.
+     *
+     * The browser talks only to Studio (which it is already logged into), so the
+     * viewer never needs to be signed into Google. Forwards Range so <video> seek
+     * works.
+     * @param fileId
+     * @param accessToken
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static streamDriveFileApiV1DriveFilesFileIdContentGet(
+        fileId: string,
+        accessToken?: (string | null),
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/drive/files/{file_id}/content',
+            path: {
+                'file_id': fileId,
+            },
+            query: {
+                'access_token': accessToken,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
 }

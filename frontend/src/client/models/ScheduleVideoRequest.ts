@@ -7,3 +7,4 @@ export type ScheduleVideoRequest = {
     goLiveDate: string;
     goLiveTime: string;
 };
+

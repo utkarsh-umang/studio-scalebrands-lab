@@ -12,6 +12,7 @@ export type AdminVideoTicketResponse = {
     clientId: string;
     title: string;
     owner: VideoPipelineOwner;
+    pipelineStage: PipelineStage;
     stageLabel: string;
     deadlineRole?: (string | null);
     deadlineAt?: (string | null);

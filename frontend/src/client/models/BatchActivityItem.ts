@@ -14,3 +14,4 @@ export type BatchActivityItem = {
     detail?: (string | null);
     at: string;
 };
+

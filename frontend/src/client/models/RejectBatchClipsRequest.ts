@@ -6,3 +6,4 @@ export type RejectBatchClipsRequest = {
     videoTicketId: string;
     note: string;
 };
+

@@ -6,3 +6,4 @@ import type { BatchActivityItem } from './BatchActivityItem';
 export type BatchActivityResponse = {
     items?: Array<BatchActivityItem>;
 };
+

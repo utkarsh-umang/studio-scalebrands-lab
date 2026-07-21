@@ -6,3 +6,4 @@ import type { CreditAdjustmentDto } from './CreditAdjustmentDto';
 export type CreditHistoryResponse = {
     items?: Array<CreditAdjustmentDto>;
 };
+

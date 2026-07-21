@@ -5,3 +5,4 @@
 export type AppendQaCommentRequest = {
     body: string;
 };
+

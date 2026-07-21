@@ -7,3 +7,4 @@ export type SetBatchAssignmentsRequest = {
     thumbnailOwnerKind?: (string | null);
     titleOwnerKind?: (string | null);
 };
+

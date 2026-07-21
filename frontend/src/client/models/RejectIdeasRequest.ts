@@ -5,3 +5,4 @@
 export type RejectIdeasRequest = {
     note?: (string | null);
 };
+

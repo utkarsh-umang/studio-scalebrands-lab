@@ -7,3 +7,4 @@ export type SubmitBatchIntakeRequest = {
     intakePath: BatchIntakePath;
     url: string;
 };
+

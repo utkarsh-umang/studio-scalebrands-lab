@@ -5,7 +5,8 @@
 import type { DriveMediaEntryInput } from './DriveMediaEntryInput';
 export type DeliverableDriveSyncRequest = {
     deliverableIndex: number;
-    video?: DriveMediaEntryInput | null;
-    thumbnail?: DriveMediaEntryInput | null;
-    syncedAt?: string | null;
+    video?: (DriveMediaEntryInput | null);
+    thumbnail?: (DriveMediaEntryInput | null);
+    syncedAt?: (string | null);
 };
+

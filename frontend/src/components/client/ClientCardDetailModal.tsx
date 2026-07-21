@@ -1,3 +1,4 @@
+import { ClientQaRequest } from '@/client'
 import { StudioModalShell } from '@/components/StudioModalShell'
 import { NumberedClipsModal } from '@/components/path-b'
 import type { ClientVideoCard } from '@/lib/clientBoard'
@@ -132,7 +133,7 @@ export function ClientCardDetailModal({
         onClose={onClose}
         onApprove={(videoId) => {
           clientQaDecision.mutate(
-            { videoTicketId: videoId, body: { action: 'approve' } },
+            { videoTicketId: videoId, body: { action: ClientQaRequest.action.APPROVE } },
             { onSuccess: onClose },
           )
         }}

@@ -3,8 +3,8 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { AppendQaCommentRequest } from '../models/AppendQaCommentRequest';
-import type { ClientRevisionTriageRequest } from '../models/ClientRevisionTriageRequest';
 import type { AppendQaCommentResponse } from '../models/AppendQaCommentResponse';
+import type { ClientRevisionTriageRequest } from '../models/ClientRevisionTriageRequest';
 import type { DeliverableDriveSyncRequest } from '../models/DeliverableDriveSyncRequest';
 import type { ProductionTicketResponse } from '../models/ProductionTicketResponse';
 import type { QaTicketResponse } from '../models/QaTicketResponse';
@@ -135,12 +135,29 @@ export class VideosService {
         });
     }
     /**
-     * Resubmit To Smm Qa
+     * Triage Client Revision
      * @param videoTicketId
      * @param requestBody
      * @returns QaTicketResponse Successful Response
      * @throws ApiError
      */
+    public static triageClientRevisionApiV1VideosVideoTicketIdClientRevisionTriagePost(
+        videoTicketId: string,
+        requestBody: ClientRevisionTriageRequest,
+    ): CancelablePromise<QaTicketResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/videos/{video_ticket_id}/client-revision-triage',
+            path: {
+                'video_ticket_id': videoTicketId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
     /**
      * Schedule Video
      * @param videoTicketId
@@ -166,30 +183,6 @@ export class VideosService {
         });
     }
     /**
-     * Triage Client Revision
-     * @param videoTicketId
-     * @param requestBody
-     * @returns QaTicketResponse Successful Response
-     * @throws ApiError
-     */
-    public static triageClientRevisionApiV1VideosVideoTicketIdClientRevisionTriagePost(
-        videoTicketId: string,
-        requestBody: ClientRevisionTriageRequest,
-    ): CancelablePromise<QaTicketResponse> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/api/v1/videos/{video_ticket_id}/client-revision-triage',
-            path: {
-                'video_ticket_id': videoTicketId,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
      * Resubmit To Smm Qa
      * @param videoTicketId
      * @param requestBody
@@ -198,7 +191,7 @@ export class VideosService {
      */
     public static resubmitToSmmQaApiV1VideosVideoTicketIdResubmitToSmmQaPost(
         videoTicketId: string,
-        requestBody: ResubmitToSmmQaRequest = {},
+        requestBody?: ResubmitToSmmQaRequest,
     ): CancelablePromise<QaTicketResponse> {
         return __request(OpenAPI, {
             method: 'POST',

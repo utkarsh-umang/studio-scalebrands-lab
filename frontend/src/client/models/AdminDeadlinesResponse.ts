@@ -6,3 +6,4 @@ import type { AdminDeadlineTaskResponse } from './AdminDeadlineTaskResponse';
 export type AdminDeadlinesResponse = {
     tasks: Array<AdminDeadlineTaskResponse>;
 };
+

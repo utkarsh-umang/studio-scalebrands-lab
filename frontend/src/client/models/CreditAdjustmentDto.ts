@@ -10,3 +10,4 @@ export type CreditAdjustmentDto = {
     batchId?: (string | null);
     at: string;
 };
+

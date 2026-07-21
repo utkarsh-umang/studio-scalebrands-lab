@@ -13,23 +13,23 @@ function useInvalidateWorkspace() {
 export function useIdeasMutations(batchId: string) {
   const invalidate = useInvalidateWorkspace()
   const requestIdeas = useMutation({
-    mutationFn: () => IdeasService.requestIdeas(batchId),
+    mutationFn: () => IdeasService.requestIdeasApiV1ClientBatchesBatchIdRequestIdeasPost(batchId),
     onSuccess: invalidate,
   })
   const submitIdeas = useMutation({
-    mutationFn: (ideas: string[]) => IdeasService.submitIdeas(batchId, { ideas }),
+    mutationFn: (ideas: string[]) => IdeasService.submitIdeasApiV1BatchesBatchIdIdeasPost(batchId, { ideas }),
     onSuccess: invalidate,
   })
   const approveIdeas = useMutation({
-    mutationFn: () => IdeasService.approveIdeas(batchId),
+    mutationFn: () => IdeasService.approveIdeasApiV1ClientBatchesBatchIdIdeasApprovePost(batchId),
     onSuccess: invalidate,
   })
   const rejectIdeas = useMutation({
-    mutationFn: (note: string | null) => IdeasService.rejectIdeas(batchId, { note }),
+    mutationFn: (note: string | null) => IdeasService.rejectIdeasApiV1ClientBatchesBatchIdIdeasRejectPost(batchId, { note }),
     onSuccess: invalidate,
   })
   const submitFootage = useMutation({
-    mutationFn: (url: string) => IdeasService.submitIdeaFootage(batchId, { url }),
+    mutationFn: (url: string) => IdeasService.submitIdeaFootageApiV1ClientBatchesBatchIdIdeaFootagePost(batchId, { url }),
     onSuccess: invalidate,
   })
   return { requestIdeas, submitIdeas, approveIdeas, rejectIdeas, submitFootage }

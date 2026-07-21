@@ -2,8 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type ScheduleVideoClientResponse = {
-    id: string;
-    credits: number;
+export type SubmitClientThumbnailsRequest = {
+    url: string;
 };
 

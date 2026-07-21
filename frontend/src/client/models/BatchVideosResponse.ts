@@ -8,3 +8,4 @@ export type BatchVideosResponse = {
     batch: AdminBatchFolderResponse;
     videos: Array<AdminVideoTicketResponse>;
 };
+

@@ -22,11 +22,12 @@ export type AdminBatchFolderResponse = {
     clipReviewPhase?: (BatchClipReviewPhase | null);
     clipsFolderUrl?: (string | null);
     editorDeliverablesDriveUrl?: (string | null);
+    clientThumbnailsFolderUrl?: (string | null);
     creditCost: number;
     creditsDebited: boolean;
     pipelineStage: PipelineStage;
     demoStage?: (PipelineStage | null);
-    batchSchedule?: (Record<string, unknown> | null);
+    batchSchedule?: (Record<string, any> | null);
     clipOwnerKind?: (string | null);
     thumbnailOwnerKind?: (string | null);
     titleOwnerKind?: (string | null);

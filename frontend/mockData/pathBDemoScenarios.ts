@@ -5,6 +5,10 @@
 
 export type PathBDemoStage =
   | 'intake_pending'
+  // Path A (idea-first) — a batch can sit here before any clip exists.
+  | 'idea_research'
+  | 'idea_review'
+  | 'idea_footage_pending'
   | 'clips_identifying'
   | 'clip_client_review'
   | 'clips_ready_intake'
@@ -173,6 +177,9 @@ export function getPathBDemoScenario(batchId: string): PathBDemoScenario | undef
 export function getPathBDemoStageLabel(stage: PathBDemoStage): string {
   const labels: Record<PathBDemoStage, string> = {
     intake_pending: 'Awaiting client intake',
+    idea_research: 'Idea research',
+    idea_review: 'Idea review',
+    idea_footage_pending: 'Awaiting footage',
     clips_identifying: 'Clip identification',
     clip_client_review: 'Clip review',
     clips_ready_intake: 'Clips ready — production',

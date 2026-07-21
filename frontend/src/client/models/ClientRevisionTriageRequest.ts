@@ -3,5 +3,12 @@
 /* tslint:disable */
 /* eslint-disable */
 export type ClientRevisionTriageRequest = {
-    route: 'editor' | 'smm_assets';
+    route: ClientRevisionTriageRequest.route;
 };
+export namespace ClientRevisionTriageRequest {
+    export enum route {
+        EDITOR = 'editor',
+        SMM_ASSETS = 'smm_assets',
+    }
+}
+

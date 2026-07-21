@@ -4,6 +4,9 @@
 /* eslint-disable */
 export enum PipelineStage {
     INTAKE_PENDING = 'intake_pending',
+    IDEA_RESEARCH = 'idea_research',
+    IDEA_REVIEW = 'idea_review',
+    IDEA_FOOTAGE_PENDING = 'idea_footage_pending',
     CLIPS_IDENTIFYING = 'clips_identifying',
     CLIP_CLIENT_REVIEW = 'clip_client_review',
     CLIPS_READY_INTAKE = 'clips_ready_intake',

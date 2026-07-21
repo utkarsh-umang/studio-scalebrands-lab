@@ -2,8 +2,10 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type ScheduleVideoClientResponse = {
-    id: string;
-    credits: number;
+/**
+ * Client-owned title for one deliverable (writes editorPublishTitle).
+ */
+export type SetClientTitleRequest = {
+    title: string;
 };
 

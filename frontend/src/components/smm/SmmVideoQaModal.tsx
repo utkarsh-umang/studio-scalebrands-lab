@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { ExternalLink } from 'lucide-react'
+import { SubmitSmmQaRequest } from '@/client'
 import type { AdminBatchFolder, AdminVideoTicket } from '@/types/pathB'
 import { StudioModalShell } from '@/components/StudioModalShell'
 import {
@@ -105,7 +106,7 @@ export function SmmVideoQaModal({
           }}
           onApprove={() => {
             submitSmmQa.mutate(
-              { action: 'approve' },
+              { action: SubmitSmmQaRequest.action.APPROVE },
               {
                 onSuccess: () => {
                   onClose()
@@ -115,7 +116,7 @@ export function SmmVideoQaModal({
           }}
           onRequestChanges={(body) => {
             submitSmmQa.mutate(
-              { action: 'send_back', commentBody: body },
+              { action: SubmitSmmQaRequest.action.SEND_BACK, commentBody: body },
               {
                 onSuccess: () => {
                   onClose()
