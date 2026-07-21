@@ -29,6 +29,21 @@ export function ClientBatchIntakeCard({ batch }: Props) {
   )
   const [expanded, setExpanded] = useState(true)
 
+  // Same trap as the thumbnails card: the board swaps `batch` without
+  // remounting, so state seeded at mount would carry one batch's link into the
+  // next. Re-seed during render when the batch changes.
+  const [prevBatchId, setPrevBatchId] = useState(batch.id)
+  if (batch.id !== prevBatchId) {
+    setPrevBatchId(batch.id)
+    const nextPath = batch.intakePath ?? 'source_media'
+    setPath(nextPath)
+    setUrl(
+      nextPath === 'clips_ready'
+        ? (batch.clipsFolderUrl ?? '')
+        : (batch.sourceMediaUrl ?? batch.footageUrl ?? ''),
+    )
+  }
+
   const primary = theme.colors.primary
   /** Client-submitted intake only (admin-only footageUrl does not count). */
   const submitted =

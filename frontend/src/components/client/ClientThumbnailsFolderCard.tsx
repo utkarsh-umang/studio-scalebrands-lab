@@ -17,9 +17,24 @@ type Props = {
 export function ClientThumbnailsFolderCard({ batch }: Props) {
   const { theme } = useTheme()
   const mutation = useClientThumbnailsFolderMutation(batch.id)
-  const [url, setUrl] = useState(batch.clientThumbnailsFolderUrl ?? '')
+  const saved = batch.clientThumbnailsFolderUrl ?? ''
+  const [url, setUrl] = useState(saved)
+  const [editing, setEditing] = useState(false)
+
+  // The board keeps this component mounted and swaps the batch prop, so state
+  // seeded at mount would carry one batch's link into the next. Re-seed during
+  // render when the batch (or the saved link) changes, per
+  // https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
+  const syncKey = `${batch.id}|${saved}`
+  const [prevSyncKey, setPrevSyncKey] = useState(syncKey)
+  if (syncKey !== prevSyncKey) {
+    setPrevSyncKey(syncKey)
+    setUrl(saved)
+    setEditing(false)
+  }
+
   const primary = theme.colors.primary
-  const submitted = Boolean(batch.clientThumbnailsFolderUrl?.trim())
+  const submitted = Boolean(saved.trim())
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -46,6 +61,38 @@ export function ClientThumbnailsFolderCard({ batch }: Props) {
       </div>
 
       <div className="mt-3 space-y-3 border-t border-[var(--border)] pt-3">
+        {submitted && !editing ? (
+          // Linked: the job is done, so show what we have rather than an empty
+          // form asking for something the client already sent.
+          <div className="space-y-2">
+            <p className="text-muted-foreground flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide">
+              <Link2 className="size-3" aria-hidden />
+              Thumbnails folder
+            </p>
+            <a
+              href={saved}
+              target="_blank"
+              rel="noreferrer"
+              className="text-foreground hover:text-primary block break-all text-xs underline underline-offset-2"
+            >
+              {saved}
+            </a>
+            <p className="text-muted-foreground text-[10px] leading-snug">
+              We will pull the images from here. Re-syncing picks up any changes you
+              make in the folder.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setEditing(true)
+              }}
+              className="border-border text-muted-foreground hover:text-foreground w-full rounded-lg border py-1.5 text-xs font-semibold"
+            >
+              Change link
+            </button>
+          </div>
+        ) : (
+          <>
         <div
           className="rounded-lg border border-amber-500/35 bg-amber-500/10 px-3 py-2.5 text-xs leading-snug"
           role="status"
@@ -98,14 +145,30 @@ export function ClientThumbnailsFolderCard({ batch }: Props) {
               Could not save the folder. Check the link and try again.
             </p>
           )}
-          <button
-            type="submit"
-            disabled={!url.trim() || mutation.isPending}
-            className="bg-primary text-primary-foreground disabled:opacity-50 w-full rounded-lg py-1.5 text-xs font-semibold"
-          >
-            {mutation.isPending ? 'Saving…' : submitted ? 'Update link' : 'Send thumbnails'}
-          </button>
+          <div className="flex gap-2">
+            {submitted && (
+              <button
+                type="button"
+                onClick={() => {
+                  setUrl(saved)
+                  setEditing(false)
+                }}
+                className="border-border text-muted-foreground hover:text-foreground shrink-0 rounded-lg border px-3 py-1.5 text-xs font-semibold"
+              >
+                Cancel
+              </button>
+            )}
+            <button
+              type="submit"
+              disabled={!url.trim() || mutation.isPending}
+              className="bg-primary text-primary-foreground disabled:opacity-50 w-full rounded-lg py-1.5 text-xs font-semibold"
+            >
+              {mutation.isPending ? 'Saving…' : submitted ? 'Update link' : 'Send thumbnails'}
+            </button>
+          </div>
         </form>
+          </>
+        )}
       </div>
     </div>
   )
