@@ -1,5 +1,6 @@
 """Admin pipeline owner/stage rollup (ported from frontend adminPipeline.ts)."""
 
+from datetime import datetime
 from uuid import UUID
 
 from app.models.batch import Batch
@@ -104,23 +105,64 @@ def stage_label_for_batch(
     return "In progress"
 
 
+def split_videos(batch_videos: list[VideoTicket]) -> list[VideoTicket]:
+    """Per-clip tickets, i.e. the batch has been split by the editor."""
+    return [
+        v
+        for v in batch_videos
+        if v.deliverable_index is not None and v.deliverable_index > 0
+    ]
+
+
+def is_open_video(video: VideoTicket) -> bool:
+    """Still needs someone's action — scheduling and done do not."""
+    return video.pipeline_owner.value in ("client", "smm", "editor")
+
+
 def compute_pipeline_summary(
     batches: list[Batch],
     videos_by_batch: dict,
 ) -> dict[str, int]:
+    """Count *videos* by owner, not batches.
+
+    A batch with 3 clips at the editor and 2 at the SMM used to collapse to one
+    "with editor" row, hiding the SMM's two. Post-split, the video is the unit of
+    work. Pre-split batches still count once — there genuinely is one thing to do.
+    """
     summary = {"with_client": 0, "with_smm": 0, "with_editor": 0}
+    key = {"client": "with_client", "smm": "with_smm", "editor": "with_editor"}
+
     for batch in batches:
         if batch.status != BatchStatus.active:
             continue
         batch_videos = videos_by_batch.get(batch.id, [])
-        owner = pipeline_owner_for_batch(batch, batch_videos)
-        if owner == "client":
-            summary["with_client"] += 1
-        elif owner == "smm":
-            summary["with_smm"] += 1
+        deliverables = split_videos(batch_videos)
+        if deliverables:
+            for video in deliverables:
+                if is_open_video(video):
+                    summary[key[video.pipeline_owner.value]] += 1
         else:
-            summary["with_editor"] += 1
+            owner = pipeline_owner_for_batch(batch, batch_videos)
+            summary[key.get(owner, "with_editor")] += 1
     return summary
+
+
+def _schedule_label(video: VideoTicket) -> str | None:
+    """"YouTube Shorts · 24 Jul 2026" for a video that has been scheduled."""
+    schedule = video.video_schedule
+    if not isinstance(schedule, dict):
+        return None
+    platform = str(schedule.get("platform") or "").strip()
+    go_live = str(schedule.get("goLiveAt") or "").strip()
+    if not platform and not go_live:
+        return None
+    when = ""
+    if go_live:
+        try:
+            when = datetime.fromisoformat(go_live).strftime("%d %b %Y")
+        except ValueError:
+            when = go_live
+    return " · ".join(part for part in (platform, when) if part)
 
 
 def list_pipeline_items(
@@ -128,23 +170,60 @@ def list_pipeline_items(
     videos_by_batch: dict,
     client_names: dict,
 ) -> list[dict]:
+    """Batch header rows, each followed by its per-clip video rows.
+
+    Pre-split batches emit only the header — there are no per-clip cards yet, so
+    the batch really is the unit of work.
+    """
     items: list[dict] = []
-    for batch in batches:
-        if batch.status != BatchStatus.active:
-            continue
+    active = [b for b in batches if b.status == BatchStatus.active]
+    # Sort the batches, not the flat row list — videos must stay under their header.
+    active.sort(key=lambda b: batch_to_response(b).updated_at, reverse=True)
+
+    for batch in active:
         batch_videos = videos_by_batch.get(batch.id, [])
+        deliverables = sorted(
+            split_videos(batch_videos),
+            key=lambda v: v.deliverable_index or 0,
+        )
+        updated_at = batch_to_response(batch).updated_at
+        client_label = client_names.get(batch.client_id, "Client")
+        open_count = sum(1 for v in deliverables if is_open_video(v))
+
         items.append(
             {
                 "id": batch.id,
+                "kind": "batch",
+                "batch_id": batch.id,
                 "client_id": batch.client_id,
                 "batch_title": batch.title,
-                "client_label": client_names.get(batch.client_id, "Client"),
-                "owner": pipeline_owner_for_batch(batch, batch_videos),
+                "client_label": client_label,
+                # Header rows carry no owner chip — their videos each have one.
+                "owner": None if deliverables else pipeline_owner_for_batch(batch, batch_videos),
                 "stage_label": stage_label_for_batch(batch, batch_videos),
-                "updated_at": batch_to_response(batch).updated_at,
+                "updated_at": updated_at,
+                "open_video_count": open_count if deliverables else None,
+                "total_video_count": len(deliverables) if deliverables else None,
             },
         )
-    items.sort(key=lambda row: row["updated_at"], reverse=True)
+
+        for video in deliverables:
+            owner = video.pipeline_owner.value
+            items.append(
+                {
+                    "id": video.id,
+                    "kind": "video",
+                    "batch_id": batch.id,
+                    "client_id": batch.client_id,
+                    "batch_title": batch.title,
+                    "client_label": client_label,
+                    "owner": owner if is_open_video(video) else None,
+                    "stage_label": video.stage_label,
+                    "updated_at": updated_at,
+                    "deliverable_index": video.deliverable_index,
+                    "schedule_label": _schedule_label(video),
+                },
+            )
     return items
 
 

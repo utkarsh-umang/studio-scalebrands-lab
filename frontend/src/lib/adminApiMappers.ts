@@ -183,12 +183,18 @@ export function mapDeadlineTask(api: AdminDeadlineTaskResponse): AdminDeadlineTa
 export function mapPipelineItem(api: AdminPipelineItemResponse): AdminPipelineItem {
   return {
     id: api.id,
+    kind: api.kind === 'video' ? 'video' : 'batch',
+    batchId: api.batchId,
     clientId: api.clientId,
     batchTitle: api.batchTitle,
     clientLabel: api.clientLabel,
-    owner: api.owner as AdminPipelineItem['owner'],
+    owner: (api.owner as AdminPipelineItem['owner']) ?? null,
     stageLabel: api.stageLabel,
     updatedAt: api.updatedAt,
+    deliverableIndex: api.deliverableIndex ?? null,
+    openVideoCount: api.openVideoCount ?? null,
+    totalVideoCount: api.totalVideoCount ?? null,
+    scheduleLabel: api.scheduleLabel ?? null,
   }
 }
 

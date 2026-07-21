@@ -237,13 +237,28 @@ class AdminPipelineSummaryResponse(CamelModel):
 
 
 class AdminPipelineItemResponse(CamelModel):
+    """One row in the admin pipeline list.
+
+    Rows come grouped: a `batch` header followed by its `video` rows. Pre-split
+    batches emit only a header, and that header keeps the owner chip since the
+    batch is still the unit of work.
+    """
+
     id: UUID
+    kind: str = "batch"
+    batch_id: UUID
     client_id: UUID
     batch_title: str
     client_label: str
-    owner: str
+    # None on split batch headers (their videos own the chips) and on videos
+    # that are scheduled or done.
+    owner: str | None = None
     stage_label: str
     updated_at: str
+    deliverable_index: int | None = None
+    open_video_count: int | None = None
+    total_video_count: int | None = None
+    schedule_label: str | None = None
 
 
 class AdminPipelineResponse(CamelModel):

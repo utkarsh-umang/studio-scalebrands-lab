@@ -36,21 +36,21 @@ export function AdminPipelineOverview({ summary, items }: Props) {
       key: 'client' as const,
       label: ownerLabel.client,
       value: summary.withClient,
-      sub: 'batches waiting on client',
+      sub: 'videos waiting on client',
       color: accent,
     },
     {
       key: 'smm' as const,
       label: ownerLabel.smm,
       value: summary.withSmm,
-      sub: 'batches with SMM as next owner',
+      sub: 'videos with SMM as next owner',
       color: primary,
     },
     {
       key: 'editor' as const,
       label: ownerLabel.editor,
       value: summary.withEditor,
-      sub: 'batches with editor as next owner',
+      sub: 'videos with editor as next owner',
       color: secondary,
     },
   ]
@@ -91,10 +91,10 @@ export function AdminPipelineOverview({ summary, items }: Props) {
         <div className="flex items-center gap-2">
           <BarChart3 className="text-foreground size-5" aria-hidden />
           <div>
-            <p className="text-foreground text-sm font-semibold">Active batches</p>
+            <p className="text-foreground text-sm font-semibold">Open work</p>
             <p className="text-muted-foreground text-xs">
-              {totalActive} open batch{totalActive === 1 ? '' : 'es'} across all clients
-              (live from workspace).
+              {totalActive} open item{totalActive === 1 ? '' : 's'} across all clients —
+              one per video once a batch is split, otherwise one per batch.
             </p>
           </div>
         </div>
@@ -103,7 +103,7 @@ export function AdminPipelineOverview({ summary, items }: Props) {
       <div className="space-y-3">
         <ClientPageHeader
           title="Where work sits"
-          subtitle="Path B batches grouped by who owns the next step."
+          subtitle="Videos grouped by batch, showing who owns the next step."
         />
         <div
           className="border-border bg-background/85 overflow-hidden rounded-2xl border backdrop-blur-xl"
@@ -116,41 +116,74 @@ export function AdminPipelineOverview({ summary, items }: Props) {
           ) : (
             <ul className="divide-border divide-y">
               {items.map((row) => {
-                const colorKey = ownerAccent[row.owner]
+                const isVideo = row.kind === 'video'
+                const colorKey = row.owner ? ownerAccent[row.owner] : null
                 const chipColor =
                   colorKey === 'primary'
                     ? primary
                     : colorKey === 'secondary'
                       ? secondary
-                      : accent
+                      : colorKey === 'accent'
+                        ? accent
+                        : null
+
+                const primaryText = isVideo
+                  ? `#${row.deliverableIndex} · ${row.stageLabel}`
+                  : row.batchTitle
+                const secondaryText = isVideo
+                  ? (row.scheduleLabel ?? row.clientLabel)
+                  : [
+                      row.clientLabel,
+                      row.totalVideoCount != null
+                        ? `${row.openVideoCount ?? 0} of ${row.totalVideoCount} open`
+                        : row.stageLabel,
+                      `Updated ${formatDate(row.updatedAt)}`,
+                    ].join(' · ')
+
                 return (
-                  <li key={row.id}>
+                  <li key={row.id} className={isVideo ? 'bg-muted/10' : undefined}>
                     <button
                       type="button"
                       onClick={() => {
                         navigate(
-                          `/admin/clients/${row.clientId}?batch=${encodeURIComponent(row.id)}`,
+                          `/admin/clients/${row.clientId}?batch=${encodeURIComponent(row.batchId)}`,
                         )
                       }}
-                      className="hover:bg-muted/20 flex w-full flex-col gap-2 px-5 py-4 text-left sm:flex-row sm:items-center sm:justify-between"
+                      className={[
+                        'hover:bg-muted/20 flex w-full flex-col gap-2 text-left sm:flex-row sm:items-center sm:justify-between',
+                        isVideo ? 'py-2.5 pl-10 pr-5' : 'px-5 py-4',
+                      ].join(' ')}
                     >
                       <div className="min-w-0">
-                        <p className="text-foreground font-medium">{row.batchTitle}</p>
-                        <p className="text-muted-foreground text-xs">
-                          {row.clientLabel} · {row.stageLabel} · Updated{' '}
-                          {formatDate(row.updatedAt)}
+                        <p
+                          className={
+                            isVideo
+                              ? 'text-foreground text-sm'
+                              : 'text-foreground font-medium'
+                          }
+                        >
+                          {primaryText}
                         </p>
+                        <p className="text-muted-foreground text-xs">{secondaryText}</p>
                       </div>
-                      <span
-                        className="inline-flex w-fit shrink-0 items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
-                        style={{
-                          background: `${chipColor}18`,
-                          color: chipColor,
-                          border: `1px solid ${chipColor}40`,
-                        }}
-                      >
-                        {ownerLabel[row.owner]}
-                      </span>
+                      {chipColor && row.owner ? (
+                        <span
+                          className="inline-flex w-fit shrink-0 items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+                          style={{
+                            background: `${chipColor}18`,
+                            color: chipColor,
+                            border: `1px solid ${chipColor}40`,
+                          }}
+                        >
+                          {ownerLabel[row.owner]}
+                        </span>
+                      ) : isVideo ? (
+                        // Delivered: say so explicitly rather than leaving a blank
+                        // row that reads as "nothing happening here".
+                        <span className="border-border text-muted-foreground inline-flex w-fit shrink-0 items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+                          {row.scheduleLabel ? 'Scheduled' : 'Done'}
+                        </span>
+                      ) : null}
                     </button>
                   </li>
                 )
