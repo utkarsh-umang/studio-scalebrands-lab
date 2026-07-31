@@ -1,5 +1,4 @@
 import { Coins } from 'lucide-react'
-import { useTheme } from '@/theme'
 
 type Props = {
   credits: number
@@ -9,31 +8,23 @@ type Props = {
 
 /** Compact credits pill for the page title row. */
 export function ClientCreditsBadge({ credits, reserved = 0 }: Props) {
-  const { theme } = useTheme()
-  const primary = theme.colors.primary
-
   return (
-    <div
-      className="border-border bg-background/95 flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 backdrop-blur-xl"
-      style={{
-        borderColor: `${primary}30`,
-        boxShadow: `0 0 0 1px rgba(255, 255, 255, 0.55) inset`,
-      }}
-    >
-      <Coins className="size-3.5 shrink-0" style={{ color: primary }} aria-hidden />
+    <div className="flex min-w-[210px] shrink-0 items-center gap-3 rounded-2xl border border-blue-100 bg-white px-4 py-3.5 shadow-[0_8px_30px_rgba(15,23,42,0.05)]">
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+        <Coins className="size-4.5" aria-hidden />
+      </span>
       <div className="text-left">
-        <p className="text-muted-foreground text-[9px] font-semibold uppercase tracking-[0.1em]">
-          Credits
-        </p>
-        <p
-          className="font-[family-name:var(--heading)] text-lg font-bold leading-none tabular-nums"
-          style={{ color: primary }}
-        >
-          {credits}
-        </p>
+        <div className="flex items-baseline gap-1.5">
+          <p className="font-[family-name:var(--heading)] text-2xl font-bold leading-none tabular-nums text-slate-950">
+            {credits}
+          </p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+            credits
+          </p>
+        </div>
         {reserved > 0 ? (
-          <p className="text-muted-foreground mt-0.5 text-[10px] leading-snug">
-            {reserved} reserved across active batches
+          <p className="mt-1 text-[10px] leading-snug text-slate-500">
+            {reserved} reserved for active work
           </p>
         ) : null}
       </div>

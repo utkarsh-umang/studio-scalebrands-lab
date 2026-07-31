@@ -18,6 +18,7 @@ import { RootRedirect } from '@/pages/RootRedirect'
 import { SmmBoard } from '@/pages/smm/SmmBoard'
 import { SmmCompleted } from '@/pages/smm/SmmCompleted'
 import { SmmLayout } from '@/pages/smm/SmmLayout'
+import { ClipsWorkspacePage } from '@/pages/shared/ClipsWorkspacePage'
 import { Navigate, Route, Routes } from 'react-router-dom'
 
 function App() {
@@ -39,6 +40,7 @@ function App() {
           <Route index element={<Navigate to="board" replace />} />
           <Route path="board" element={<ClientBoard />} />
           <Route path="all" element={<ClientAllWork />} />
+          <Route path="batches/:batchId/clips" element={<ClipsWorkspacePage />} />
           <Route path="overview" element={<Navigate to="/client/board" replace />} />
           <Route path="batches" element={<Navigate to="/client/board" replace />} />
           <Route path="batches/:batchId" element={<Navigate to="/client/board" replace />} />
@@ -61,6 +63,7 @@ function App() {
           <Route index element={<Navigate to="board" replace />} />
           <Route path="board" element={<EditorBoard />} />
           <Route path="completed" element={<EditorCompleted />} />
+          <Route path="batches/:batchId/clips" element={<ClipsWorkspacePage />} />
           <Route path="overview" element={<Navigate to="/editor/board" replace />} />
           <Route path="tasks" element={<Navigate to="/editor/board" replace />} />
           <Route path="qa" element={<Navigate to="/editor/board" replace />} />
@@ -77,6 +80,7 @@ function App() {
           <Route index element={<Navigate to="board" replace />} />
           <Route path="board" element={<SmmBoard />} />
           <Route path="completed" element={<SmmCompleted />} />
+          <Route path="batches/:batchId/clips" element={<ClipsWorkspacePage />} />
           <Route path="overview" element={<Navigate to="/smm/board" replace />} />
           <Route path="clips" element={<Navigate to="/smm/board" replace />} />
           <Route path="clips/:batchId" element={<Navigate to="/smm/board" replace />} />

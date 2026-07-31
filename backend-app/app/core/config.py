@@ -29,6 +29,8 @@ class Settings(BaseSettings):
     BOOTSTRAP_ADMIN_PASSWORD: str = "change-me-local-only"
     BOOTSTRAP_ADMIN_DISPLAY_NAME: str = "Studio Admin"
     SEED_DEMO_USERS: bool = True
+    # Local-only visual regression catalog: one stable batch per workflow stage.
+    SEED_VISUAL_REVIEW_SCENARIOS: bool = False
 
     # ── Postgres ──
     POSTGRES_HOST: str = "localhost"

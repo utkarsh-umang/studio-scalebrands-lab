@@ -127,6 +127,11 @@ export function clientCardStatusHint(card: ClientVideoCard): string {
   if (card.clientColumn === 'in_review' && card.reviewKind) {
     return 'Action needed'
   }
+  if (card.deliverableIndex != null && card.deliverableIndex > 0) {
+    if (card.owner === 'editor') return 'With editor — in production'
+    if (card.owner === 'smm') return 'With social team — internal review'
+    if (card.owner === 'scheduling') return 'Ready to schedule'
+  }
   switch (card.clientGateKind) {
     case 'clip_identification':
       return 'Identifying clips from your footage'
@@ -191,6 +196,16 @@ export function filterVideosForClientKanban(
 
   let out: AdminVideoTicket[]
   if (phase === 'pre_split') {
+    const approvedProduction = videos.filter(
+      (video) =>
+        video.deliverableIndex != null &&
+        video.deliverableIndex > 0 &&
+        batch.clipReviewPhase === 'approved',
+    )
+    if (approvedProduction.length > 0) {
+      return approvedProduction.filter(clientSeesFinalVideoReviewCard)
+    }
+
     out = videos.filter(isPreSplitGateTicket)
     if (
       batch.intakePath === 'clips_ready' &&

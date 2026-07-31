@@ -30,8 +30,8 @@
     rgba(5, 9, 14, 0.08) 0 10px 15px -3px,
     rgba(5, 9, 14, 0.05) 0 4px 6px -2px;
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
+  font: 16px/145% var(--sans);
+  letter-spacing: 0.1px;
   color-scheme: light;
   color: var(--foreground);
   background: var(--background);
@@ -74,4 +74,5 @@
 
 body {
   margin: 0;
+  background: #f4f6fa;
 }

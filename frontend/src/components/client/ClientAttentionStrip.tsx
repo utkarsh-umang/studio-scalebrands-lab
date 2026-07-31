@@ -1,4 +1,4 @@
-import { AlertCircle, ChevronRight } from 'lucide-react'
+import { AlertCircle, CheckCircle2, ChevronRight } from 'lucide-react'
 import type { ClientAttentionItem, ClientReviewKind } from '@/lib/clientBoard'
 import { useTheme } from '@/theme'
 
@@ -18,24 +18,30 @@ export function ClientAttentionStrip({ items, onOpen }: Props) {
 
   if (items.length === 0) {
     return (
-      <div className="border-border bg-background/80 rounded-xl border px-4 py-3">
-        <p className="text-muted-foreground text-sm">
-          Nothing needs your approval right now — you&apos;re all caught up.
-        </p>
+      <div className="flex items-center gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/70 px-4 py-3.5">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-white text-emerald-600 shadow-sm">
+          <CheckCircle2 className="size-4.5" aria-hidden />
+        </span>
+        <div>
+          <p className="text-sm font-semibold text-slate-900">You&apos;re all caught up</p>
+          <p className="mt-0.5 text-xs text-slate-500">
+            We&apos;ll bring approvals and questions here when they need you.
+          </p>
+        </div>
       </div>
     )
   }
 
   return (
-    <section className="space-y-2">
-      <div className="flex items-center gap-2">
+    <section className="rounded-3xl border border-rose-100 bg-rose-50/60 p-4 md:p-5">
+      <div className="mb-3 flex items-center gap-2">
         <AlertCircle
           className="size-5"
           style={{ color: theme.colors.destructive }}
           aria-hidden
         />
-        <h2 className="text-foreground text-sm font-semibold">
-          Needs your attention ({items.length})
+        <h2 className="text-sm font-semibold text-slate-950">
+          {items.length} item{items.length === 1 ? '' : 's'} waiting for you
         </h2>
       </div>
       <ul className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
@@ -46,11 +52,7 @@ export function ClientAttentionStrip({ items, onOpen }: Props) {
               onClick={() => {
                 onOpen(item.videoId)
               }}
-              className="border-border bg-background/95 hover:border-primary/40 flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors"
-              style={{
-                borderColor: `${theme.colors.destructive}40`,
-                boxShadow: `0 0 0 1px rgba(255, 255, 255, 0.5) inset`,
-              }}
+              className="flex w-full items-center gap-3 rounded-2xl border border-white bg-white px-4 py-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-rose-200 hover:shadow-md"
             >
               <span
                 className="flex size-8 shrink-0 items-center justify-center rounded-lg text-[10px] font-bold uppercase"

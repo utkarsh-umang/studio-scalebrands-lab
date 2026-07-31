@@ -29,6 +29,8 @@ from app.services.path_b_transitions import (
     apply_submit_clips_folder,
     apply_video_transition,
     create_clip_review_gate_ticket,
+    create_split_deliverable_ticket,
+    default_deliverable_title,
     is_clip_identification_ticket,
     is_clip_review_gate_ticket,
     is_pre_split_gate_or_clip_review,
@@ -248,21 +250,45 @@ async def approve_batch_clips(
             },
         )
 
-    apply_approve_clips(batch, clip_count=clip_count)
+    approved_count = (
+        clip_count
+        if clip_count is not None and clip_count > 0
+        else max(batch.video_count, 1)
+    )
+    apply_approve_clips(batch, clip_count=approved_count)
     session.add(batch)
 
     tickets = await load_batch_tickets(session, batch.id)
+    existing_indices = {
+        row.deliverable_index
+        for row in tickets
+        if row.deliverable_index is not None and row.deliverable_index > 0
+    }
     for row in tickets:
         if row.id == ticket.id or is_pre_split_gate_or_clip_review(row):
             apply_video_transition(row, PipelineStage.pre_split_production)
             session.add(row)
+
+    # Approval establishes the exact clip count, so expose one production ticket per
+    # approved clip immediately. The editor's later Drive submission replaces these
+    # placeholders with the final titles and linked assets.
+    for index in range(1, approved_count + 1):
+        if index in existing_indices:
+            continue
+        session.add(
+            create_split_deliverable_ticket(
+                batch,
+                index,
+                default_deliverable_title(index),
+            )
+        )
 
     record_activity(
         session,
         batch_id=batch.id,
         actor=user,
         action="clips_approved",
-        summary=f"Approved clips for “{batch.title}”",
+        summary=f"Approved {approved_count} clips for “{batch.title}” — production started",
         video_ticket_id=ticket.id,
     )
 

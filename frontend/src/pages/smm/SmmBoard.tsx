@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/auth'
-import { NumberedClipsModal } from '@/components/path-b'
 import { SmmAttentionStrip } from '@/components/smm/SmmAttentionStrip'
 import { SmmBatchFolderRow } from '@/components/smm/SmmBatchFolderRow'
 import { SmmClientRevisionModal } from '@/components/smm/SmmClientRevisionModal'
@@ -31,6 +30,7 @@ import { useRoleWorkspace } from '@/hooks/api/workspace/useRoleWorkspace'
 
 export function SmmBoard() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const { clients, batches, videos, getVideosForBatch, isWorkspaceLoading } =
     useRoleWorkspace()
 
@@ -61,7 +61,6 @@ export function SmmBoard() {
 
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null)
   const [findClipsOpen, setFindClipsOpen] = useState(false)
-  const [clipsViewOpen, setClipsViewOpen] = useState(false)
   const [activityOpen, setActivityOpen] = useState(false)
   const [scheduleVideoId, setScheduleVideoId] = useState<string | null>(null)
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null)
@@ -140,7 +139,9 @@ export function SmmBoard() {
         onOpen={(item) => {
           setSelectedBatchId(item.batchId)
           if (item.kind === 'find_clips') setFindClipsOpen(true)
-          else if (item.kind === 'view_clips') setClipsViewOpen(true)
+          else if (item.kind === 'view_clips') {
+            navigate(`/smm/batches/${item.batchId}/clips`)
+          }
           else if (item.kind === 'schedule' && item.videoId) {
             setScheduleVideoId(item.videoId)
           } else if (item.videoId) setActiveVideoId(item.videoId)
@@ -207,7 +208,7 @@ export function SmmBoard() {
               setFindClipsOpen(true)
             }}
             onViewClips={() => {
-              setClipsViewOpen(true)
+              navigate(`/smm/batches/${selectedBatch.id}/clips`)
             }}
             onOpenVideo={(videoId) => {
               const card = batchVideos.find((v) => v.id === videoId)
@@ -231,20 +232,6 @@ export function SmmBoard() {
           open={findClipsOpen}
           onClose={() => {
             setFindClipsOpen(false)
-          }}
-        />
-      ) : null}
-
-      {selectedBatch && clipsViewOpen && selectedBatch.clipsFolderUrl?.trim() ? (
-        <NumberedClipsModal
-          open
-          batchId={selectedBatch.id}
-          batchTitle={selectedBatch.title}
-          clipsFolderUrl={selectedBatch.clipsFolderUrl}
-          mode="view"
-          resetKey={`${selectedBatch.id}-smm-clips`}
-          onClose={() => {
-            setClipsViewOpen(false)
           }}
         />
       ) : null}

@@ -81,6 +81,11 @@ async def test_clips_folder_submit_and_client_approve_loop(client: AsyncClient) 
     assert approved["batch"]["pipelineStage"] == "pre_split_production"
     assert approved["batch"]["videoCount"] == 6
     assert all(v["owner"] == "editor" for v in approved["videos"] if v["deliverableIndex"] is None)
+    production = [v for v in approved["videos"] if v["deliverableIndex"] is not None]
+    assert len(production) == 6
+    assert sorted(v["deliverableIndex"] for v in production) == [1, 2, 3, 4, 5, 6]
+    assert all(v["owner"] == "editor" for v in production)
+    assert all(v["pipelineStage"] == "production" for v in production)
 
 
 @pytest.mark.anyio

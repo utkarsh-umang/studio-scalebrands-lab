@@ -66,48 +66,50 @@ export function ClientBatchIntakeCard({ batch }: Props) {
 
   return (
     <div
-      className="border-border bg-background w-full rounded-lg border p-3 shadow-sm"
-      style={{ borderColor: `${primary}40` }}
+      className="w-full rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.05)] md:p-6"
     >
       <button
         type="button"
         onClick={() => {
           setExpanded((v) => !v)
         }}
-        className="flex w-full items-start gap-2 text-left"
+        className="flex w-full items-start gap-3 text-left"
       >
-        {path === 'clips_ready' ? (
-          <FolderOpen
-            className="mt-0.5 size-3.5 shrink-0"
-            style={{ color: primary }}
-            aria-hidden
-          />
-        ) : (
-          <Mic
-            className="mt-0.5 size-3.5 shrink-0"
-            style={{ color: primary }}
-            aria-hidden
-          />
-        )}
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+          {path === 'clips_ready' ? (
+            <FolderOpen className="size-4.5" aria-hidden />
+          ) : (
+            <Mic className="size-4.5" aria-hidden />
+          )}
+        </span>
         <span className="min-w-0 flex-1">
-          <span className="text-foreground block text-xs font-semibold">
+          <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-blue-600">
+            Batch kickoff
+          </span>
+          <span className="text-foreground mt-1 block text-base font-semibold">
             {submitted ? 'Batch kickoff submitted' : 'Start this batch'}
           </span>
-          <span className="text-muted-foreground block text-[10px] leading-snug">
-            {path === 'clips_ready'
-              ? 'Clips folder — skips to editor'
-              : 'Podcast or raw footage link'}
+          <span className="text-muted-foreground mt-1 block text-xs leading-relaxed">
+            Choose the starting point that best matches what you have ready today.
           </span>
         </span>
       </button>
 
       {expanded && (
-        <div className="mt-3 space-y-3 border-t border-[var(--border)] pt-3">
-          <fieldset className="space-y-2">
-            <legend className="text-muted-foreground text-[10px] font-semibold uppercase tracking-wide">
+        <div className="mt-5 space-y-5 border-t border-slate-100 pt-5">
+          <fieldset>
+            <legend className="mb-3 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
               How are you starting?
             </legend>
-            <label className="border-border hover:border-primary/30 flex cursor-pointer items-start gap-2 rounded-lg border p-2.5">
+            <div className="grid gap-3 md:grid-cols-3">
+            <label
+              className={[
+                'flex cursor-pointer items-start gap-3 rounded-2xl border p-4 transition-all',
+                path === 'source_media'
+                  ? 'border-blue-300 bg-blue-50/70 ring-1 ring-blue-100'
+                  : 'border-slate-200 hover:border-blue-200 hover:bg-slate-50',
+              ].join(' ')}
+            >
               <input
                 type="radio"
                 name={`intake-path-${batch.id}`}
@@ -116,19 +118,25 @@ export function ClientBatchIntakeCard({ batch }: Props) {
                   setPath('source_media')
                   setUrl(batch.sourceMediaUrl ?? batch.footageUrl ?? '')
                 }}
-                className="mt-0.5"
+                className="mt-1 accent-blue-600"
               />
-              <span className="text-xs leading-snug">
+              <span className="text-xs leading-relaxed">
                 <span className="text-foreground font-semibold">
                   Podcast or raw footage
                 </span>
-                <span className="text-muted-foreground block">
-                  YouTube, Spotify, Drive, Dropbox, etc. — we identify clips for
-                  you.
+                <span className="text-muted-foreground mt-1 block text-[11px]">
+                  Share the long-form source. We&apos;ll identify the best clips.
                 </span>
               </span>
             </label>
-            <label className="border-border hover:border-primary/30 flex cursor-pointer items-start gap-2 rounded-lg border p-2.5">
+            <label
+              className={[
+                'flex cursor-pointer items-start gap-3 rounded-2xl border p-4 transition-all',
+                path === 'clips_ready'
+                  ? 'border-blue-300 bg-blue-50/70 ring-1 ring-blue-100'
+                  : 'border-slate-200 hover:border-blue-200 hover:bg-slate-50',
+              ].join(' ')}
+            >
               <input
                 type="radio"
                 name={`intake-path-${batch.id}`}
@@ -137,19 +145,25 @@ export function ClientBatchIntakeCard({ batch }: Props) {
                   setPath('clips_ready')
                   setUrl(batch.clipsFolderUrl ?? '')
                 }}
-                className="mt-0.5"
+                className="mt-1 accent-blue-600"
               />
-              <span className="text-xs leading-snug">
+              <span className="text-xs leading-relaxed">
                 <span className="text-foreground font-semibold">
                   I already have a clips folder
                 </span>
-                <span className="text-muted-foreground block">
-                  Paste a Google Drive folder link — we skip the clip-finding step
-                  and go straight to editing (no clip review round in Studio).
+                <span className="text-muted-foreground mt-1 block text-[11px]">
+                  Share numbered clips and go straight into production.
                 </span>
               </span>
             </label>
-            <label className="border-border hover:border-primary/30 flex cursor-pointer items-start gap-2 rounded-lg border p-2.5">
+            <label
+              className={[
+                'flex cursor-pointer items-start gap-3 rounded-2xl border p-4 transition-all',
+                path === 'idea_first'
+                  ? 'border-blue-300 bg-blue-50/70 ring-1 ring-blue-100'
+                  : 'border-slate-200 hover:border-blue-200 hover:bg-slate-50',
+              ].join(' ')}
+            >
               <input
                 type="radio"
                 name={`intake-path-${batch.id}`}
@@ -157,18 +171,18 @@ export function ClientBatchIntakeCard({ batch }: Props) {
                 onChange={() => {
                   setPath('idea_first')
                 }}
-                className="mt-0.5"
+                className="mt-1 accent-blue-600"
               />
-              <span className="text-xs leading-snug">
+              <span className="text-xs leading-relaxed">
                 <span className="text-foreground font-semibold">
                   I need ideas first
                 </span>
-                <span className="text-muted-foreground block">
-                  No footage yet — your SMM researches video ideas, you approve the
-                  list, then you record and send footage.
+                <span className="text-muted-foreground mt-1 block text-[11px]">
+                  We&apos;ll research ideas for you to approve before recording.
                 </span>
               </span>
             </label>
+            </div>
           </fieldset>
 
           {path === 'clips_ready' && (
@@ -217,13 +231,16 @@ export function ClientBatchIntakeCard({ batch }: Props) {
                 onClick={() => {
                   requestIdeas.mutate()
                 }}
-                className="bg-primary text-primary-foreground disabled:opacity-50 w-full rounded-lg py-1.5 text-xs font-semibold"
+                className="bg-primary text-primary-foreground w-full rounded-xl py-2.5 text-xs font-semibold shadow-sm disabled:opacity-50"
               >
                 {requestIdeas.isPending ? 'Requesting…' : 'Request ideas'}
               </button>
             </div>
           ) : (
-          <form onSubmit={handleSubmit} className="space-y-2">
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-4"
+          >
             <label
               htmlFor={`intake-url-${batch.id}`}
               className="text-muted-foreground flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide"
@@ -243,7 +260,7 @@ export function ClientBatchIntakeCard({ batch }: Props) {
                   ? 'https://drive.google.com/drive/folders/...'
                   : 'https://youtube.com/... or drive/dropbox link'
               }
-              className="border-border bg-background text-foreground w-full rounded-lg border px-2.5 py-1.5 text-xs outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+              className="border-border bg-background text-foreground w-full rounded-xl border px-3.5 py-2.5 text-xs shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
             />
             <p className="text-muted-foreground text-[10px] leading-snug">
               Links only — we do not accept file uploads in Studio.
@@ -256,7 +273,7 @@ export function ClientBatchIntakeCard({ batch }: Props) {
             <button
               type="submit"
               disabled={!url.trim() || intakeMutation.isPending}
-              className="bg-primary text-primary-foreground disabled:opacity-50 w-full rounded-lg py-1.5 text-xs font-semibold"
+              className="bg-primary text-primary-foreground w-full rounded-xl py-2.5 text-xs font-semibold shadow-sm transition-colors hover:bg-blue-700 disabled:opacity-50"
             >
               {intakeMutation.isPending
                 ? 'Submitting…'

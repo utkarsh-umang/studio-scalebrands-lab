@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/auth'
 import { EditorAttentionStrip } from '@/components/editor/EditorAttentionStrip'
 import { EditorBatchFolderRow } from '@/components/editor/EditorBatchFolderRow'
@@ -7,7 +7,7 @@ import { BatchOwnershipControls } from '@/components/path-b/BatchOwnershipContro
 import { EditorPathBVideoKanban } from '@/components/editor/EditorPathBVideoKanban'
 import { EditorProductionModal } from '@/components/editor/EditorProductionModal'
 import { EditorQaFixModal } from '@/components/editor/EditorQaFixModal'
-import { FindClipsModal, NumberedClipsModal } from '@/components/path-b'
+import { FindClipsModal } from '@/components/path-b'
 import {
   batchAwaitingClips,
   batchNeedsEditorFindClips,
@@ -19,11 +19,11 @@ import {
   editorNeedsProductionWork,
 } from '@/lib/editorBoard'
 import { resolveEditorStaffId } from '@/lib/editorSession'
-import { useSubmitDeliverablesDriveMutation } from '@/hooks/api/pathB/useSubmitDeliverablesDriveMutation'
 import { useRoleWorkspace } from '@/hooks/api/workspace/useRoleWorkspace'
 
 export function EditorBoard() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const {
     clients,
     batches,
@@ -59,17 +59,11 @@ export function EditorBoard() {
 
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null)
   const [findClipsOpen, setFindClipsOpen] = useState(false)
-  const [clipsModalOpen, setClipsModalOpen] = useState(false)
-  const [deliverablesDriveDraft, setDeliverablesDriveDraft] = useState('')
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null)
 
   const effectiveBatchId = selectedBatchId ?? editorBatches[0]?.id ?? null
   const selectedBatch =
     editorBatches.find((b) => b.id === effectiveBatchId) ?? editorBatches[0]
-
-  const submitDeliverablesDrive = useSubmitDeliverablesDriveMutation(
-    selectedBatch?.id ?? '',
-  )
 
   const batchVideos = useMemo(() => {
     if (!selectedBatch) return []
@@ -128,7 +122,7 @@ export function EditorBoard() {
           if (item.kind === 'find_clips') {
             setFindClipsOpen(true)
           } else if (item.kind === 'pre_split_gate' || item.kind === 'submit_deliverables') {
-            setClipsModalOpen(true)
+            navigate(`/editor/batches/${item.batchId}/clips`)
           } else if (item.kind === 'qa_fix' && item.videoId) {
             setActiveVideoId(item.videoId)
           } else if (item.kind === 'production') {
@@ -176,8 +170,7 @@ export function EditorBoard() {
                 setFindClipsOpen(true)
               }}
               onOpenGate={() => {
-                setDeliverablesDriveDraft(selectedBatch.editorDeliverablesDriveUrl ?? '')
-                setClipsModalOpen(true)
+                navigate(`/editor/batches/${selectedBatch.id}/clips`)
               }}
               onOpenVideo={setActiveVideoId}
             />
@@ -202,47 +195,6 @@ export function EditorBoard() {
           open={findClipsOpen}
           onClose={() => {
             setFindClipsOpen(false)
-          }}
-        />
-      ) : null}
-
-      {selectedBatch && clipsModalOpen && selectedBatch.clipsFolderUrl?.trim() ? (
-        <NumberedClipsModal
-          open
-          batchId={selectedBatch.id}
-          batchTitle={selectedBatch.title}
-          clipsFolderUrl={selectedBatch.clipsFolderUrl}
-          mode="editor"
-          resetKey={`${selectedBatch.id}-clips`}
-          deliverablesDriveUrl={deliverablesDriveDraft}
-          onDeliverablesDriveUrlChange={setDeliverablesDriveDraft}
-          onSubmitDeliverables={(payload) => {
-            const trimmed = deliverablesDriveDraft.trim()
-            if (!trimmed || !selectedBatch) return
-            const deliverableCount = Math.max(
-              payload.deliverableCount,
-              selectedBatch.videoCount,
-              1,
-            )
-            submitDeliverablesDrive.mutate(
-              {
-                deliverablesDriveUrl: trimmed,
-                deliverableCount,
-                deliverables:
-                  payload.deliverables.length > 0 ? payload.deliverables : undefined,
-              },
-              {
-                onSuccess: () => {
-                  setClipsModalOpen(false)
-                },
-              },
-            )
-          }}
-          submitDeliverablesDisabled={
-            !deliverablesDriveDraft.trim() || submitDeliverablesDrive.isPending
-          }
-          onClose={() => {
-            setClipsModalOpen(false)
           }}
         />
       ) : null}

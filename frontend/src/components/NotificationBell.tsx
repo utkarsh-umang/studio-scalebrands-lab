@@ -28,7 +28,11 @@ function relativeTime(iso: string): string {
   return `${Math.floor(hours / 24)}d ago`
 }
 
-export function NotificationBell() {
+type Props = {
+  variant?: 'default' | 'sidebar'
+}
+
+export function NotificationBell({ variant = 'default' }: Props) {
   const { user } = useAuth()
   const navigate = useNavigate()
   const { data } = useNotificationsQuery(!!user)
@@ -66,7 +70,12 @@ export function NotificationBell() {
         type="button"
         onClick={toggle}
         aria-label={`Notifications${unread ? ` (${unread} unread)` : ''}`}
-        className="text-muted-foreground hover:text-foreground hover:bg-muted/50 relative flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium transition-colors"
+        className={[
+          'relative flex shrink-0 items-center gap-3 rounded-xl border px-3 py-2.5 text-left text-xs font-medium transition-colors md:w-full',
+          variant === 'sidebar'
+            ? 'border-transparent text-slate-400 hover:bg-white/5 hover:text-white'
+            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50 border-transparent',
+        ].join(' ')}
       >
         <span className="relative flex">
           <Bell className="size-3.5 shrink-0" aria-hidden />

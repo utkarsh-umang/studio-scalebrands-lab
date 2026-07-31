@@ -151,6 +151,12 @@ async def run_seed() -> None:
             if config.SEED_DEMO_USERS:
                 users = await seed_demo_users(session)
                 await seed_demo_client_data(session, users)
+                if config.SEED_VISUAL_REVIEW_SCENARIOS:
+                    from app.scripts.visual_review_seed import (
+                        seed_visual_review_scenarios,
+                    )
+
+                    await seed_visual_review_scenarios(session, users)
             await session.commit()
             print("Seed completed")
         except Exception:

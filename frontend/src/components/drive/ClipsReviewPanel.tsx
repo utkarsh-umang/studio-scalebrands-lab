@@ -15,6 +15,8 @@ type Props = {
   sidebarPosition?: 'left' | 'right'
   /** Fill parent height (numbered clips modal). */
   className?: string
+  /** Routed workspace: keep the clip rail independently scrollable and content-height. */
+  pageLayout?: boolean
   onApprove?: () => void
   onReject?: (note: string) => void
 }
@@ -26,6 +28,7 @@ export function ClipsReviewPanel({
   readOnly = false,
   sidebarPosition = 'right',
   className = '',
+  pageLayout = false,
   onApprove,
   onReject,
 }: Props) {
@@ -78,7 +81,12 @@ export function ClipsReviewPanel({
 
   return (
     <div
-      className={['flex min-h-0 flex-1 flex-col overflow-hidden', className]
+      className={[
+        pageLayout
+          ? 'flex min-h-0 flex-col overflow-visible'
+          : 'flex min-h-0 flex-1 flex-col overflow-hidden',
+        className,
+      ]
         .filter(Boolean)
         .join(' ')}
     >
@@ -94,24 +102,42 @@ export function ClipsReviewPanel({
 
       <div
         className={[
-          'flex min-h-0 flex-1 flex-col gap-3 overflow-hidden md:min-h-[280px] md:gap-4',
-          sidebarPosition === 'right' ? 'md:flex-row-reverse' : 'md:flex-row',
+          pageLayout
+            ? 'flex min-h-0 flex-col gap-4 overflow-visible lg:items-start'
+            : 'flex min-h-0 flex-1 flex-col gap-3 overflow-hidden md:min-h-[280px] md:gap-4',
+          sidebarPosition === 'right'
+            ? pageLayout
+              ? 'lg:flex-row-reverse'
+              : 'md:flex-row-reverse'
+            : pageLayout
+              ? 'lg:flex-row'
+              : 'md:flex-row',
         ].join(' ')}
       >
         <aside
           className={[
-            'border-border bg-muted/15 flex min-h-0 shrink-0 flex-col overflow-hidden rounded-xl border',
-            'h-[min(36vh,240px)] md:h-auto md:w-56 md:self-stretch md:bg-transparent',
+            'flex min-h-0 shrink-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/80',
+            pageLayout
+              ? 'h-[220px] w-full lg:h-[360px] lg:w-56 lg:self-start xl:h-[440px]'
+              : 'h-[min(36vh,260px)] md:h-auto md:w-64 md:self-stretch',
           ].join(' ')}
           aria-label="Clip list"
         >
-          {rejectMode ? (
-            <p className="text-muted-foreground border-border shrink-0 border-b px-3 py-2 text-[10px] font-semibold uppercase tracking-wide">
-              Mark clips to replace
+          <div className="shrink-0 border-b border-slate-200 bg-white/70 px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs font-bold text-slate-900">Clip set</p>
+              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-slate-500">
+                {clips.length} total
+              </span>
+            </div>
+            <p className="mt-1 text-[10px] leading-relaxed text-slate-500">
+              {rejectMode
+                ? 'Select every clip that needs a replacement.'
+                : 'Choose a clip to review its full cut.'}
             </p>
-          ) : null}
+          </div>
           <ul
-            className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-y-contain p-2"
+            className="min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-y-contain p-2.5"
             role="listbox"
             aria-label="Numbered clips"
           >
@@ -121,10 +147,10 @@ export function ClipsReviewPanel({
                 <li key={c.driveFileId}>
                   <div
                     className={[
-                      'flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-colors',
+                      'flex w-full items-center gap-2 rounded-xl border px-2 py-2 text-left text-xs transition-all',
                       active
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted/30 hover:bg-muted/50 text-foreground',
+                        ? 'border-blue-200 bg-blue-50 text-blue-950 shadow-sm'
+                        : 'border-transparent bg-white/70 text-slate-700 hover:border-slate-200 hover:bg-white',
                     ].join(' ')}
                   >
                     {rejectMode && (
@@ -146,16 +172,28 @@ export function ClipsReviewPanel({
                       onClick={() => {
                         setSelectedIndex(c.index)
                       }}
-                      className="min-w-0 flex-1 text-left font-medium leading-snug"
+                      className="flex min-w-0 flex-1 items-center gap-2.5 text-left font-medium leading-snug"
                     >
-                      <span className="tabular-nums">Clip {c.index}</span>
                       <span
                         className={[
-                          'mt-0.5 line-clamp-2 block font-normal opacity-90',
-                          active ? 'text-primary-foreground/90' : 'text-muted-foreground',
+                          'flex size-7 shrink-0 items-center justify-center rounded-lg text-[10px] font-bold tabular-nums',
+                          active
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-slate-100 text-slate-500',
                         ].join(' ')}
                       >
-                        {c.name}
+                        {c.index}
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block font-semibold">Clip {c.index}</span>
+                        <span
+                          className={[
+                            'mt-0.5 line-clamp-2 block text-[10px] font-normal',
+                            active ? 'text-blue-700' : 'text-slate-500',
+                          ].join(' ')}
+                        >
+                          {c.name}
+                        </span>
                       </span>
                     </button>
                   </div>
@@ -165,16 +203,42 @@ export function ClipsReviewPanel({
           </ul>
         </aside>
 
-        <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden md:min-h-0">
+        <main
+          className={[
+            'flex min-h-0 min-w-0 flex-1 flex-col',
+            pageLayout ? 'w-full overflow-visible' : 'overflow-hidden md:min-h-0',
+          ].join(' ')}
+        >
           {selected ? (
-            <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-y-contain pr-1">
-              <p className="text-foreground shrink-0 text-sm font-semibold">{selected.name}</p>
-              <div className="min-h-0 shrink-0">
-                <DriveVideoPreview driveFileId={selected.driveFileId} fileName={selected.name} />
+            <div
+              className={[
+                'flex min-h-0 flex-col',
+                pageLayout
+                  ? 'overflow-visible'
+                  : 'flex-1 overflow-y-auto overscroll-y-contain',
+              ].join(' ')}
+            >
+              <div className="mb-3 flex shrink-0 flex-wrap items-start justify-between gap-2 px-1">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-blue-600">
+                    Reviewing clip {selected.index}
+                  </p>
+                  <p className="mt-1 text-sm font-bold text-slate-950">{selected.name}</p>
+                </div>
+                <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-semibold text-slate-500">
+                  {clips.findIndex((clip) => clip.index === selected.index) + 1} of {clips.length}
+                </span>
+              </div>
+              <div className="min-h-0 shrink-0 rounded-2xl bg-slate-950 p-2 shadow-inner md:p-3">
+                <DriveVideoPreview
+                  driveFileId={selected.driveFileId}
+                  fileName={selected.name}
+                />
               </div>
             </div>
           ) : (
-            <p className="text-muted-foreground text-center text-sm md:text-left">
+            <div className="flex min-h-[280px] flex-1 items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-6">
+              <p className="max-w-md text-center text-sm leading-relaxed text-slate-500">
               No clips in the manifest yet. Use <strong className="text-foreground">Sync with Drive</strong>{' '}
               in the header, or add files to{' '}
               <a
@@ -186,19 +250,19 @@ export function ClipsReviewPanel({
                 the clips folder
               </a>
               .
-            </p>
+              </p>
+            </div>
           )}
         </main>
       </div>
 
       {readOnly ? null : (
-        <footer className="border-border mt-4 shrink-0 space-y-3 border-t pt-4">
+        <footer className="mt-4 shrink-0 space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
           {!rejectMode ? (
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
-              <p className="text-muted-foreground flex-1 text-xs leading-relaxed sm:min-w-0">
-                Watch each clip from the list. Approve the full set when everything looks right, or
-                reject and tell us exactly which clip numbers need a new cut — our SMM will source
-                replacements for those slots only.
+              <p className="flex-1 text-xs leading-relaxed text-slate-500 sm:min-w-0">
+                Your approval moves the whole set into production. If something is off, mark only
+                the affected clips and add one clear note for the team.
               </p>
               <div className="flex shrink-0 flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end">
                 <button
@@ -206,7 +270,7 @@ export function ClipsReviewPanel({
                   onClick={() => {
                     setRejectMode(true)
                   }}
-                  className="border-border text-destructive hover:bg-destructive/5 inline-flex items-center justify-center gap-1.5 rounded-xl border px-5 py-2.5 text-sm font-semibold sm:min-w-[140px]"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-rose-600 transition-colors hover:border-rose-200 hover:bg-rose-50 sm:min-w-[140px]"
                 >
                   <X className="size-4" aria-hidden />
                   Reject clips…
@@ -217,7 +281,7 @@ export function ClipsReviewPanel({
                     onApprove?.()
                   }}
                   disabled={clips.length === 0}
-                  className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[var(--success)] px-6 py-2.5 text-sm font-semibold text-white disabled:opacity-50 sm:min-w-[180px]"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:opacity-50 sm:min-w-[180px]"
                 >
                   <Check className="size-4" aria-hidden />
                   Approve all clips
@@ -240,13 +304,13 @@ export function ClipsReviewPanel({
                 }}
                 rows={4}
                 placeholder='e.g. Clip 2 — wrong segment; Clip 5 — needs tighter hook before 0:08.'
-                className="border-border bg-background text-foreground w-full rounded-xl border px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-950 outline-none focus-visible:border-blue-300 focus-visible:ring-2 focus-visible:ring-blue-100"
               />
               <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
                 <button
                   type="button"
                   onClick={resetRejectMode}
-                  className="border-border hover:bg-muted/40 rounded-xl border px-4 py-2 text-sm font-semibold"
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
                 >
                   Cancel
                 </button>
@@ -254,7 +318,7 @@ export function ClipsReviewPanel({
                   type="button"
                   disabled={!rejectValid}
                   onClick={submitReject}
-                  className="bg-destructive inline-flex items-center justify-center gap-1.5 rounded-xl px-6 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-rose-600 px-6 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
                 >
                   Send rejection to SMM
                 </button>
