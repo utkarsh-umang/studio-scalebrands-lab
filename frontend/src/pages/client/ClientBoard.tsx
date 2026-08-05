@@ -10,6 +10,7 @@ import { ClientCardDetailModal } from '@/components/client/ClientCardDetailModal
 import { ClientPageTitleRow } from '@/components/client/ClientPageTitleRow'
 import { ClientBatchIntakeCard } from '@/components/client/ClientBatchIntakeCard'
 import { ClientThumbnailsFolderCard } from '@/components/client/ClientThumbnailsFolderCard'
+import { ClientProductionOverview } from '@/components/client/ClientProductionOverview'
 import { ClientVideoKanban } from '@/components/client/ClientVideoKanban'
 import {
   batchNeedsClientIntake,
@@ -102,6 +103,26 @@ export function ClientBoard() {
   const selectedBatchNeedsIntake = selectedBatch
     ? batchNeedsClientIntake(selectedBatch)
     : false
+  const indexedBatchVideos = batchVideos.filter(
+    (video) => video.deliverableIndex != null && video.deliverableIndex > 0,
+  )
+
+  function handleOpenVideo(videoId: string) {
+    if (!selectedBatch) return
+    const card = batchVideos.find((video) => video.id === videoId)
+    if (
+      card?.reviewKind === 'clip' ||
+      card?.clientGateKind === 'clip_identification' ||
+      card?.clientGateKind === 'clips_in_production' ||
+      (selectedBatch.clipReviewPhase === 'approved' &&
+        !selectedBatch.editorDeliverablesDriveUrl?.trim() &&
+        card?.owner === 'editor')
+    ) {
+      navigate(`/client/batches/${selectedBatch.id}/clips`)
+    } else {
+      setOpenVideoId(videoId)
+    }
+  }
 
   if (!user || user.role !== 'client') {
     return <Navigate to="/login" replace />
@@ -250,41 +271,42 @@ export function ClientBoard() {
                 ) ? (
                   <ClientIdeaPanel batch={selectedBatch} />
                 ) : null}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
-                        Deliverables
-                      </p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        Open any video to see its assets, feedback, and review state.
-                      </p>
-                    </div>
-                    <span className="hidden items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-blue-600 sm:inline-flex">
-                      Track each video
-                      <ArrowRight className="size-3" aria-hidden />
-                    </span>
-                  </div>
-                  <ClientVideoKanban
+                {indexedBatchVideos.length > 0 ? (
+                  <ClientProductionOverview
                     batch={selectedBatch}
-                    videos={batchVideos}
-                    onOpenVideo={(videoId) => {
-                      const card = batchVideos.find((video) => video.id === videoId)
-                      if (
-                        card?.reviewKind === 'clip' ||
-                        card?.clientGateKind === 'clip_identification' ||
-                        card?.clientGateKind === 'clips_in_production' ||
-                        (selectedBatch.clipReviewPhase === 'approved' &&
-                          !selectedBatch.editorDeliverablesDriveUrl?.trim() &&
-                          card?.owner === 'editor')
-                      ) {
-                        navigate(`/client/batches/${selectedBatch.id}/clips`)
-                      } else {
-                        setOpenVideoId(videoId)
-                      }
-                    }}
+                    videos={indexedBatchVideos}
+                    onOpenVideo={handleOpenVideo}
+                    onOpenClips={
+                      selectedBatch.clipsFolderUrl?.trim()
+                        ? () => {
+                            navigate(`/client/batches/${selectedBatch.id}/clips`)
+                          }
+                        : undefined
+                    }
                   />
-                </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+                          Deliverables
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          Open any video to see its assets, feedback, and review state.
+                        </p>
+                      </div>
+                      <span className="hidden items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-blue-600 sm:inline-flex">
+                        Track each video
+                        <ArrowRight className="size-3" aria-hidden />
+                      </span>
+                    </div>
+                    <ClientVideoKanban
+                      batch={selectedBatch}
+                      videos={batchVideos}
+                      onOpenVideo={handleOpenVideo}
+                    />
+                  </div>
+                )}
               </>
             )}
           </div>
