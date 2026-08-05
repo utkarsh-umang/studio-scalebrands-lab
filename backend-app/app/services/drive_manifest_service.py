@@ -26,6 +26,16 @@ DRIVE_SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
 _FOLDER_ID_RE = re.compile(r"/folders/([a-zA-Z0-9_-]+)")
 _LEADING_INDEX_RE = re.compile(r"^(\d+)\b")
 _ANY_INDEX_RE = re.compile(r"(?:^|\D)(\d+)(?:\D|$)")
+_VIDEO_EXTENSIONS = {
+    ".avi",
+    ".m4v",
+    ".mkv",
+    ".mov",
+    ".mp4",
+    ".mpeg",
+    ".mpg",
+    ".webm",
+}
 
 
 class DriveManifestError(Exception):
@@ -214,6 +224,57 @@ def _map_indexed_files(
     return entries, unmapped
 
 
+def _is_video_file(file: dict[str, Any]) -> bool:
+    """Return whether a Drive child should count as a submitted clip."""
+    if _is_folder(file.get("mimeType")):
+        return False
+    mime_type = (file.get("mimeType") or "").lower()
+    if mime_type.startswith("video/"):
+        return True
+    name = file.get("name") or ""
+    return Path(name).suffix.lower() in _VIDEO_EXTENSIONS
+
+
+def _map_clip_videos(files: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
+    """Treat every video in a flat clips folder as one sequential clip.
+
+    Client-owned folders do not always use Studio's numbering convention. Keep
+    explicit numeric ordering when it exists, then fall back to filename order,
+    but always assign a unique contiguous index so duplicate or unnumbered names
+    cannot make a clip disappear.
+    """
+    videos = [file for file in files if _is_video_file(file)]
+
+    def sort_key(file: dict[str, Any]) -> tuple[int, int, str, str]:
+        name = str(file.get("name") or "")
+        parsed = parse_file_index(name)
+        return (
+            0 if parsed is not None else 1,
+            parsed or 0,
+            name.casefold(),
+            str(file.get("id") or ""),
+        )
+
+    entries: list[dict[str, Any]] = []
+    for index, file in enumerate(sorted(videos, key=sort_key), start=1):
+        entries.append(
+            {
+                "index": index,
+                "driveFileId": file["id"],
+                "name": file["name"],
+                "mimeType": file.get("mimeType") or "application/octet-stream",
+                "modifiedTime": file.get("modifiedTime") or _now_iso(),
+            }
+        )
+
+    ignored = [
+        {"name": str(file.get("name") or "(unnamed)"), "reason": "Ignored non-video file"}
+        for file in files
+        if not _is_folder(file.get("mimeType")) and not _is_video_file(file)
+    ]
+    return entries, ignored
+
+
 def _count_media_files(files: list[dict[str, Any]]) -> int:
     return sum(1 for f in files if f.get("id") and f.get("name") and not _is_folder(f.get("mimeType")))
 
@@ -280,8 +341,8 @@ def _fetch_manifest_blocking(
         clips_accessible = _folder_accessible(drive, clips_id)
         if clips_accessible:
             clip_files = _list_children(drive, clips_id)
-            clips_total = _count_media_files(clip_files)
-            clips, clip_unmapped = _map_indexed_files(clip_files, "clips")
+            clips_total = sum(1 for file in clip_files if _is_video_file(file))
+            clips, clip_unmapped = _map_clip_videos(clip_files)
             unmapped.extend(clip_unmapped)
     clips_diag = {
         "linked": bool(clips_folder_url),
@@ -412,6 +473,37 @@ async def fetch_manifest_for_batch(
         raise
     except Exception as exc:  # google api errors, network, auth
         raise DriveManifestError(f"Drive fetch failed: {exc}") from exc
+
+
+async def validate_clips_folder_for_intake(url: str) -> list[dict[str, Any]]:
+    """Validate service-account access and return one manifest row per video.
+
+    This runs before clips-ready intake mutates the batch, so a bad/unshared or
+    empty folder cannot advance the workflow.
+    """
+    if not parse_drive_folder_id(url):
+        raise DriveManifestError(
+            "Paste a valid Google Drive folder link.",
+            code="DRIVE_FOLDER_LINK_INVALID",
+        )
+
+    manifest = await fetch_manifest_for_batch("intake-validation", url, None)
+    diagnostics = manifest["diagnostics"]["clips"]
+    if not diagnostics["accessible"]:
+        service_account = get_service_account_email()
+        recipient = service_account or "the Studio service account shown in the form"
+        raise DriveManifestError(
+            f"Studio cannot access this folder. Share it with {recipient} as Viewer, then try again.",
+            code="DRIVE_FOLDER_NOT_SHARED",
+        )
+
+    clips = manifest["clips"]
+    if not clips:
+        raise DriveManifestError(
+            "Studio can access this folder, but it contains no video files. Add the clips and try again.",
+            code="DRIVE_FOLDER_NO_VIDEOS",
+        )
+    return clips
 
 
 def is_drive_configured() -> bool:

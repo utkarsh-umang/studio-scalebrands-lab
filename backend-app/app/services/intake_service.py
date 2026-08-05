@@ -11,12 +11,14 @@ from app.models.batch import Batch
 from app.models.enums import BatchIntakePath, BatchStatus, UserRole
 from app.models.video_ticket import VideoTicket
 from app.schemas.intake import SubmitBatchIntakeResponse
+from app.services import drive_manifest_service
 from app.services.activity_service import record_activity
 from app.services.admin_helpers import assert_client_active, get_profile_or_404
+from app.services.drive_manifest_service import DriveManifestError
 from app.services.path_b_transitions import (
     apply_clips_ready_intake,
     apply_source_media_intake,
-    create_pre_split_gate_ticket,
+    create_split_deliverable_ticket,
 )
 from app.services.workspace_access import assert_client_role
 from app.services.workspace_mappers import batch_to_dto, video_to_dto
@@ -162,15 +164,43 @@ async def submit_client_intake(
             },
         )
 
+    clips: list[dict] | None = None
+    if intake_path == BatchIntakePath.clips_ready:
+        try:
+            clips = await drive_manifest_service.validate_clips_folder_for_intake(trimmed)
+        except DriveManifestError as exc:
+            client_error_codes = {
+                "DRIVE_FOLDER_LINK_INVALID",
+                "DRIVE_FOLDER_NOT_SHARED",
+                "DRIVE_FOLDER_NO_VIDEOS",
+            }
+            raise HTTPException(
+                status_code=(
+                    status.HTTP_422_UNPROCESSABLE_ENTITY
+                    if exc.code in client_error_codes
+                    else status.HTTP_502_BAD_GATEWAY
+                ),
+                detail={"error_code": exc.code, "message": exc.message},
+            ) from exc
+
+    # Validation above must succeed before the existing batch state is touched.
     await session.execute(delete(VideoTicket).where(VideoTicket.batch_id == batch.id))
 
     if intake_path == BatchIntakePath.source_media:
         apply_source_media_intake(batch, trimmed)
         session.add(batch)
     elif intake_path == BatchIntakePath.clips_ready:
-        apply_clips_ready_intake(batch, trimmed)
+        validated_clips = clips or []
+        apply_clips_ready_intake(batch, trimmed, len(validated_clips))
         session.add(batch)
-        session.add(create_pre_split_gate_ticket(batch))
+        for clip in validated_clips:
+            session.add(
+                create_split_deliverable_ticket(
+                    batch,
+                    int(clip["index"]),
+                    str(clip["name"]),
+                )
+            )
     else:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -180,17 +210,14 @@ async def submit_client_intake(
             },
         )
 
-    kind = (
-        "raw footage"
-        if intake_path == BatchIntakePath.source_media
-        else "a clips folder"
-    )
+    kind = "raw footage" if intake_path == BatchIntakePath.source_media else "a clips folder"
+    clip_summary = f" ({len(clips)} videos)" if clips is not None else ""
     record_activity(
         session,
         batch_id=batch.id,
         actor=user,
         action="intake_submitted",
-        summary=f"Client submitted {kind} for “{batch.title}”",
+        summary=f"Client submitted {kind}{clip_summary} for “{batch.title}”",
     )
 
     await session.flush()

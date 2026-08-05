@@ -12,6 +12,29 @@ os.environ.setdefault("POSTGRES_DB", "studio_sbl")
 from main import app  # noqa: E402
 
 
+@pytest.fixture(autouse=True)
+def _stub_clips_ready_drive_validation(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep API tests deterministic; Drive behavior has focused tests of its own."""
+    from app.services import drive_manifest_service
+
+    async def valid_clips(_url: str) -> list[dict[str, object]]:
+        return [
+            {
+                "index": 1,
+                "driveFileId": "test-clip-1",
+                "name": "Clip 1.mp4",
+                "mimeType": "video/mp4",
+                "modifiedTime": "2026-08-05T00:00:00+00:00",
+            }
+        ]
+
+    monkeypatch.setattr(
+        drive_manifest_service,
+        "validate_clips_folder_for_intake",
+        valid_clips,
+    )
+
+
 @pytest.fixture
 def anyio_backend() -> str:
     return "asyncio"

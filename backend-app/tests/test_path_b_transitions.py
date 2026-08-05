@@ -71,8 +71,9 @@ def test_apply_clips_ready_intake_fields() -> None:
         status=BatchStatus.active,
         pipeline_stage=PipelineStage.intake_pending,
     )
-    apply_clips_ready_intake(batch, "https://drive.google.com/drive/folders/x")
+    apply_clips_ready_intake(batch, "https://drive.google.com/drive/folders/x", 4)
     assert batch.intake_path == BatchIntakePath.clips_ready
     assert batch.clips_folder_url == "https://drive.google.com/drive/folders/x"
     assert batch.clip_review_phase == BatchClipReviewPhase.approved
-    assert batch.pipeline_stage == PipelineStage.clips_ready_intake
+    assert batch.video_count == 4
+    assert batch.pipeline_stage == PipelineStage.production

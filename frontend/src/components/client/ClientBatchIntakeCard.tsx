@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Copy, Lightbulb, Link2, Mic, FolderOpen } from 'lucide-react'
 import type { AdminBatchFolder, BatchIntakePath } from '@/types/pathB'
 import { STUDIO_DRIVE_READER_EMAIL } from '@/lib/studioDrive'
+import { apiErrorMessage } from '@/lib/apiError'
 import { useTheme } from '@/theme'
 import { useIdeasMutations } from '@/hooks/api/pathB/useIdeasMutations'
 import {
@@ -213,6 +214,10 @@ export function ClientBatchIntakeCard({ batch }: Props) {
                   Copy
                 </button>
               </div>
+              <p className="text-muted-foreground mt-2">
+                We&apos;ll verify access before continuing. Every video file in the folder
+                becomes one clip in this batch; non-video files are ignored.
+              </p>
             </div>
           )}
 
@@ -267,7 +272,10 @@ export function ClientBatchIntakeCard({ batch }: Props) {
             </p>
             {intakeMutation.isError && (
               <p className="text-destructive text-[10px] leading-snug" role="alert">
-                Could not submit intake. Check the link and try again.
+                {apiErrorMessage(
+                  intakeMutation.error,
+                  'Could not validate this folder. Check the link and try again.',
+                )}
               </p>
             )}
             <button
@@ -276,10 +284,14 @@ export function ClientBatchIntakeCard({ batch }: Props) {
               className="bg-primary text-primary-foreground w-full rounded-xl py-2.5 text-xs font-semibold shadow-sm transition-colors hover:bg-blue-700 disabled:opacity-50"
             >
               {intakeMutation.isPending
-                ? 'Submitting…'
+                ? path === 'clips_ready'
+                  ? 'Checking folder access…'
+                  : 'Submitting…'
                 : submitted
                   ? 'Update link'
-                  : 'Submit link'}
+                  : path === 'clips_ready'
+                    ? 'Validate and submit folder'
+                    : 'Submit link'}
             </button>
           </form>
           )}

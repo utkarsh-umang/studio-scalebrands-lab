@@ -8,7 +8,9 @@ from httpx import AsyncClient
 from app.core.config import config
 from app.db.session import get_session_factory
 from app.models.batch import Batch
-from app.models.enums import BatchStatus
+from app.models.enums import BatchStatus, PipelineStage
+from app.services import drive_manifest_service
+from app.services.drive_manifest_service import DriveManifestError
 
 
 async def _login(client: AsyncClient, email: str, password: str = "demo1234") -> dict[str, str]:
@@ -63,7 +65,22 @@ async def test_submit_source_media_intake_clears_tickets(client: AsyncClient) ->
 
 
 @pytest.mark.anyio
-async def test_submit_clips_ready_intake_creates_gate_ticket(client: AsyncClient) -> None:
+async def test_submit_clips_ready_intake_creates_one_production_ticket_per_video(
+    client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def three_clips(_url: str) -> list[dict[str, object]]:
+        return [
+            {"index": 1, "name": "Customer story.mov"},
+            {"index": 2, "name": "Product demo.mp4"},
+            {"index": 3, "name": "Closing thought.webm"},
+        ]
+
+    monkeypatch.setattr(
+        drive_manifest_service,
+        "validate_clips_folder_for_intake",
+        three_clips,
+    )
     admin_headers = await _login(client, "admin@scalebrandslab.demo")
     provision = await client.post(
         f"{config.API_V1_STR}/admin/clients",
@@ -104,12 +121,54 @@ async def test_submit_clips_ready_intake_creates_gate_ticket(client: AsyncClient
     body = response.json()
     assert body["batch"]["intakePath"] == "clips_ready"
     assert body["batch"]["clipReviewPhase"] == "approved"
-    assert body["batch"]["pipelineStage"] == "clips_ready_intake"
-    assert len(body["videos"]) == 1
-    gate = body["videos"][0]
-    assert gate["title"].startswith("Batch —")
-    assert gate["owner"] == "editor"
-    assert gate["deliverableIndex"] is None
+    assert body["batch"]["pipelineStage"] == "production"
+    assert body["batch"]["videoCount"] == 3
+    assert [ticket["deliverableIndex"] for ticket in body["videos"]] == [1, 2, 3]
+    assert [ticket["title"] for ticket in body["videos"]] == [
+        "Customer story.mov",
+        "Product demo.mp4",
+        "Closing thought.webm",
+    ]
+    assert all(ticket["owner"] == "editor" for ticket in body["videos"])
+
+
+@pytest.mark.anyio
+async def test_unshared_clips_folder_does_not_advance_batch(
+    client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    batch_id, headers = await _create_intake_batch(client)
+
+    async def no_access(_url: str) -> list[dict[str, object]]:
+        raise DriveManifestError(
+            "Studio cannot access this folder. Share it with the Studio service account as Viewer, then try again.",
+            code="DRIVE_FOLDER_NOT_SHARED",
+        )
+
+    monkeypatch.setattr(
+        drive_manifest_service,
+        "validate_clips_folder_for_intake",
+        no_access,
+    )
+    response = await client.post(
+        f"{config.API_V1_STR}/client/batches/{batch_id}/intake",
+        headers=headers,
+        json={
+            "intakePath": "clips_ready",
+            "url": "https://drive.google.com/drive/folders/not-shared",
+        },
+    )
+    assert response.status_code == 422
+    assert response.json()["error_code"] == "DRIVE_FOLDER_NOT_SHARED"
+
+    factory = get_session_factory()
+    async with factory() as session:
+        batch = await session.get(Batch, batch_id)
+        assert batch is not None
+        assert batch.intake_path is None
+        assert batch.clips_folder_url is None
+        assert batch.video_count == 0
+        assert batch.pipeline_stage == PipelineStage.intake_pending
 
 
 @pytest.mark.anyio

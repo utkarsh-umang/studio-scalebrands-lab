@@ -1,7 +1,6 @@
 """Path B pipeline transitions shared across epics (B3+)."""
 
 from dataclasses import dataclass
-from uuid import UUID
 
 from app.db.base import utc_now
 from app.models.batch import Batch
@@ -114,12 +113,13 @@ def apply_source_media_intake(batch: Batch, url: str) -> None:
     batch.updated_at = now
 
 
-def apply_clips_ready_intake(batch: Batch, url: str) -> None:
+def apply_clips_ready_intake(batch: Batch, url: str, clip_count: int) -> None:
     now = utc_now()
     batch.intake_path = BatchIntakePath.clips_ready
     batch.clips_folder_url = url
     batch.clip_review_phase = BatchClipReviewPhase.approved
-    batch.pipeline_stage = PipelineStage.clips_ready_intake
+    batch.video_count = clip_count
+    batch.pipeline_stage = PipelineStage.production
     batch.updated_at = now
 
 
