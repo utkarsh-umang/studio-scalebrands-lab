@@ -45,7 +45,7 @@ export const EDITOR_PATH_B_COLUMNS: {
   label: string
   hint: string
 }[] = [
-  { id: 'setup', label: 'Setup', hint: 'Clips + deliverables folder' },
+  { id: 'setup', label: 'Setup', hint: 'Clips + production uploads' },
   { id: 'production', label: 'Production', hint: 'Upload video, thumb, title' },
   { id: 'in_qa', label: 'In QA', hint: 'SMM or client review' },
   { id: 'done', label: 'Done', hint: 'Scheduled' },
@@ -111,6 +111,7 @@ export function videoNeedsEditorVideosSubmit(
   batch: AdminBatchFolder,
   _videos?: AdminVideoTicket[],
 ): boolean {
+  void _videos
   if (!batchReadyForEditorWork(batch)) return false
   return !batch.editorDeliverablesDriveUrl?.trim()
 }
@@ -226,7 +227,7 @@ export function batchSubtitle(
   if (batchNeedsEditorFindClips(batch)) return 'Find clips — submit numbered folder'
   if (batchAwaitingClips(batch)) return 'Waiting — clips not approved yet'
   if (!batchReadyForEditorWork(batch)) return 'Not ready for deliverables'
-  if (videoNeedsEditorVideosSubmit(batch, videos)) return 'Share videos Drive link'
+  if (videoNeedsEditorVideosSubmit(batch, videos)) return 'Upload finished videos'
   const work = filterVideosForEditorKanban(batch, videos)
   const prod = work.filter(editorNeedsProductionWork).length
   if (prod > 0) return `${prod} in production`
@@ -244,7 +245,7 @@ export function editorBatchPhaseLabel(
   if (batchAwaitingClips(batch)) return 'Waiting on clips / client'
   if (!batchReadyForEditorWork(batch)) return 'Not ready'
   if (!batch.editorDeliverablesDriveUrl?.trim())
-    return 'Your turn — submit deliverables folder'
+    return 'Your turn — upload production files'
   if (vs.some(videoEditorQaReturn)) return 'Your turn — QA fixes'
   if (vs.some(editorNeedsProductionWork)) return 'Your turn — production'
   if (vs.length > 0 && vs.every((v) => v.owner !== 'editor'))

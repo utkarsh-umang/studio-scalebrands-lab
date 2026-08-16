@@ -8,6 +8,7 @@ import {
   getMediaEntry,
 } from '@/lib/driveMedia'
 import { activeCommentsForSlot, flagsToQaComments } from '@/lib/qaComments'
+import { studioMediaSlot } from '@/lib/studioMedia'
 
 type Props = {
   batch: AdminBatchFolder
@@ -35,6 +36,8 @@ export function EditorQaFixPanel({
   const thumbEntry =
     manifest?.thumbnails.find((t) => t.index === index) ??
     getMediaEntry(batch.id, 'thumbnails', index)
+  const studioVideo = studioMediaSlot(ticket, 'video')
+  const studioThumbnail = studioMediaSlot(ticket, 'thumbnail')
   const fromSlot = activeCommentsForSlot(ticket.qaCommentHistory, 'video')
   const history =
     fromSlot.length > 0
@@ -51,8 +54,8 @@ export function EditorQaFixPanel({
           </p>
           <p className="text-muted-foreground mt-1 text-xs leading-relaxed">{ticket.title}</p>
           <p className="text-muted-foreground mt-2 text-[11px] leading-relaxed">
-            Re-upload the file in your Drive <span className="text-foreground font-medium">Video</span>{' '}
-            folder, then resubmit. Sold comments stay visible after you re-upload.
+            Upload a new video version in the production workspace, then resubmit. Old comments
+            stay visible after you upload the replacement.
             {backToClient
               ? ' Returns to client final QA (SMM already approved).'
               : ' Returns to SMM video QA.'}
@@ -81,12 +84,14 @@ export function EditorQaFixPanel({
         deliverableIndex={index}
         comments={history}
         videoDriveFileId={videoEntry?.driveFileId}
-        videoFileName={videoEntry?.name}
-        fallbackVideoSrc={videoEntry?.driveFileId ? undefined : fallbackVideoSrc}
+        videoAssetId={studioVideo?.assetId}
+        videoFileName={studioVideo?.name ?? videoEntry?.name}
+        fallbackVideoSrc={studioVideo || videoEntry?.driveFileId ? undefined : fallbackVideoSrc}
         thumbnailDriveFileId={thumbEntry?.driveFileId}
-        thumbnailFileName={thumbEntry?.name}
+        thumbnailAssetId={studioThumbnail?.assetId}
+        thumbnailFileName={studioThumbnail?.name ?? thumbEntry?.name}
         displayVideoTitle={ticket.editorPublishTitle?.trim() || ticket.title}
-        secondaryPackageHelper="Thumbnail and title are for reference. Address video feedback in the comment thread, then re-upload on Drive."
+        secondaryPackageHelper="Thumbnail and title are for reference. Address video feedback in the comment thread, then upload a new Studio version."
         customFooter={
           <footer className="border-border border-t pt-4">
             <button

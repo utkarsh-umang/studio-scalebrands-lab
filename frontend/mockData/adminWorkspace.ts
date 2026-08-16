@@ -178,18 +178,24 @@ export type AdminVideoTicket = {
   /** Server snapshot after Drive sync (B6) */
   deliverableDriveSlots?: {
     video?: {
-      index: number
-      driveFileId: string
+      index?: number
+      driveFileId?: string
+      assetId?: string
+      objectKey?: string
       name: string
       mimeType?: string
       modifiedTime?: string
+      version?: number
     }
     thumbnail?: {
-      index: number
-      driveFileId: string
+      index?: number
+      driveFileId?: string
+      assetId?: string
+      objectKey?: string
       name: string
       mimeType?: string
       modifiedTime?: string
+      version?: number
     }
   }
   driveSlotsSyncedAt?: string

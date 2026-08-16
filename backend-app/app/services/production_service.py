@@ -67,14 +67,6 @@ def _assert_post_split_ticket(ticket: VideoTicket, batch: Batch) -> None:
                 "message": "Production commands require a post-split deliverable ticket",
             },
         )
-    if not (batch.editor_deliverables_drive_url or "").strip():
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail={
-                "error_code": "VALIDATION_ERROR",
-                "message": "Batch deliverables drive URL is required",
-            },
-        )
 
 
 def _stage_lower(ticket: VideoTicket) -> str:

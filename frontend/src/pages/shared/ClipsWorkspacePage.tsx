@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import {
   ArrowLeft,
   CheckCircle2,
@@ -11,6 +11,7 @@ import {
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '@/auth'
 import { ClipsReviewPanel } from '@/components/drive/ClipsReviewPanel'
+import { EditorBatchUploadPanel } from '@/components/editor/EditorBatchUploadPanel'
 import { DriveAccessNotice } from '@/components/path-b/DriveAccessNotice'
 import { DriveSyncButton } from '@/components/path-b/DriveSyncButton'
 import { DriveSyncMeta } from '@/components/path-b/DriveSyncMeta'
@@ -18,7 +19,6 @@ import {
   useApproveBatchClipsMutation,
   useRejectBatchClipsMutation,
 } from '@/hooks/api/pathB/useClipsFolderMutations'
-import { useSubmitDeliverablesDriveMutation } from '@/hooks/api/pathB/useSubmitDeliverablesDriveMutation'
 import { useRoleWorkspace } from '@/hooks/api/workspace/useRoleWorkspace'
 import { useDriveManifestSync } from '@/hooks/useDriveManifestSync'
 import { toClientVideoCard } from '@/lib/clientBoard'
@@ -53,7 +53,7 @@ function workspaceCopy(role: WorkspaceRole, canClientReview: boolean) {
       eyebrow: 'Production handoff',
       title: 'Review clips and submit deliverables',
       description:
-        'Use the approved source clips as your edit reference, then link the finished videos and thumbnails folder.',
+        'Use the approved source clips as your edit reference, then upload each finished production file directly to Studio.',
     }
   }
   return {
@@ -78,6 +78,7 @@ function stageBannerFor(
   videoCount: number,
 ): StageBanner {
   const countLabel = `${videoCount || 'The'} ${videoCount === 1 ? 'video' : 'videos'}`
+  const verb = videoCount === 1 ? 'is' : 'are'
 
   if (canClientReview) {
     return {
@@ -119,7 +120,7 @@ function stageBannerFor(
       label: 'Clips approved · Production started',
       title:
         role === 'editor'
-          ? `${countLabel} are ready for you to edit`
+          ? `${countLabel} ${verb} ready for you to edit`
           : `Your editor is working on ${countLabel.toLowerCase()}`,
       description:
         role === 'editor'
@@ -131,7 +132,7 @@ function stageBannerFor(
 
   return {
     label: 'Video production in progress',
-    title: `${countLabel} are moving through production`,
+    title: `${countLabel} ${verb} moving through production`,
     description:
       'The approved clips have been split into individual videos, each with its own production and review stage.',
     kind: 'production',
@@ -160,10 +161,6 @@ function ClipsWorkspaceContent({
   )
   const approveBatchClips = useApproveBatchClipsMutation(batch.id)
   const rejectBatchClips = useRejectBatchClipsMutation(batch.id)
-  const submitDeliverablesDrive = useSubmitDeliverablesDriveMutation(batch.id)
-  const [deliverablesDriveDraft, setDeliverablesDriveDraft] = useState(
-    batch.editorDeliverablesDriveUrl ?? '',
-  )
 
   const clientReviewTicket = useMemo(
     () =>
@@ -348,88 +345,7 @@ function ClipsWorkspaceContent({
           </div>
 
           {role === 'editor' ? (
-            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
-              <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.85fr)] lg:items-end">
-                <div>
-                  <span className="flex size-10 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
-                    <Film className="size-4.5" aria-hidden />
-                  </span>
-                  <h2 className="mt-4 text-base font-bold text-slate-950">
-                    Finished editing this batch?
-                  </h2>
-                  <p className="mt-1 max-w-xl text-xs leading-relaxed text-slate-500">
-                    Link one shared Drive root containing numbered{' '}
-                    <strong className="text-slate-700">videos/</strong> and{' '}
-                    <strong className="text-slate-700">thumbnails/</strong> folders. Studio will
-                    create one production card per clip.
-                  </p>
-                </div>
-                <form
-                  className="space-y-2"
-                  onSubmit={(event) => {
-                    event.preventDefault()
-                    const trimmed = deliverablesDriveDraft.trim()
-                    if (!trimmed) return
-                    const deliverableCount = Math.max(clipsCount, batch.videoCount, 1)
-                    const deliverables = Array.from(
-                      { length: deliverableCount },
-                      (_, index) => {
-                        const number = index + 1
-                        const clip = manifest?.clips.find((item) => item.index === number)
-                        const video = manifest?.videos.find((item) => item.index === number)
-                        const title = (clip?.name ?? video?.name ?? '').trim()
-                        return title ? { index: number, title } : null
-                      },
-                    ).filter(
-                      (item): item is { index: number; title: string } => item !== null,
-                    )
-                    submitDeliverablesDrive.mutate(
-                      {
-                        deliverablesDriveUrl: trimmed,
-                        deliverableCount,
-                        deliverables: deliverables.length > 0 ? deliverables : undefined,
-                      },
-                      {
-                        onSuccess: () => {
-                          navigate(backPath)
-                        },
-                      },
-                    )
-                  }}
-                >
-                  <label
-                    htmlFor="clips-page-deliverables-url"
-                    className="block text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500"
-                  >
-                    Deliverables folder URL
-                  </label>
-                  <div className="flex flex-col gap-2 sm:flex-row">
-                    <input
-                      id="clips-page-deliverables-url"
-                      type="url"
-                      value={deliverablesDriveDraft}
-                      onChange={(event) => {
-                        setDeliverablesDriveDraft(event.target.value)
-                      }}
-                      placeholder="https://drive.google.com/drive/folders/…"
-                      className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-950 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
-                    />
-                    <button
-                      type="submit"
-                      disabled={
-                        !deliverablesDriveDraft.trim() ||
-                        submitDeliverablesDrive.isPending
-                      }
-                      className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
-                    >
-                      {submitDeliverablesDrive.isPending
-                        ? 'Submitting…'
-                        : 'Submit deliverables'}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </section>
+            <EditorBatchUploadPanel batch={batch} tickets={tickets} />
           ) : null}
         </div>
       </section>

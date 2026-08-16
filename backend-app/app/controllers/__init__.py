@@ -11,6 +11,7 @@ from app.controllers.client_videos import router as client_videos_router
 from app.controllers.drive import router as drive_router
 from app.controllers.editor_batches import router as editor_batches_router
 from app.controllers.ideas import router as ideas_router
+from app.controllers.media import router as media_router
 from app.controllers.notifications import router as notifications_router
 from app.controllers.video_production import router as video_production_router
 from app.controllers.workspace import router as workspace_router
@@ -25,6 +26,7 @@ api_v1_router.include_router(client_videos_router)
 api_v1_router.include_router(drive_router)
 api_v1_router.include_router(editor_batches_router)
 api_v1_router.include_router(ideas_router)
+api_v1_router.include_router(media_router)
 api_v1_router.include_router(notifications_router)
 api_v1_router.include_router(video_production_router)
 api_v1_router.include_router(workspace_router)

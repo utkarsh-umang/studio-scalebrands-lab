@@ -9,13 +9,15 @@ import {
   qaPortraitVideoInnerClass,
 } from '@/lib/qaVideoPortrait'
 import type { AppTheme } from '@/theme/types'
+import { StudioMediaPreview } from '@/components/media/StudioMediaPreview'
 
 const THUMB_MISSING_COPY =
-  'Thumbnail not on Drive yet — it will appear here once uploaded to the deliverables folder.'
+  'Thumbnail not uploaded yet — it will appear here once it is stored in Studio.'
 
 type Props = {
   theme: AppTheme
   thumbnailDriveFileId?: string
+  thumbnailAssetId?: string
   thumbnailFileName?: string
   displayVideoTitle?: string
   helperCopy?: string
@@ -25,6 +27,7 @@ type Props = {
 export function QaSecondaryPackageSection({
   theme,
   thumbnailDriveFileId,
+  thumbnailAssetId,
   thumbnailFileName,
   displayVideoTitle,
   helperCopy = 'Questions about the thumbnail or title? Mention them in your comments above — main video feedback stays in the thread next to the player.',
@@ -59,7 +62,15 @@ export function QaSecondaryPackageSection({
           >
             <div className="flex w-full flex-col items-center">
               <div className={qaPortraitPlayerBoxClass} dir="ltr">
-                {thumbnailDriveFileId && thumbSrc ? (
+                {thumbnailAssetId ? (
+                  <StudioMediaPreview
+                    assetId={thumbnailAssetId}
+                    fileName={thumbnailFileName ?? 'Thumbnail preview'}
+                    kind="thumbnail"
+                    layout="portrait"
+                    bare
+                  />
+                ) : thumbnailDriveFileId && thumbSrc ? (
                   <img
                     src={thumbSrc}
                     alt={thumbnailFileName ?? 'Thumbnail preview'}

@@ -33,7 +33,14 @@ def _slot_has_file(slots: dict | None, key: str) -> bool:
     entry = slots.get(key)
     if not isinstance(entry, dict):
         return False
-    file_id = entry.get("driveFileId") or entry.get("drive_file_id")
+    file_id = (
+        entry.get("assetId")
+        or entry.get("asset_id")
+        or entry.get("objectKey")
+        or entry.get("object_key")
+        or entry.get("driveFileId")
+        or entry.get("drive_file_id")
+    )
     return bool(file_id and str(file_id).strip())
 
 

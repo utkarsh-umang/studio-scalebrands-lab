@@ -87,3 +87,15 @@ class QaCommentKind(str, Enum):
     timestamp = "timestamp"
     general = "general"
     clip_note = "clip_note"
+
+
+class MediaAssetKind(str, Enum):
+    source_clip = "source_clip"
+    video = "video"
+    thumbnail = "thumbnail"
+
+
+class MediaAssetStatus(str, Enum):
+    pending = "pending"
+    ready = "ready"
+    failed = "failed"

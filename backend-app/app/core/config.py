@@ -54,6 +54,16 @@ class Settings(BaseSettings):
     # ── Google Drive (service account for live manifest fetch) ──
     GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON: str | None = None
 
+    # ── Private object storage (AWS S3 or an S3-compatible provider) ──
+    OBJECT_STORAGE_BUCKET: str | None = None
+    OBJECT_STORAGE_REGION: str = "ap-south-1"
+    OBJECT_STORAGE_ENDPOINT_URL: str | None = None
+    OBJECT_STORAGE_ACCESS_KEY_ID: str | None = None
+    OBJECT_STORAGE_SECRET_ACCESS_KEY: str | None = None
+    OBJECT_STORAGE_SESSION_TOKEN: str | None = None
+    OBJECT_STORAGE_PRESIGN_SECONDS: int = 900
+    OBJECT_STORAGE_MAX_UPLOAD_BYTES: int = 5 * 1024 * 1024 * 1024
+
     @property
     def DATABASE_URL(self) -> str:
         url = (

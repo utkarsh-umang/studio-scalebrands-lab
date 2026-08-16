@@ -23,6 +23,7 @@ import { useDriveManifestSync } from '@/hooks/useDriveManifestSync'
 import { deliverableIndexForTicket, getMediaEntry } from '@/lib/driveMedia'
 import { activeCommentsForSlot } from '@/lib/qaComments'
 import { videoNeedsSmmQa } from '@/lib/smmBoard'
+import { studioMediaSlot } from '@/lib/studioMedia'
 
 type Props = {
   batch: AdminBatchFolder
@@ -61,6 +62,8 @@ export function SmmVideoQaModal({
   const thumbEntry =
     manifest?.thumbnails.find((e) => e.index === index) ??
     getMediaEntry(batch.id, 'thumbnails', index)
+  const studioVideo = studioMediaSlot(ticket, 'video')
+  const studioThumbnail = studioMediaSlot(ticket, 'thumbnail')
   const folderUrl = batch.editorDeliverablesDriveUrl?.trim() ?? ''
 
   // Syncing must record the files on the ticket, not just refresh the manifest:
@@ -149,9 +152,11 @@ export function SmmVideoQaModal({
           deliverableIndex={index}
           comments={comments}
           videoDriveFileId={videoEntry?.driveFileId}
-          videoFileName={videoEntry?.name}
+          videoAssetId={studioVideo?.assetId}
+          videoFileName={studioVideo?.name ?? videoEntry?.name}
           thumbnailDriveFileId={thumbEntry?.driveFileId}
-          thumbnailFileName={thumbEntry?.name}
+          thumbnailAssetId={studioThumbnail?.assetId}
+          thumbnailFileName={studioThumbnail?.name ?? thumbEntry?.name}
           displayVideoTitle={ticket.editorPublishTitle ?? ticket.title}
           onAddComment={(body) => {
             appendComment.mutate({ body })

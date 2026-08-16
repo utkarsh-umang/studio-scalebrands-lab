@@ -28,6 +28,9 @@ function entryFromTicketSlots(
   const driveFileId = String(
     (raw as { driveFileId?: string; drive_file_id?: string }).driveFileId ??
       (raw as { drive_file_id?: string }).drive_file_id ??
+      (raw as { assetId?: string }).assetId ??
+      (raw as { asset_id?: string }).asset_id ??
+      (raw as { objectKey?: string }).objectKey ??
       '',
   ).trim()
   if (!driveFileId) return undefined

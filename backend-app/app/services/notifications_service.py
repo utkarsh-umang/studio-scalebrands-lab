@@ -36,7 +36,7 @@ _STAGE_MESSAGE: dict[PipelineStage, str] = {
     PipelineStage.scheduling: "Schedule video",
     PipelineStage.production: "Produce video",
     PipelineStage.editor_fix: "Fix QA feedback",
-    PipelineStage.pre_split_production: "Submit deliverables folder",
+    PipelineStage.pre_split_production: "Upload production files",
     PipelineStage.clips_ready_intake: "Start production",
 }
 

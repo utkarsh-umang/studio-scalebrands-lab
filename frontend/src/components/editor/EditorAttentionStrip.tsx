@@ -4,8 +4,8 @@ import { useTheme } from '@/theme'
 
 const kindLabel: Record<EditorAttentionItem['kind'], string> = {
   find_clips: 'Find clips',
-  submit_deliverables: 'Submit deliverables folder',
-  pre_split_gate: 'Open clips & submit folder',
+  submit_deliverables: 'Upload production files',
+  pre_split_gate: 'Open clips & upload files',
   qa_fix: 'Fix QA feedback',
   production: 'Finish production',
 }

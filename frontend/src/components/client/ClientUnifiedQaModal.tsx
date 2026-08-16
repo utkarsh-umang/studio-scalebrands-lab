@@ -19,6 +19,7 @@ import { readinessForDeliverable } from '@/lib/pathBDeliverables'
 import { flagsToQaComments } from '@/lib/qaComments'
 import type { VideoReviewFeedback } from '@/components/VideoDeliverableReviewPanel'
 import { ClientTitleField } from '@/components/client/ClientTitleField'
+import { studioMediaSlot } from '@/lib/studioMedia'
 
 function clientQaRowStatus(row: DeliverableSidebarRow): string {
   if (!row.ticket) return 'Preview only'
@@ -67,8 +68,6 @@ export function ClientUnifiedQaModal({
   const initialIndex = deliverableIndexForTicket(initialTicket)
   const [selectedIndex, setSelectedIndex] = useState(initialIndex)
 
-  if (!open) return null
-
   const folderUrl = batch.editorDeliverablesDriveUrl?.trim() ?? ''
   const selectedRow =
     rows.find((r) => r.index === selectedIndex) ?? rows[0] ?? null
@@ -81,11 +80,15 @@ export function ClientUnifiedQaModal({
   const thumbEntry =
     manifest?.thumbnails.find((t) => t.index === deliverableIndex) ??
     getMediaEntry(batch.id, 'thumbnails', deliverableIndex)
+  const studioVideo = studioMediaSlot(qaTicket, 'video')
+  const studioThumbnail = studioMediaSlot(qaTicket, 'thumbnail')
 
   const readiness = useMemo(
     () => readinessForDeliverable(batch.id, deliverableIndex, qaTicket, manifest),
     [batch.id, deliverableIndex, qaTicket, manifest],
   )
+
+  if (!open) return null
 
   const headerAside = folderUrl ? (
     <div className="flex flex-wrap items-center justify-end gap-2">
@@ -117,12 +120,7 @@ export function ClientUnifiedQaModal({
       headerMeta={<DriveSyncMeta manifest={manifest} errorMessage={error} />}
       bodyScroll
     >
-      {!folderUrl ? (
-        <p className="text-muted-foreground text-sm leading-relaxed">
-          The editor has not linked the deliverables folder yet. You will be able to review the full
-          package here once they submit it.
-        </p>
-      ) : rows.length === 0 ? (
+      {rows.length === 0 ? (
         <p className="text-muted-foreground text-sm leading-relaxed">
           Nothing is in your review queue for this batch right now.
         </p>
@@ -197,10 +195,12 @@ export function ClientUnifiedQaModal({
                   deliverableIndex={deliverableIndex}
                   comments={history}
                   videoDriveFileId={videoEntry?.driveFileId}
-                  videoFileName={videoEntry?.name}
-                  fallbackVideoSrc={SAMPLE_VIDEO_SRC}
+                  videoAssetId={studioVideo?.assetId}
+                  videoFileName={studioVideo?.name ?? videoEntry?.name}
+                  fallbackVideoSrc={studioVideo ? undefined : SAMPLE_VIDEO_SRC}
                   thumbnailDriveFileId={thumbEntry?.driveFileId}
-                  thumbnailFileName={thumbEntry?.name}
+                  thumbnailAssetId={studioThumbnail?.assetId}
+                  thumbnailFileName={studioThumbnail?.name ?? thumbEntry?.name}
                   displayVideoTitle={
                     qaTicket?.editorPublishTitle?.trim() || qaTicket?.title
                   }

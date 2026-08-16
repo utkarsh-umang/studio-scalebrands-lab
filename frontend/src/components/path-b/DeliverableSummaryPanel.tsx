@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { ExternalLink } from 'lucide-react'
 import type { AdminBatchFolder, AdminVideoTicket, BatchStepOwnerKind } from '@/types/pathB'
 import { DriveVideoPreview } from '@/components/drive/DriveVideoPreview'
+import { StudioMediaPreview } from '@/components/media/StudioMediaPreview'
 import { DeliverableAccordion, type DeliverableAccordionStatus } from '@/components/path-b/DeliverableAccordion'
 import { DriveAccessNotice } from '@/components/path-b/DriveAccessNotice'
 import type { DriveDiagnosticsDto } from '@/client'
@@ -18,6 +19,7 @@ import {
   getMediaEntry,
 } from '@/lib/driveMedia'
 import type { DeliverableReadiness } from '@/lib/pathBDeliverables'
+import { studioMediaSlot } from '@/lib/studioMedia'
 
 export type DeliverableSummarySection =
   | 'raw'
@@ -110,6 +112,8 @@ export function DeliverableSummaryPanel({
   const thumbEntry = manifest
     ? manifest.thumbnails.find((t) => t.index === deliverableIndex)
     : getMediaEntry(batch.id, 'thumbnails', deliverableIndex)
+  const studioVideo = studioMediaSlot(ticket, 'video')
+  const studioThumbnail = studioMediaSlot(ticket, 'thumbnail')
 
   const rawUrl = batch.sourceMediaUrl?.trim() || batch.footageUrl?.trim()
   // A clips-ready batch never has raw footage — the client hands over finished
@@ -143,7 +147,7 @@ export function DeliverableSummaryPanel({
   }
 
   function syncAside() {
-    if (!onSyncDrive) return null
+    if (!onSyncDrive || !batch.editorDeliverablesDriveUrl?.trim()) return null
     return <DriveSyncButton onSync={onSyncDrive} syncing={driveSyncing} label="Sync" />
   }
 
@@ -163,13 +167,15 @@ export function DeliverableSummaryPanel({
         className,
       ].join(' ')}
     >
-      <DriveAccessNotice
-        diagnostics={manifest?.diagnostics}
-        slot="deliverables"
-        unmapped={manifest?.unmapped}
-        problemsOnly
-        className="m-3"
-      />
+      {batch.editorDeliverablesDriveUrl?.trim() ? (
+        <DriveAccessNotice
+          diagnostics={manifest?.diagnostics}
+          slot="deliverables"
+          unmapped={manifest?.unmapped}
+          problemsOnly
+          className="m-3"
+        />
+      ) : null}
       {showRawFootage ? (
         <DeliverableAccordion
           id={`deliverable-${deliverableIndex}-raw`}
@@ -241,7 +247,19 @@ export function DeliverableSummaryPanel({
         }}
         headerAside={syncAside()}
       >
-        {videoEntry ? (
+        {studioVideo ? (
+          <div className="space-y-3">
+            <p className="text-muted-foreground text-xs">
+              {studioVideo.name} · Studio v{studioVideo.version ?? 1}
+            </p>
+            <StudioMediaPreview
+              assetId={studioVideo.assetId}
+              fileName={studioVideo.name}
+              kind="video"
+              layout="portrait"
+            />
+          </div>
+        ) : videoEntry ? (
           <div className="space-y-3">
             <p className="text-muted-foreground text-xs">{videoEntry.name}</p>
             <DriveVideoPreview
@@ -252,8 +270,7 @@ export function DeliverableSummaryPanel({
           </div>
         ) : (
           <p className="text-muted-foreground text-sm">
-            Upload <span className="text-foreground font-medium">videos/{deliverableIndex}</span>{' '}
-            in the deliverables folder, then sync.
+            Upload the finished video directly to Studio from the production workspace.
           </p>
         )}
       </DeliverableAccordion>
@@ -268,7 +285,19 @@ export function DeliverableSummaryPanel({
         }}
         headerAside={syncAside()}
       >
-        {thumbEntry ? (
+        {studioThumbnail ? (
+          <div className="space-y-3">
+            <p className="text-muted-foreground text-xs">
+              {studioThumbnail.name} · Studio v{studioThumbnail.version ?? 1}
+            </p>
+            <StudioMediaPreview
+              assetId={studioThumbnail.assetId}
+              fileName={studioThumbnail.name}
+              kind="thumbnail"
+              layout="portrait"
+            />
+          </div>
+        ) : thumbEntry ? (
           <div className="space-y-3">
             <div className={qaPortraitChromeClass}>
               <div className="flex w-full flex-col items-center">
@@ -293,8 +322,7 @@ export function DeliverableSummaryPanel({
           </div>
         ) : (
           <p className="text-muted-foreground text-sm">
-            Upload <span className="text-foreground font-medium">thumbnails/{deliverableIndex}</span>{' '}
-            in the deliverables folder, then sync.
+            Upload the thumbnail directly to Studio from the production workspace.
           </p>
         )}
       </DeliverableAccordion>

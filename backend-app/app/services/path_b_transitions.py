@@ -21,7 +21,7 @@ STAGE_LABELS: dict[PipelineStage, str] = {
     PipelineStage.clips_identifying: "Clip identification",
     PipelineStage.clip_client_review: "Clip review",
     PipelineStage.clips_ready_intake: "Clips ready — production",
-    PipelineStage.pre_split_production: "Awaiting deliverables folder",
+    PipelineStage.pre_split_production: "Production uploads",
     PipelineStage.production: "Production",
     PipelineStage.smm_qa: "SMM QA",
     PipelineStage.editor_fix: "QA flagged",

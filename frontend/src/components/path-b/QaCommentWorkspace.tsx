@@ -10,6 +10,7 @@ import {
   qaPortraitVideoInnerClass,
 } from '@/lib/qaVideoPortrait'
 import { useTheme } from '@/theme'
+import { StudioMediaPreview } from '@/components/media/StudioMediaPreview'
 
 export type QaCommentWorkspaceRole = 'smm' | 'client' | 'editor'
 
@@ -19,11 +20,13 @@ type Props = {
   deliverableIndex?: number
   comments: QaComment[]
   videoDriveFileId?: string
+  videoAssetId?: string
   videoFileName?: string
   fallbackVideoSrc?: string
   /** @deprecated Use thumbnail/title props; video always shows in the left column. */
   showPackagePreview?: boolean
   thumbnailDriveFileId?: string
+  thumbnailAssetId?: string
   thumbnailFileName?: string
   displayVideoTitle?: string
   secondaryPackageHelper?: string
@@ -46,10 +49,12 @@ export function QaCommentWorkspace({
   deliverableIndex,
   comments,
   videoDriveFileId,
+  videoAssetId,
   videoFileName,
   fallbackVideoSrc = SAMPLE_VIDEO_SRC,
   showPackagePreview: _legacyPackagePreview,
   thumbnailDriveFileId,
+  thumbnailAssetId,
   thumbnailFileName,
   displayVideoTitle,
   secondaryPackageHelper,
@@ -75,7 +80,12 @@ export function QaCommentWorkspace({
     (role === 'client' ? 'Request changes' : 'Send back to editor')
 
   const showSecondaryPackage =
-    Boolean(thumbnailDriveFileId || thumbnailFileName || displayVideoTitle?.trim()) ||
+    Boolean(
+      thumbnailAssetId ||
+        thumbnailDriveFileId ||
+        thumbnailFileName ||
+        displayVideoTitle?.trim(),
+    ) ||
     _legacyPackagePreview === true
 
   function submitComment() {
@@ -90,7 +100,14 @@ export function QaCommentWorkspace({
       ? `QA — ${videoTitle} · #${deliverableIndex}`
       : `QA — ${videoTitle}`
 
-  const videoPlayer = videoDriveFileId ? (
+  const videoPlayer = videoAssetId ? (
+    <StudioMediaPreview
+      assetId={videoAssetId}
+      fileName={videoFileName ?? videoTitle}
+      kind="video"
+      layout="portrait"
+    />
+  ) : videoDriveFileId ? (
     <DriveVideoPreview
       driveFileId={videoDriveFileId}
       fileName={videoFileName}
@@ -200,6 +217,7 @@ export function QaCommentWorkspace({
         <QaSecondaryPackageSection
           theme={theme}
           thumbnailDriveFileId={thumbnailDriveFileId}
+          thumbnailAssetId={thumbnailAssetId}
           thumbnailFileName={thumbnailFileName}
           displayVideoTitle={displayVideoTitle ?? videoTitle}
           helperCopy={secondaryPackageHelper}

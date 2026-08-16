@@ -7,6 +7,7 @@ import { BatchOwnershipControls } from '@/components/path-b/BatchOwnershipContro
 import { EditorPathBVideoKanban } from '@/components/editor/EditorPathBVideoKanban'
 import { EditorProductionModal } from '@/components/editor/EditorProductionModal'
 import { EditorQaFixModal } from '@/components/editor/EditorQaFixModal'
+import { EditorProductionHandoff } from '@/components/editor/EditorProductionHandoff'
 import { FindClipsModal } from '@/components/path-b'
 import {
   batchAwaitingClips,
@@ -65,13 +66,24 @@ export function EditorBoard() {
   const selectedBatch =
     editorBatches.find((b) => b.id === effectiveBatchId) ?? editorBatches[0]
 
+  const selectedBatchTickets = useMemo(() => {
+    if (!selectedBatch) return []
+    return getVideosForBatch(selectedBatch.id)
+  }, [selectedBatch, getVideosForBatch])
+
   const batchVideos = useMemo(() => {
     if (!selectedBatch) return []
-    const raw = getVideosForBatch(selectedBatch.id)
-    return filterVideosForEditorKanban(selectedBatch, raw).map((t) =>
+    return filterVideosForEditorKanban(selectedBatch, selectedBatchTickets).map((t) =>
       toEditorPathBVideoCard(t, selectedBatch),
     )
-  }, [selectedBatch, getVideosForBatch])
+  }, [selectedBatch, selectedBatchTickets])
+
+  const preDeliverablesVideos = useMemo(() => {
+    if (!selectedBatch) return []
+    return selectedBatchTickets
+      .filter((ticket) => ticket.deliverableIndex != null && ticket.deliverableIndex > 0)
+      .map((ticket) => toEditorPathBVideoCard(ticket, selectedBatch))
+  }, [selectedBatch, selectedBatchTickets])
 
   const attention = useMemo(
     () => listEditorAttention(editorBatches, videos, clientNameById),
@@ -162,7 +174,15 @@ export function EditorBoard() {
             />
           </div>
 
-          {batchNeedsEditorFindClips(selectedBatch) || batchReadyForEditorWork(selectedBatch) ? (
+          {batchReadyForEditorWork(selectedBatch) && preDeliverablesVideos.length > 0 ? (
+            <EditorProductionHandoff
+              batch={selectedBatch}
+              videos={preDeliverablesVideos}
+              onOpenWorkspace={() => {
+                navigate(`/editor/batches/${selectedBatch.id}/clips`)
+              }}
+            />
+          ) : batchNeedsEditorFindClips(selectedBatch) || batchReadyForEditorWork(selectedBatch) ? (
             <EditorPathBVideoKanban
               batch={selectedBatch}
               videos={batchVideos}

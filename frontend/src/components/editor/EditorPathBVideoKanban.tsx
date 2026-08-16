@@ -108,10 +108,10 @@ export function EditorPathBVideoKanban({
                       />
                       <div>
                         <p className="text-foreground text-xs font-medium leading-snug">
-                          Submit deliverables folder
+                          Upload production files
                         </p>
                         <p className="text-muted-foreground mt-1 text-[10px]">
-                          Clips modal · paste Drive URL with videos/ + thumbnails/
+                          Review clips and upload each finished file to Studio
                         </p>
                         <span
                           className="mt-1.5 inline-block rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide"

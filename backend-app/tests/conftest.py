@@ -17,15 +17,17 @@ def _stub_clips_ready_drive_validation(monkeypatch: pytest.MonkeyPatch) -> None:
     """Keep API tests deterministic; Drive behavior has focused tests of its own."""
     from app.services import drive_manifest_service
 
-    async def valid_clips(_url: str) -> list[dict[str, object]]:
+    async def valid_clips(url: str) -> list[dict[str, object]]:
+        count = 2 if "client-clips" in url else 3 if "pipe-clips" in url else 1
         return [
             {
-                "index": 1,
-                "driveFileId": "test-clip-1",
-                "name": "Clip 1.mp4",
+                "index": index,
+                "driveFileId": f"test-clip-{index}",
+                "name": f"Clip {index}.mp4",
                 "mimeType": "video/mp4",
                 "modifiedTime": "2026-08-05T00:00:00+00:00",
             }
+            for index in range(1, count + 1)
         ]
 
     monkeypatch.setattr(
