@@ -76,6 +76,11 @@ export type QaComment = {
   authorRole: 'smm' | 'client' | 'editor'
   atSeconds?: number
   body: string
+  attachments?: {
+    assetId: string
+    fileName: string
+    contentType: string
+  }[]
   createdAt: string
   deprecated: boolean
 }
@@ -177,6 +182,14 @@ export type AdminVideoTicket = {
   assetVersions?: Partial<Record<QaMediaSlot, number>>
   /** Server snapshot after Drive sync (B6) */
   deliverableDriveSlots?: {
+    source_clip?: {
+      index?: number
+      assetId?: string
+      objectKey?: string
+      name: string
+      mimeType?: string
+      version?: number
+    }
     video?: {
       index?: number
       driveFileId?: string

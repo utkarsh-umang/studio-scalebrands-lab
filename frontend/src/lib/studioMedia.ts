@@ -10,7 +10,7 @@ export type StudioMediaSlot = {
 
 export function studioMediaSlot(
   ticket: AdminVideoTicket | undefined,
-  kind: 'video' | 'thumbnail',
+  kind: 'source_clip' | 'video' | 'thumbnail',
 ): StudioMediaSlot | undefined {
   const raw = ticket?.deliverableDriveSlots?.[kind]
   if (!raw || typeof raw !== 'object') return undefined

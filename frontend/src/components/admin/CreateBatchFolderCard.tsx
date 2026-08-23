@@ -22,7 +22,7 @@ export function CreateBatchFolderCard({ onClick }: Props) {
     >
       <FolderIconBadge primary={primary} secondary={secondary} />
       <div className="space-y-1 text-center">
-        <p className="text-foreground text-sm font-semibold">New batch folder</p>
+        <p className="text-foreground text-sm font-semibold">Create batch</p>
         <p className="text-muted-foreground text-xs leading-snug">
           Create an epic for raw-footage work
         </p>

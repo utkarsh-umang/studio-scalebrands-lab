@@ -6,6 +6,7 @@ import pytest
 from httpx import AsyncClient
 
 from app.core.config import config
+from app.services import object_storage_service
 
 
 async def _login(client: AsyncClient, email: str, password: str = "demo1234") -> dict[str, str]:
@@ -123,7 +124,10 @@ async def test_smm_approve_releases_to_client_qa(client: AsyncClient) -> None:
 
 
 @pytest.mark.anyio
-async def test_smm_send_back_and_editor_resubmit(client: AsyncClient) -> None:
+async def test_smm_send_back_and_editor_resubmit(
+    client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     _, ticket_id, smm_headers, editor_headers = await _ticket_in_smm_qa(client)
 
     send_back = await client.post(
@@ -142,10 +146,50 @@ async def test_smm_send_back_and_editor_resubmit(client: AsyncClient) -> None:
     assert len(flagged["qaCommentHistory"]) == 1
     assert flagged["qaCommentHistory"][0]["body"] == "Trim the hook before 0:08"
 
+    blocked = await client.post(
+        f"{config.API_V1_STR}/videos/{ticket_id}/resubmit-to-smm-qa",
+        headers=editor_headers,
+        json={"bumpVideoVersion": False},
+    )
+    assert blocked.status_code == 422
+
+    async def fake_presign(*_args: object, **_kwargs: object) -> str:
+        return "https://storage.example.test/upload"
+
+    monkeypatch.setattr(object_storage_service, "create_presigned_put", fake_presign)
+    initiated = await client.post(
+        f"{config.API_V1_STR}/media/videos/{ticket_id}/uploads",
+        headers=editor_headers,
+        json={
+            "kind": "video",
+            "filename": "replacement-v2.mp4",
+            "contentType": "video/mp4",
+            "sizeBytes": 256,
+        },
+    )
+    assert initiated.status_code == 200, initiated.text
+    asset_id = initiated.json()["asset"]["id"]
+    assert initiated.json()["asset"]["version"] == 2
+
+    async def fake_head(_object_key: str) -> dict[str, object]:
+        return {
+            "ContentLength": 256,
+            "ETag": '"replacement-etag"',
+            "Metadata": {"studio-asset-id": asset_id},
+        }
+
+    monkeypatch.setattr(object_storage_service, "head_object", fake_head)
+    completed = await client.post(
+        f"{config.API_V1_STR}/media/uploads/{asset_id}/complete",
+        headers=editor_headers,
+        json={},
+    )
+    assert completed.status_code == 200, completed.text
+
     resubmit = await client.post(
         f"{config.API_V1_STR}/videos/{ticket_id}/resubmit-to-smm-qa",
         headers=editor_headers,
-        json={},
+        json={"bumpVideoVersion": False},
     )
     assert resubmit.status_code == 200, resubmit.text
     body = resubmit.json()["ticket"]
@@ -170,6 +214,75 @@ async def test_append_smm_qa_comment_without_stage_change(client: AsyncClient) -
 
 
 @pytest.mark.anyio
+async def test_timestamped_comment_with_image_attachment(
+    client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _, ticket_id, smm_headers, _ = await _ticket_in_smm_qa(client)
+
+    async def fake_presign(*_args: object, **_kwargs: object) -> str:
+        return "https://storage.example.test/upload"
+
+    monkeypatch.setattr(object_storage_service, "create_presigned_put", fake_presign)
+    initiated = await client.post(
+        f"{config.API_V1_STR}/media/videos/{ticket_id}/uploads",
+        headers=smm_headers,
+        json={
+            "kind": "qa_attachment",
+            "filename": "reference.gif",
+            "contentType": "image/gif",
+            "sizeBytes": 128,
+        },
+    )
+    assert initiated.status_code == 200, initiated.text
+    asset_id = initiated.json()["asset"]["id"]
+
+    async def fake_head(_object_key: str) -> dict[str, object]:
+        return {
+            "ContentLength": 128,
+            "ETag": '"attachment-etag"',
+            "Metadata": {"studio-asset-id": asset_id},
+        }
+
+    monkeypatch.setattr(object_storage_service, "head_object", fake_head)
+    completed = await client.post(
+        f"{config.API_V1_STR}/media/uploads/{asset_id}/complete",
+        headers=smm_headers,
+        json={},
+    )
+    assert completed.status_code == 200, completed.text
+
+    comment = await client.post(
+        f"{config.API_V1_STR}/videos/{ticket_id}/qa-comments",
+        headers=smm_headers,
+        json={
+            "body": "Match this animation at the cut.",
+            "atSeconds": 14,
+            "attachmentAssetIds": [asset_id],
+        },
+    )
+    assert comment.status_code == 200, comment.text
+    body = comment.json()["comment"]
+    assert body["kind"] == "timestamp"
+    assert body["atSeconds"] == 14
+    assert body["attachments"] == [
+        {
+            "assetId": asset_id,
+            "fileName": "reference.gif",
+            "contentType": "image/gif",
+        }
+    ]
+
+    send_back = await client.post(
+        f"{config.API_V1_STR}/videos/{ticket_id}/smm-qa",
+        headers=smm_headers,
+        json={"action": "send_back"},
+    )
+    assert send_back.status_code == 200, send_back.text
+    assert send_back.json()["ticket"]["pipelineStage"] == "editor_fix"
+
+
+@pytest.mark.anyio
 async def test_send_back_requires_feedback(client: AsyncClient) -> None:
     _, ticket_id, smm_headers, _ = await _ticket_in_smm_qa(client)
 
@@ -179,3 +292,37 @@ async def test_send_back_requires_feedback(client: AsyncClient) -> None:
         json={"action": "send_back", "commentBody": "   "},
     )
     assert response.status_code == 422
+
+
+@pytest.mark.anyio
+async def test_internal_smm_comments_are_hidden_from_client_reads(client: AsyncClient) -> None:
+    batch_id, ticket_id, smm_headers, _ = await _ticket_in_smm_qa(client)
+    client_headers = await _login(client, "client@scalebrandslab.demo")
+
+    comment = await client.post(
+        f"{config.API_V1_STR}/videos/{ticket_id}/qa-comments",
+        headers=smm_headers,
+        json={"body": "Internal pacing note", "atSeconds": 4},
+    )
+    assert comment.status_code == 200, comment.text
+    approved = await client.post(
+        f"{config.API_V1_STR}/videos/{ticket_id}/smm-qa",
+        headers=smm_headers,
+        json={"action": "approve"},
+    )
+    assert approved.status_code == 200, approved.text
+    assert approved.json()["ticket"]["qaCommentHistory"][0]["deprecated"] is True
+
+    workspace = await client.get(
+        f"{config.API_V1_STR}/client/workspace",
+        headers=client_headers,
+    )
+    client_ticket = next(row for row in workspace.json()["videos"] if row["id"] == ticket_id)
+    assert client_ticket["qaCommentHistory"] == []
+
+    detail = await client.get(
+        f"{config.API_V1_STR}/batches/{batch_id}",
+        headers=client_headers,
+    )
+    detail_ticket = next(row for row in detail.json()["videos"] if row["id"] == ticket_id)
+    assert detail_ticket["qaCommentHistory"] == []

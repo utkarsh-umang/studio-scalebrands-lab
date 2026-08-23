@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { QaCommentAttachmentDto } from './QaCommentAttachmentDto';
 export type QaCommentDto = {
     id: string;
     slot: string;
@@ -10,6 +11,7 @@ export type QaCommentDto = {
     authorRole: string;
     atSeconds?: (number | null);
     body: string;
+    attachments?: Array<QaCommentAttachmentDto>;
     createdAt: string;
     deprecated?: boolean;
 };

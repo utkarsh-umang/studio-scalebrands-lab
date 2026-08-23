@@ -7,11 +7,13 @@ import {
   ExternalLink,
   Film,
   FolderOpen,
+  ShieldCheck,
 } from 'lucide-react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '@/auth'
 import { ClipsReviewPanel } from '@/components/drive/ClipsReviewPanel'
 import { EditorBatchUploadPanel } from '@/components/editor/EditorBatchUploadPanel'
+import { EditorSourceClipsPanel } from '@/components/editor/EditorSourceClipsPanel'
 import { DriveAccessNotice } from '@/components/path-b/DriveAccessNotice'
 import { DriveSyncButton } from '@/components/path-b/DriveSyncButton'
 import { DriveSyncMeta } from '@/components/path-b/DriveSyncMeta'
@@ -22,6 +24,7 @@ import {
 import { useRoleWorkspace } from '@/hooks/api/workspace/useRoleWorkspace'
 import { useDriveManifestSync } from '@/hooks/useDriveManifestSync'
 import { toClientVideoCard } from '@/lib/clientBoard'
+import { studioMediaSlot } from '@/lib/studioMedia'
 import type { AdminBatchFolder, AdminVideoTicket } from '@/types/pathB'
 
 type WorkspaceRole = 'client' | 'editor' | 'smm'
@@ -76,6 +79,7 @@ function stageBannerFor(
   role: WorkspaceRole,
   canClientReview: boolean,
   videoCount: number,
+  tickets: AdminVideoTicket[],
 ): StageBanner {
   const countLabel = `${videoCount || 'The'} ${videoCount === 1 ? 'video' : 'videos'}`
   const verb = videoCount === 1 ? 'is' : 'are'
@@ -115,6 +119,35 @@ function stageBannerFor(
     }
   }
 
+  const indexedTickets = tickets.filter(
+    (ticket) => ticket.deliverableIndex != null && ticket.deliverableIndex > 0,
+  )
+  const editorCount = indexedTickets.filter(
+    (ticket) => ticket.owner === 'editor',
+  ).length
+  const qaCount = indexedTickets.filter(
+    (ticket) =>
+      ticket.owner === 'smm' && ticket.stageLabel.toLowerCase().includes('qa'),
+  ).length
+
+  if (role === 'editor' && qaCount > 0) {
+    if (editorCount === 0) {
+      return {
+        label: 'Internal QA in progress',
+        title: `${qaCount} ${qaCount === 1 ? 'video is' : 'videos are'} with SMM QA`,
+        description:
+          'Your finished uploads are secured in Studio. No action is needed unless QA sends a video back with changes.',
+        kind: 'waiting',
+      }
+    }
+    return {
+      label: 'Production handoff in progress',
+      title: `${editorCount} ${editorCount === 1 ? 'video still needs' : 'videos still need'} your attention`,
+      description: `${qaCount} ${qaCount === 1 ? 'video has' : 'videos have'} already moved to SMM QA. Finish and send the remaining work below.`,
+      kind: 'production',
+    }
+  }
+
   if (batch.clipReviewPhase === 'approved' && !batch.editorDeliverablesDriveUrl?.trim()) {
     return {
       label: 'Clips approved · Production started',
@@ -124,7 +157,7 @@ function stageBannerFor(
           : `Your editor is working on ${countLabel.toLowerCase()}`,
       description:
         role === 'editor'
-          ? 'Use the approved clips below as your source. Submit the finished videos and thumbnails folder when the batch is ready.'
+          ? 'Use the client uploads below as your source, then upload each matching finished video directly to Studio.'
           : 'No action is needed right now. Each approved clip is tracked as its own video while the editor produces the final assets.',
       kind: 'production',
     }
@@ -155,9 +188,16 @@ function ClipsWorkspaceContent({
   backPath,
 }: ContentProps) {
   const navigate = useNavigate()
+  const studioSourceTickets = useMemo(
+    () => tickets.filter((ticket) => studioMediaSlot(ticket, 'source_clip')),
+    [tickets],
+  )
+  const hasDriveSource = Boolean(batch.clipsFolderUrl?.trim())
+  const hasStudioSource = studioSourceTickets.length > 0
   const { manifest, syncing, error, sync } = useDriveManifestSync(
     batch.id,
     `${batch.id}-${role}-clips-page`,
+    hasDriveSource,
   )
   const approveBatchClips = useApproveBatchClipsMutation(batch.id)
   const rejectBatchClips = useRejectBatchClipsMutation(batch.id)
@@ -174,12 +214,20 @@ function ClipsWorkspaceContent({
   const canClientReview = role === 'client' && Boolean(clientReviewTicket)
   const copy = workspaceCopy(role, canClientReview)
   const readOnly = !canClientReview
-  const clipsCount = manifest?.clips.length ?? 0
+  const clipsCount = hasStudioSource
+    ? studioSourceTickets.length
+    : (manifest?.clips.length ?? 0)
   const ticketCount = tickets.filter(
     (ticket) => ticket.deliverableIndex != null && ticket.deliverableIndex > 0,
   ).length
   const knownVideoCount = Math.max(clipsCount, batch.videoCount, ticketCount)
-  const stageBanner = stageBannerFor(batch, role, canClientReview, knownVideoCount)
+  const stageBanner = stageBannerFor(
+    batch,
+    role,
+    canClientReview,
+    knownVideoCount,
+    tickets,
+  )
   const StageIcon =
     stageBanner.kind === 'action'
       ? CircleAlert
@@ -231,29 +279,38 @@ function ClipsWorkspaceContent({
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 xl:justify-end">
-              <DriveSyncButton
-                onSync={() => {
-                  void sync()
-                }}
-                syncing={syncing}
-                className="bg-white"
-              />
-              <a
-                href={batch.clipsFolderUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-slate-800"
-              >
-                <FolderOpen className="size-3.5" aria-hidden />
-                Open clips folder
-                <ExternalLink className="size-3 opacity-60" aria-hidden />
-              </a>
+            {hasDriveSource ? (
+              <div className="flex flex-wrap items-center gap-2 xl:justify-end">
+                <DriveSyncButton
+                  onSync={() => {
+                    void sync()
+                  }}
+                  syncing={syncing}
+                  className="bg-white"
+                />
+                <a
+                  href={batch.clipsFolderUrl ?? ''}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-slate-800"
+                >
+                  <FolderOpen className="size-3.5" aria-hidden />
+                  Open clips folder
+                  <ExternalLink className="size-3 opacity-60" aria-hidden />
+                </a>
+              </div>
+            ) : (
+              <span className="inline-flex items-center gap-2 self-start rounded-full bg-emerald-50 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.1em] text-emerald-700">
+                <ShieldCheck className="size-3.5" aria-hidden />
+                Source files secured in Studio
+              </span>
+            )}
+          </div>
+          {hasDriveSource ? (
+            <div className="mt-4 text-[11px] text-slate-400">
+              <DriveSyncMeta manifest={manifest} errorMessage={error} />
             </div>
-          </div>
-          <div className="mt-4 text-[11px] text-slate-400">
-            <DriveSyncMeta manifest={manifest} errorMessage={error} />
-          </div>
+          ) : null}
         </header>
 
         <div className="space-y-4 bg-slate-50/65 p-4 md:p-6">
@@ -294,55 +351,61 @@ function ClipsWorkspaceContent({
             </div>
           </section>
 
-          <DriveAccessNotice
-            diagnostics={manifest?.diagnostics}
-            slot="clips"
-            unmapped={manifest?.unmapped}
-          />
+          {hasStudioSource ? (
+            <EditorSourceClipsPanel tickets={tickets} />
+          ) : (
+            <>
+              <DriveAccessNotice
+                diagnostics={manifest?.diagnostics}
+                slot="clips"
+                unmapped={manifest?.unmapped}
+              />
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm md:p-4">
-            <ClipsReviewPanel
-              batchId={batch.id}
-              manifest={manifest}
-              clipsFolderUrl={batch.clipsFolderUrl ?? ''}
-              pageLayout
-              readOnly={readOnly}
-              sidebarPosition="left"
-              onApprove={
-                canClientReview
-                  ? () => {
-                      if (!clientReviewTicket) return
-                      approveBatchClips.mutate(
-                        {
-                          videoTicketId: clientReviewTicket.id,
-                          ...(clipsCount > 0 ? { clipCount: clipsCount } : {}),
-                        },
-                        {
-                          onSuccess: () => {
-                            navigate(backPath)
-                          },
-                        },
-                      )
-                    }
-                  : undefined
-              }
-              onReject={
-                canClientReview
-                  ? (note) => {
-                      if (!clientReviewTicket) return
-                      rejectBatchClips.mutate(
-                        { videoTicketId: clientReviewTicket.id, note },
-                        {
-                          onSuccess: () => {
-                            navigate(backPath)
-                          },
-                        },
-                      )
-                    }
-                  : undefined
-              }
-            />
-          </div>
+              <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm md:p-4">
+                <ClipsReviewPanel
+                  batchId={batch.id}
+                  manifest={manifest}
+                  clipsFolderUrl={batch.clipsFolderUrl ?? ''}
+                  pageLayout
+                  readOnly={readOnly}
+                  sidebarPosition="left"
+                  onApprove={
+                    canClientReview
+                      ? () => {
+                          if (!clientReviewTicket) return
+                          approveBatchClips.mutate(
+                            {
+                              videoTicketId: clientReviewTicket.id,
+                              ...(clipsCount > 0 ? { clipCount: clipsCount } : {}),
+                            },
+                            {
+                              onSuccess: () => {
+                                navigate(backPath)
+                              },
+                            },
+                          )
+                        }
+                      : undefined
+                  }
+                  onReject={
+                    canClientReview
+                      ? (note) => {
+                          if (!clientReviewTicket) return
+                          rejectBatchClips.mutate(
+                            { videoTicketId: clientReviewTicket.id, note },
+                            {
+                              onSuccess: () => {
+                                navigate(backPath)
+                              },
+                            },
+                          )
+                        }
+                      : undefined
+                  }
+                />
+              </div>
+            </>
+          )}
 
           {role === 'editor' ? (
             <EditorBatchUploadPanel batch={batch} tickets={tickets} />
@@ -360,13 +423,17 @@ export function ClipsWorkspacePage() {
   const { clients, batches, videos, isWorkspaceLoading } = useRoleWorkspace()
   const role = roleFromUser(user)
   const batch = batches.find((item) => item.id === batchId)
+  const batchTickets = videos.filter((ticket) => ticket.batchId === batchId)
+  const hasStudioSource = batchTickets.some((ticket) =>
+    Boolean(studioMediaSlot(ticket, 'source_clip')),
+  )
   const backPath = role ? `/${role}/board` : '/'
 
   if (!role) return <Navigate to="/login" replace />
   if (isWorkspaceLoading && !batch) {
     return <p className="text-sm text-slate-500">Loading clips workspace…</p>
   }
-  if (!batch || !batch.clipsFolderUrl?.trim()) {
+  if (!batch || (!batch.clipsFolderUrl?.trim() && !hasStudioSource)) {
     return (
       <div className="space-y-5">
         <button
@@ -399,7 +466,7 @@ export function ClipsWorkspacePage() {
     <ClipsWorkspaceContent
       key={batch.id}
       batch={batch}
-      tickets={videos.filter((ticket) => ticket.batchId === batch.id)}
+      tickets={batchTickets}
       clientName={clientName}
       role={role}
       backPath={backPath}

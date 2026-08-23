@@ -77,7 +77,7 @@ export function EditorProductionModal({
    */
   const handleSendToSmmQa = async () => {
     try {
-      if (!submitReadinessForDeliverable(ticket).allReady) {
+      if (folderUrl && !submitReadinessForDeliverable(ticket).allReady) {
         const nextManifest = await sync()
         const body = driveSyncRequestFromManifest(index, nextManifest)
         if (body) await driveSync.mutateAsync(body)

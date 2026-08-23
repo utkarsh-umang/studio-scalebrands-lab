@@ -33,7 +33,11 @@ async function fetchManifest(batchId: string): Promise<ManifestWithDiagnostics> 
   return toManifest(res)
 }
 
-export function useDriveManifestSync(batchId: string, resetKey?: string | number) {
+export function useDriveManifestSync(
+  batchId: string,
+  resetKey?: string | number,
+  enabled = true,
+) {
   const [override, setOverride] = useState<ManifestWithDiagnostics | undefined>()
   const [syncing, setSyncing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -42,6 +46,12 @@ export function useDriveManifestSync(batchId: string, resetKey?: string | number
   // Auto-fetch live manifest on open / batch change. Falls back silently to the
   // bundled manifest so demo batches still render without a backend round-trip.
   useEffect(() => {
+    if (!enabled) {
+      setOverride(undefined)
+      setError(null)
+      setSyncing(false)
+      return
+    }
     const req = ++reqRef.current
     setOverride(undefined)
     setError(null)
@@ -58,12 +68,13 @@ export function useDriveManifestSync(batchId: string, resetKey?: string | number
       .finally(() => {
         if (reqRef.current === req) setSyncing(false)
       })
-  }, [batchId, resetKey])
+  }, [batchId, resetKey, enabled])
 
   const manifest: ManifestWithDiagnostics | undefined =
     override ?? getManifestForBatch(batchId)
 
   const sync = useCallback(async (): Promise<ManifestWithDiagnostics | undefined> => {
+    if (!enabled) return undefined
     const req = ++reqRef.current
     setSyncing(true)
     setError(null)
@@ -84,7 +95,7 @@ export function useDriveManifestSync(batchId: string, resetKey?: string | number
     } finally {
       if (reqRef.current === req) setSyncing(false)
     }
-  }, [batchId])
+  }, [batchId, enabled])
 
   return { manifest, syncing, error, sync, setOverride }
 }

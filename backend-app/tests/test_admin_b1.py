@@ -109,6 +109,9 @@ async def test_batch_number_sequence_and_decommission_blocks_create(
     )
     assert batch1.status_code == 200
     assert batch1.json()["batchNumber"] == 1
+    assert batch1.json()["clipOwnerKind"] == "client"
+    assert batch1.json()["thumbnailOwnerKind"] == "smm"
+    assert batch1.json()["titleOwnerKind"] == "smm"
 
     batch2 = await client.post(
         f"{config.API_V1_STR}/admin/clients/{client_id}/batches",

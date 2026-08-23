@@ -53,8 +53,8 @@ deploy_backend() {
     --max-instances=4 \
     --memory=512Mi \
     --cpu=1 \
-    --set-env-vars="^##^ENVIRONMENT=prod##POSTGRES_HOST=ep-blue-grass-atod1aru.c-9.us-east-1.aws.neon.tech##POSTGRES_PORT=5432##POSTGRES_USER=neondb_owner##POSTGRES_DB=neondb##POSTGRES_SSL=true##CORS_ORIGINS=[\"https://studio.scalebrandslab.com\",\"https://enlead-ai.web.app\"]##GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON=/secrets/drive-key.json" \
-    --set-secrets="SECRET_KEY=studio-secret-key:latest,POSTGRES_PASSWORD=studio-postgres-password:latest,/secrets/drive-key.json=studio-drive-sa-key:latest"
+    --set-env-vars="^##^ENVIRONMENT=prod##SEED_DEMO_USERS=false##SEED_VISUAL_REVIEW_SCENARIOS=false##POSTGRES_HOST=ep-blue-grass-atod1aru.c-9.us-east-1.aws.neon.tech##POSTGRES_PORT=5432##POSTGRES_USER=neondb_owner##POSTGRES_DB=neondb##POSTGRES_SSL=true##CORS_ORIGINS=[\"https://studio.scalebrandslab.com\",\"https://enlead-ai.web.app\"]##OBJECT_STORAGE_REGION=ap-south-1" \
+    --set-secrets="SECRET_KEY=studio-secret-key:latest,POSTGRES_PASSWORD=studio-postgres-password:latest,OBJECT_STORAGE_BUCKET=studio-object-storage-bucket:latest,OBJECT_STORAGE_ACCESS_KEY_ID=studio-s3-access-key-id:latest,OBJECT_STORAGE_SECRET_ACCESS_KEY=studio-s3-secret-access-key:latest"
 
   echo "── Backend deployed: $image ──"
 }

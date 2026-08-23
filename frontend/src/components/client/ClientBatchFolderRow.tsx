@@ -100,9 +100,9 @@ export function ClientBatchFolderRow({
               </div>
               <span className="mt-2 line-clamp-1 text-[11px] text-slate-500">
                 {needsIntake
-                  ? 'Submit source or clips link'
+                  ? 'Upload clipped raw videos'
                   : batch.intakePath === 'clips_ready'
-                    ? 'Clips folder — with editor'
+                    ? `${batch.videoCount} ${batch.videoCount === 1 ? 'clip' : 'clips'} — with editor`
                     : batch.clipReviewPhase === 'awaiting_client'
                       ? 'Clip approval needed'
                       : `Updated ${formatDate(batch.updatedAt)}`}

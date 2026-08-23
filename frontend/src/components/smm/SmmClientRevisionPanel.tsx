@@ -1,5 +1,11 @@
 import type { AdminVideoTicket, QaComment } from '@/types/pathB'
+import { QaReviewAttachment } from '@/components/qa/QaReviewAttachment'
 import { useTheme } from '@/theme'
+
+function formatTimestamp(seconds: number): string {
+  const whole = Math.max(0, Math.floor(seconds))
+  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`
+}
 
 type Props = {
   ticket: AdminVideoTicket
@@ -37,9 +43,26 @@ export function SmmClientRevisionPanel({
             {clientComments.map((c) => (
               <li
                 key={c.id}
-                className="bg-muted/20 text-foreground rounded-lg px-3 py-2 text-xs leading-relaxed"
+                className="bg-muted/20 text-foreground rounded-lg px-3 py-2.5 text-xs leading-relaxed"
               >
-                {c.body}
+                <div className="mb-1 flex flex-wrap items-center gap-2 text-[10px] font-semibold text-blue-700">
+                  {c.atSeconds != null ? <span>{formatTimestamp(c.atSeconds)}</span> : null}
+                  <span className="text-muted-foreground">Video v{c.assetVersion}</span>
+                </div>
+                <p>{c.body}</p>
+                {c.attachments?.length ? (
+                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                    {c.attachments.map((attachment) => (
+                      <QaReviewAttachment
+                        key={attachment.assetId}
+                        assetId={attachment.assetId}
+                        fileName={attachment.fileName}
+                        contentType={attachment.contentType}
+                        compact
+                      />
+                    ))}
+                  </div>
+                ) : null}
               </li>
             ))}
           </ul>

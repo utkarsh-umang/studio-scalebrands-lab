@@ -123,6 +123,18 @@ def apply_clips_ready_intake(batch: Batch, url: str, clip_count: int) -> None:
     batch.updated_at = now
 
 
+def apply_uploaded_clips_intake(batch: Batch, clip_count: int) -> None:
+    """Move a direct client upload into production without a Drive dependency."""
+    now = utc_now()
+    batch.intake_path = BatchIntakePath.clips_ready
+    batch.source_media_url = None
+    batch.clips_folder_url = None
+    batch.clip_review_phase = BatchClipReviewPhase.approved
+    batch.video_count = clip_count
+    batch.pipeline_stage = PipelineStage.production
+    batch.updated_at = now
+
+
 CLIP_REVIEW_GATE_TITLE = "Clip approval"
 IDEA_GATE_TITLE = "Video ideas"
 

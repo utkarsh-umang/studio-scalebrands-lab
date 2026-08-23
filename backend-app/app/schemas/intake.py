@@ -1,8 +1,11 @@
 """Client batch intake API schemas (B3)."""
 
+from uuid import UUID
+
 from app.models.enums import BatchIntakePath
 from app.schemas.admin import AdminBatchFolderResponse, AdminVideoTicketResponse
 from app.schemas.common import CamelModel
+from app.schemas.media import InitiateMediaUploadResponse
 
 
 class SubmitBatchIntakeRequest(CamelModel):
@@ -12,6 +15,27 @@ class SubmitBatchIntakeRequest(CamelModel):
 
 class SubmitClientThumbnailsRequest(CamelModel):
     url: str
+
+
+class SourceClipFileInput(CamelModel):
+    filename: str
+    content_type: str
+    size_bytes: int
+
+
+class PrepareSourceClipsRequest(CamelModel):
+    files: list[SourceClipFileInput]
+
+
+class PreparedSourceClipUpload(CamelModel):
+    video_ticket_id: UUID
+    deliverable_index: int
+    filename: str
+    upload: InitiateMediaUploadResponse
+
+
+class PrepareSourceClipsResponse(CamelModel):
+    uploads: list[PreparedSourceClipUpload]
 
 
 class SubmitBatchIntakeResponse(CamelModel):

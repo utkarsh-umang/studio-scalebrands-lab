@@ -4,6 +4,7 @@ import {
   ClientRevisionTriageRequest,
   ClientService,
   VideosService,
+  type AppendQaCommentRequest,
 } from '@/client'
 import type { VideoReviewFeedback } from '@/components/VideoDeliverableReviewPanel'
 import { workspaceQueryKeys } from '@/hooks/api/workspace/workspaceQueryKeys'
@@ -57,11 +58,11 @@ export function useAppendClientQaCommentMutation() {
       body,
     }: {
       videoTicketId: string
-      body: string
+      body: AppendQaCommentRequest
     }) =>
       VideosService.appendQaCommentApiV1VideosVideoTicketIdQaCommentsPost(
         videoTicketId,
-        { body },
+        body,
       ),
     onSuccess: invalidate,
   })

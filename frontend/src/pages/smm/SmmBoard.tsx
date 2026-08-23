@@ -12,7 +12,6 @@ import { BatchOwnershipControls } from '@/components/path-b/BatchOwnershipContro
 import { SmmPathBVideoKanban } from '@/components/smm/SmmPathBVideoKanban'
 import { SmmProductionModal } from '@/components/smm/SmmProductionModal'
 import { SmmScheduleVideoModal } from '@/components/smm/SmmScheduleVideoModal'
-import { SmmVideoQaModal } from '@/components/smm/SmmVideoQaModal'
 import {
   batchNeedsSmmFindClips,
   filterVideosForSmmKanban,
@@ -144,6 +143,8 @@ export function SmmBoard() {
           }
           else if (item.kind === 'schedule' && item.videoId) {
             setScheduleVideoId(item.videoId)
+          } else if (item.kind === 'video_qa' && item.videoId) {
+            navigate(`/smm/qa/${item.videoId}`)
           } else if (item.videoId) setActiveVideoId(item.videoId)
         }}
       />
@@ -215,6 +216,8 @@ export function SmmBoard() {
               if (!card || !selectedBatch) return
               if (videoNeedsSmmSchedule(card)) {
                 setScheduleVideoId(videoId)
+              } else if (videoNeedsSmmQa(card)) {
+                navigate(`/smm/qa/${videoId}`)
               } else {
                 setActiveVideoId(videoId)
               }
@@ -244,18 +247,6 @@ export function SmmBoard() {
           open={scheduleVideoId === scheduleCard.id}
           onClose={() => {
             setScheduleVideoId(null)
-          }}
-        />
-      ) : null}
-
-      {activeCard && selectedBatch && videoNeedsSmmQa(activeCard) ? (
-        <SmmVideoQaModal
-          batch={selectedBatch}
-          clientName={clientName}
-          ticket={activeCard}
-          open={activeVideoId === activeCard.id}
-          onClose={() => {
-            setActiveVideoId(null)
           }}
         />
       ) : null}

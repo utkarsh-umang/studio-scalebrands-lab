@@ -3,7 +3,7 @@ import type { AdminBatchFolder, AdminVideoTicket } from '@/types/pathB'
 /** Path A idea stages — the editor is not involved until footage arrives. */
 const IDEA_STAGES = ['idea_research', 'idea_review', 'idea_footage_pending']
 
-/** Batch is on the editor's desk (clips approved or client sent clips folder). */
+/** Batch is on the editor's desk once its source clips have become production items. */
 export function batchReadyForEditorWork(batch: AdminBatchFolder): boolean {
   if (batch.status !== 'active') return false
   if (batch.intakePath === 'idea_first') {
@@ -11,7 +11,13 @@ export function batchReadyForEditorWork(batch: AdminBatchFolder): boolean {
     return !IDEA_STAGES.includes(batch.pipelineStage ?? '')
   }
   if (batch.intakePath === 'clips_ready') {
-    return Boolean(batch.clipsFolderUrl?.trim())
+    return (
+      Boolean(batch.clipsFolderUrl?.trim()) ||
+      batch.videoCount > 0 ||
+      ['production', 'smm_qa', 'editor_fix', 'client_qa'].includes(
+        batch.pipelineStage ?? '',
+      )
+    )
   }
   return batch.clipReviewPhase === 'approved'
 }
@@ -29,7 +35,13 @@ export type EditorBatchKanbanPhase = 'awaiting_clips' | 'pre_split' | 'post_spli
 
 export function editorBatchKanbanPhase(batch: AdminBatchFolder): EditorBatchKanbanPhase {
   if (batchAwaitingClips(batch)) return 'awaiting_clips'
-  if (!batch.editorDeliverablesDriveUrl?.trim()) return 'pre_split'
+  if (
+    ['pre_split_production', 'clips_ready_intake'].includes(
+      batch.pipelineStage ?? '',
+    )
+  ) {
+    return 'pre_split'
+  }
   return 'post_split'
 }
 
@@ -227,7 +239,12 @@ export function batchSubtitle(
   if (batchNeedsEditorFindClips(batch)) return 'Find clips — submit numbered folder'
   if (batchAwaitingClips(batch)) return 'Waiting — clips not approved yet'
   if (!batchReadyForEditorWork(batch)) return 'Not ready for deliverables'
-  if (videoNeedsEditorVideosSubmit(batch, videos)) return 'Upload finished videos'
+  if (
+    editorBatchKanbanPhase(batch) === 'pre_split' &&
+    videoNeedsEditorVideosSubmit(batch, videos)
+  ) {
+    return 'Upload finished videos'
+  }
   const work = filterVideosForEditorKanban(batch, videos)
   const prod = work.filter(editorNeedsProductionWork).length
   if (prod > 0) return `${prod} in production`
@@ -244,8 +261,12 @@ export function editorBatchPhaseLabel(
   if (batchNeedsEditorFindClips(batch)) return 'Your turn — find clips'
   if (batchAwaitingClips(batch)) return 'Waiting on clips / client'
   if (!batchReadyForEditorWork(batch)) return 'Not ready'
-  if (!batch.editorDeliverablesDriveUrl?.trim())
+  if (
+    editorBatchKanbanPhase(batch) === 'pre_split' &&
+    videoNeedsEditorVideosSubmit(batch, vs)
+  ) {
     return 'Your turn — upload production files'
+  }
   if (vs.some(videoEditorQaReturn)) return 'Your turn — QA fixes'
   if (vs.some(editorNeedsProductionWork)) return 'Your turn — production'
   if (vs.length > 0 && vs.every((v) => v.owner !== 'editor'))

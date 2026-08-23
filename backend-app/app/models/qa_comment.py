@@ -2,6 +2,8 @@
 
 import uuid
 
+from sqlalchemy import Column
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field
 
 from app.db.base import Base
@@ -20,4 +22,8 @@ class QaComment(Base, table=True):
     author_user_id: uuid.UUID | None = Field(default=None, foreign_key="users.id")
     at_seconds: int | None = Field(default=None)
     body: str = Field()
+    attachments: list[dict] = Field(
+        default_factory=list,
+        sa_column=Column(JSONB, nullable=False, server_default="[]"),
+    )
     deprecated: bool = Field(default=False)

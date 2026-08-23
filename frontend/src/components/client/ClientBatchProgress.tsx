@@ -2,27 +2,31 @@ import { Check, Circle } from 'lucide-react'
 import type { AdminBatchFolder } from '@/types/pathB'
 import { batchNeedsClientIntake } from '@/lib/clientBoard'
 
-const STEPS = ['Kickoff', 'Clip selection', 'Production', 'Your review', 'Published']
+const STEPS = ['Upload clips', 'Production', 'Internal QA', 'Your review', 'Published']
 
 function currentStep(batch: AdminBatchFolder): number {
   if (batch.status === 'completed' || batch.pipelineStage === 'completed') return 4
   if (batch.pipelineStage === 'scheduling') return 4
   if (batch.pipelineStage === 'client_qa') return 3
   if (
+    ['smm_qa', 'editor_fix', 'revision_via_smm'].includes(
+      batch.pipelineStage ?? '',
+    )
+  ) {
+    return 2
+  }
+  if (
     [
       'pre_split_production',
       'clips_ready_intake',
       'production',
-      'smm_qa',
-      'editor_fix',
-      'revision_via_smm',
     ].includes(
       batch.pipelineStage ?? '',
     ) ||
     batch.clipReviewPhase === 'approved' ||
     batch.editorDeliverablesDriveUrl?.trim()
   ) {
-    return 2
+    return 1
   }
   if (
     ['clips_identifying', 'clip_client_review', 'idea_research', 'idea_review'].includes(

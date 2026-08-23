@@ -114,6 +114,7 @@ export function DeliverableSummaryPanel({
     : getMediaEntry(batch.id, 'thumbnails', deliverableIndex)
   const studioVideo = studioMediaSlot(ticket, 'video')
   const studioThumbnail = studioMediaSlot(ticket, 'thumbnail')
+  const studioSourceClip = studioMediaSlot(ticket, 'source_clip')
 
   const rawUrl = batch.sourceMediaUrl?.trim() || batch.footageUrl?.trim()
   // A clips-ready batch never has raw footage — the client hands over finished
@@ -129,12 +130,12 @@ export function DeliverableSummaryPanel({
   const sectionStatus = useMemo(
     (): Record<DeliverableSummarySection, DeliverableAccordionStatus | undefined> => ({
       raw: rawUrl ? 'info' : 'missing',
-      clip: clipEntry ? 'ready' : 'missing',
+      clip: clipEntry || studioSourceClip ? 'ready' : 'missing',
       video: videoReady ? 'ready' : 'missing',
       thumbnail: thumbnailReady ? 'ready' : 'missing',
       title: titleReady ? 'ready' : 'missing',
     }),
-    [rawUrl, clipEntry, videoReady, thumbnailReady, titleReady],
+    [rawUrl, clipEntry, studioSourceClip, videoReady, thumbnailReady, titleReady],
   )
 
   function setSectionOpen(section: DeliverableSummarySection, open: boolean) {
@@ -212,7 +213,19 @@ export function DeliverableSummaryPanel({
           setSectionOpen('clip', open)
         }}
       >
-        {clipEntry ? (
+        {studioSourceClip ? (
+          <div className="space-y-3">
+            <p className="text-muted-foreground text-xs">
+              {studioSourceClip.name} · Private Studio source
+            </p>
+            <StudioMediaPreview
+              assetId={studioSourceClip.assetId}
+              fileName={studioSourceClip.name}
+              kind="video"
+              layout="landscape"
+            />
+          </div>
+        ) : clipEntry ? (
           <div className="space-y-3">
             <p className="text-muted-foreground text-xs">{clipEntry.name}</p>
             <DriveVideoPreview

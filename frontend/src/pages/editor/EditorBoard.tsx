@@ -6,7 +6,6 @@ import { EditorBatchFolderRow } from '@/components/editor/EditorBatchFolderRow'
 import { BatchOwnershipControls } from '@/components/path-b/BatchOwnershipControls'
 import { EditorPathBVideoKanban } from '@/components/editor/EditorPathBVideoKanban'
 import { EditorProductionModal } from '@/components/editor/EditorProductionModal'
-import { EditorQaFixModal } from '@/components/editor/EditorQaFixModal'
 import { EditorProductionHandoff } from '@/components/editor/EditorProductionHandoff'
 import { FindClipsModal } from '@/components/path-b'
 import {
@@ -84,6 +83,9 @@ export function EditorBoard() {
       .filter((ticket) => ticket.deliverableIndex != null && ticket.deliverableIndex > 0)
       .map((ticket) => toEditorPathBVideoCard(ticket, selectedBatch))
   }, [selectedBatch, selectedBatchTickets])
+  const hasEditorProductionWork = preDeliverablesVideos.some(
+    editorNeedsProductionWork,
+  )
 
   const attention = useMemo(
     () => listEditorAttention(editorBatches, videos, clientNameById),
@@ -136,7 +138,7 @@ export function EditorBoard() {
           } else if (item.kind === 'pre_split_gate' || item.kind === 'submit_deliverables') {
             navigate(`/editor/batches/${item.batchId}/clips`)
           } else if (item.kind === 'qa_fix' && item.videoId) {
-            setActiveVideoId(item.videoId)
+            navigate(`/editor/revisions/${item.videoId}`)
           } else if (item.kind === 'production') {
             const batch = editorBatches.find((b) => b.id === item.batchId)
             if (!batch) return
@@ -174,7 +176,7 @@ export function EditorBoard() {
             />
           </div>
 
-          {batchReadyForEditorWork(selectedBatch) && preDeliverablesVideos.length > 0 ? (
+          {batchReadyForEditorWork(selectedBatch) && hasEditorProductionWork ? (
             <EditorProductionHandoff
               batch={selectedBatch}
               videos={preDeliverablesVideos}
@@ -192,7 +194,14 @@ export function EditorBoard() {
               onOpenGate={() => {
                 navigate(`/editor/batches/${selectedBatch.id}/clips`)
               }}
-              onOpenVideo={setActiveVideoId}
+              onOpenVideo={(videoId) => {
+                const card = batchVideos.find((video) => video.id === videoId)
+                if (card && videoEditorQaReturn(card)) {
+                  navigate(`/editor/revisions/${videoId}`)
+                  return
+                }
+                setActiveVideoId(videoId)
+              }}
             />
           ) : batchAwaitingClips(selectedBatch) ? (
             <p className="text-muted-foreground border-border rounded-xl border border-dashed px-4 py-8 text-center text-sm">
@@ -215,18 +224,6 @@ export function EditorBoard() {
           open={findClipsOpen}
           onClose={() => {
             setFindClipsOpen(false)
-          }}
-        />
-      ) : null}
-
-      {activeCard && selectedBatch && videoEditorQaReturn(activeCard) ? (
-        <EditorQaFixModal
-          batch={selectedBatch}
-          clientName={clientName}
-          card={activeCard}
-          open={activeVideoId === activeCard.id}
-          onClose={() => {
-            setActiveVideoId(null)
           }}
         />
       ) : null}

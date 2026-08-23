@@ -36,7 +36,13 @@ export type SmmBatchKanbanPhase = 'identifying' | 'pre_split' | 'post_split'
 
 export function smmBatchKanbanPhase(batch: AdminBatchFolder): SmmBatchKanbanPhase {
   if (batchNeedsSmmFindClips(batch)) return 'identifying'
-  if (!batch.editorDeliverablesDriveUrl?.trim()) return 'pre_split'
+  if (
+    ['pre_split_production', 'clips_ready_intake'].includes(
+      batch.pipelineStage ?? '',
+    )
+  ) {
+    return 'pre_split'
+  }
   return 'post_split'
 }
 

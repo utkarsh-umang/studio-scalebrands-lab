@@ -9,6 +9,7 @@ import { AdminWorkspace } from '@/pages/admin/AdminWorkspace'
 import { EditorBoard } from '@/pages/editor/EditorBoard'
 import { EditorCompleted } from '@/pages/editor/EditorCompleted'
 import { EditorLayout } from '@/pages/editor/EditorLayout'
+import { EditorRevisionPage } from '@/pages/editor/EditorRevisionPage'
 import { ClientAllWork } from '@/pages/client/ClientAllWork'
 import { ClientBoard } from '@/pages/client/ClientBoard'
 import { ClientLayout } from '@/pages/client/ClientLayout'
@@ -18,6 +19,7 @@ import { RootRedirect } from '@/pages/RootRedirect'
 import { SmmBoard } from '@/pages/smm/SmmBoard'
 import { SmmCompleted } from '@/pages/smm/SmmCompleted'
 import { SmmLayout } from '@/pages/smm/SmmLayout'
+import { SmmQaReviewPage } from '@/pages/smm/SmmQaReviewPage'
 import { ClipsWorkspacePage } from '@/pages/shared/ClipsWorkspacePage'
 import { Navigate, Route, Routes } from 'react-router-dom'
 
@@ -40,6 +42,7 @@ function App() {
           <Route index element={<Navigate to="board" replace />} />
           <Route path="board" element={<ClientBoard />} />
           <Route path="all" element={<ClientAllWork />} />
+          <Route path="review/:videoTicketId" element={<SmmQaReviewPage mode="client" />} />
           <Route path="batches/:batchId/clips" element={<ClipsWorkspacePage />} />
           <Route path="overview" element={<Navigate to="/client/board" replace />} />
           <Route path="batches" element={<Navigate to="/client/board" replace />} />
@@ -64,6 +67,7 @@ function App() {
           <Route path="board" element={<EditorBoard />} />
           <Route path="completed" element={<EditorCompleted />} />
           <Route path="batches/:batchId/clips" element={<ClipsWorkspacePage />} />
+          <Route path="revisions/:videoTicketId" element={<EditorRevisionPage />} />
           <Route path="overview" element={<Navigate to="/editor/board" replace />} />
           <Route path="tasks" element={<Navigate to="/editor/board" replace />} />
           <Route path="qa" element={<Navigate to="/editor/board" replace />} />
@@ -89,7 +93,7 @@ function App() {
           <Route path="titles" element={<Navigate to="/smm/board" replace />} />
           <Route path="titles/:batchId" element={<Navigate to="/smm/board" replace />} />
           <Route path="qa" element={<Navigate to="/smm/board" replace />} />
-          <Route path="qa/:taskId" element={<Navigate to="/smm/board" replace />} />
+          <Route path="qa/:videoTicketId" element={<SmmQaReviewPage />} />
           <Route path="scheduling" element={<Navigate to="/smm/board" replace />} />
           <Route
             path="scheduling/:batchId"

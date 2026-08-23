@@ -14,6 +14,7 @@ from app.models.enums import (
 from app.services.path_b_transitions import (
     apply_clips_ready_intake,
     apply_source_media_intake,
+    apply_uploaded_clips_intake,
     create_pre_split_gate_ticket,
     stage_label,
     video_state_for_stage,
@@ -76,4 +77,23 @@ def test_apply_clips_ready_intake_fields() -> None:
     assert batch.clips_folder_url == "https://drive.google.com/drive/folders/x"
     assert batch.clip_review_phase == BatchClipReviewPhase.approved
     assert batch.video_count == 4
+    assert batch.pipeline_stage == PipelineStage.production
+
+
+def test_apply_uploaded_clips_intake_has_no_drive_dependency() -> None:
+    batch = Batch(
+        client_id=uuid4(),
+        batch_number=4,
+        title="Direct uploads",
+        status=BatchStatus.active,
+        pipeline_stage=PipelineStage.intake_pending,
+        source_media_url="https://example.com/old-source",
+        clips_folder_url="https://drive.google.com/drive/folders/old",
+    )
+    apply_uploaded_clips_intake(batch, 7)
+    assert batch.intake_path == BatchIntakePath.clips_ready
+    assert batch.source_media_url is None
+    assert batch.clips_folder_url is None
+    assert batch.clip_review_phase == BatchClipReviewPhase.approved
+    assert batch.video_count == 7
     assert batch.pipeline_stage == PipelineStage.production

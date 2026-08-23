@@ -6,4 +6,5 @@ export enum MediaAssetKind {
     SOURCE_CLIP = 'source_clip',
     VIDEO = 'video',
     THUMBNAIL = 'thumbnail',
+    QA_ATTACHMENT = 'qa_attachment',
 }

@@ -14,6 +14,8 @@ from app.schemas.clips import (
     RejectBatchClipsRequest,
 )
 from app.schemas.intake import (
+    PrepareSourceClipsRequest,
+    PrepareSourceClipsResponse,
     SubmitBatchIntakeRequest,
     SubmitBatchIntakeResponse,
     SubmitClientThumbnailsRequest,
@@ -21,6 +23,40 @@ from app.schemas.intake import (
 from app.services import clips_service, intake_service
 
 router = APIRouter(prefix="/client", tags=["client"])
+
+
+@router.post(
+    "/batches/{batch_id}/source-clips/prepare",
+    response_model=PrepareSourceClipsResponse,
+)
+async def prepare_source_clip_uploads(
+    batch_id: UUID,
+    body: PrepareSourceClipsRequest,
+    current_user: Annotated[CurrentUser, Depends(require_roles("client"))],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> PrepareSourceClipsResponse:
+    return await intake_service.prepare_source_clip_uploads(
+        session,
+        current_user,
+        batch_id,
+        body.files,
+    )
+
+
+@router.post(
+    "/batches/{batch_id}/source-clips/finalize",
+    response_model=SubmitBatchIntakeResponse,
+)
+async def finalize_source_clip_uploads(
+    batch_id: UUID,
+    current_user: Annotated[CurrentUser, Depends(require_roles("client"))],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> SubmitBatchIntakeResponse:
+    return await intake_service.finalize_source_clip_uploads(
+        session,
+        current_user,
+        batch_id,
+    )
 
 
 @router.post(

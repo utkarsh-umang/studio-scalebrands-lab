@@ -93,6 +93,7 @@ class MediaAssetKind(str, Enum):
     source_clip = "source_clip"
     video = "video"
     thumbnail = "thumbnail"
+    qa_attachment = "qa_attachment"
 
 
 class MediaAssetStatus(str, Enum):

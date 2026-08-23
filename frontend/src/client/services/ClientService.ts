@@ -5,6 +5,8 @@
 import type { ApproveBatchClipsRequest } from '../models/ApproveBatchClipsRequest';
 import type { BatchVideosResponse } from '../models/BatchVideosResponse';
 import type { ClientQaRequest } from '../models/ClientQaRequest';
+import type { PrepareSourceClipsRequest } from '../models/PrepareSourceClipsRequest';
+import type { PrepareSourceClipsResponse } from '../models/PrepareSourceClipsResponse';
 import type { ProductionTicketResponse } from '../models/ProductionTicketResponse';
 import type { QaTicketResponse } from '../models/QaTicketResponse';
 import type { RejectBatchClipsRequest } from '../models/RejectBatchClipsRequest';
@@ -16,6 +18,50 @@ import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class ClientService {
+    /**
+     * Prepare Source Clip Uploads
+     * @param batchId
+     * @param requestBody
+     * @returns PrepareSourceClipsResponse Successful Response
+     * @throws ApiError
+     */
+    public static prepareSourceClipUploadsApiV1ClientBatchesBatchIdSourceClipsPreparePost(
+        batchId: string,
+        requestBody: PrepareSourceClipsRequest,
+    ): CancelablePromise<PrepareSourceClipsResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/client/batches/{batch_id}/source-clips/prepare',
+            path: {
+                'batch_id': batchId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Finalize Source Clip Uploads
+     * @param batchId
+     * @returns SubmitBatchIntakeResponse Successful Response
+     * @throws ApiError
+     */
+    public static finalizeSourceClipUploadsApiV1ClientBatchesBatchIdSourceClipsFinalizePost(
+        batchId: string,
+    ): CancelablePromise<SubmitBatchIntakeResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/client/batches/{batch_id}/source-clips/finalize',
+            path: {
+                'batch_id': batchId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
     /**
      * Submit Batch Intake
      * @param batchId

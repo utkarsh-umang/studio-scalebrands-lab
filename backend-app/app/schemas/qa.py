@@ -26,10 +26,18 @@ class SubmitSmmQaRequest(CamelModel):
 
 class AppendQaCommentRequest(CamelModel):
     body: str = Field(min_length=1)
+    at_seconds: int | None = Field(default=None, alias="atSeconds", ge=0)
+    attachment_asset_ids: list[UUID] = Field(
+        default_factory=list,
+        alias="attachmentAssetIds",
+        max_length=4,
+    )
 
 
 class ResubmitToSmmQaRequest(CamelModel):
-    bump_video_version: bool = Field(default=True, alias="bumpVideoVersion")
+    # Retained in the API shape for older clients. Revision resubmission now
+    # requires a completed replacement upload and never fabricates a version.
+    bump_video_version: bool = Field(default=False, alias="bumpVideoVersion")
 
 
 class QaTicketResponse(CamelModel):

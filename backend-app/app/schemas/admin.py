@@ -143,7 +143,6 @@ class CreateBatchRequest(BaseModel):
 
     title: str = Field(min_length=1, max_length=512)
     credit_cost: int = Field(alias="creditCost", gt=0)
-    footage_url: str | None = Field(default=None, alias="footageUrl", max_length=2048)
 
 
 class AdminBatchFolderResponse(CamelModel):
@@ -193,6 +192,12 @@ class CreditHistoryResponse(CamelModel):
     items: list[CreditAdjustmentDto] = []
 
 
+class QaCommentAttachmentDto(CamelModel):
+    asset_id: UUID
+    file_name: str
+    content_type: str
+
+
 class QaCommentDto(CamelModel):
     id: str
     slot: str
@@ -201,6 +206,7 @@ class QaCommentDto(CamelModel):
     author_role: str
     at_seconds: int | None = None
     body: str
+    attachments: list[QaCommentAttachmentDto] = Field(default_factory=list)
     created_at: str
     deprecated: bool = False
 

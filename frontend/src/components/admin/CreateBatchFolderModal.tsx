@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { X } from 'lucide-react'
+import { Users, X } from 'lucide-react'
 import { useTheme } from '@/theme'
 import type { AdminClientProfile } from '@/types/pathB'
+import { apiErrorMessage } from '@/lib/apiError'
 
 type Props = {
   open: boolean
@@ -11,9 +12,8 @@ type Props = {
   onCreate: (input: {
     clientId: string
     title: string
-    footageUrl?: string
     creditCost: number
-  }) => void
+  }) => Promise<void>
 }
 
 export function CreateBatchFolderModal({
@@ -32,9 +32,9 @@ export function CreateBatchFolderModal({
     defaultClientId ?? activeClients[0]?.id ?? '',
   )
   const [title, setTitle] = useState('')
-  const [footageUrl, setFootageUrl] = useState('')
   const [creditCost, setCreditCost] = useState('6')
   const [error, setError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
 
   const selectedClient = activeClients.find((c) => c.id === clientId)
 
@@ -42,15 +42,16 @@ export function CreateBatchFolderModal({
     if (!open) return
     setClientId(defaultClientId ?? activeClients[0]?.id ?? '')
     setTitle('')
-    setFootageUrl('')
     setCreditCost('6')
     setError(null)
+    setSubmitting(false)
   }, [open, defaultClientId, activeClients])
 
   if (!open) return null
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault()
+    if (submitting) return
     if (!clientId) {
       setError('Select a client.')
       return
@@ -64,13 +65,20 @@ export function CreateBatchFolderModal({
       setError('Enter how many credits this batch will use.')
       return
     }
-    onCreate({
-      clientId,
-      title: title.trim(),
-      footageUrl: footageUrl.trim() || undefined,
-      creditCost: credits,
-    })
-    onClose()
+    setError(null)
+    setSubmitting(true)
+    try {
+      await onCreate({
+        clientId,
+        title: title.trim(),
+        creditCost: credits,
+      })
+      onClose()
+    } catch (createError) {
+      setError(apiErrorMessage(createError, 'Could not create this batch.'))
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -96,7 +104,7 @@ export function CreateBatchFolderModal({
             id="create-batch-title"
             className="text-foreground text-lg font-semibold"
           >
-            New batch folder
+            Create batch
           </h2>
           <button
             type="button"
@@ -130,17 +138,28 @@ export function CreateBatchFolderModal({
             </label>
           )}
           {selectedClient && (
-            <p className="text-muted-foreground text-xs">
-              Client balance:{' '}
-              <span className="text-foreground font-semibold tabular-nums">
-                {selectedClient.credits}
-              </span>{' '}
-              credits (debited when every clip in this batch is done)
-            </p>
+            <div className="border-border bg-muted/20 space-y-3 rounded-xl border p-3">
+              <div className="flex items-start gap-2">
+                <Users className="text-primary mt-0.5 size-3.5 shrink-0" aria-hidden />
+                <div className="min-w-0 text-xs">
+                  <p className="text-foreground font-semibold">Assigned production team</p>
+                  <p className="text-muted-foreground mt-1">
+                    Editor: <span className="text-foreground">{selectedClient.assignedEditorName}</span>
+                    {' · '}SMM: <span className="text-foreground">{selectedClient.assignedSmmName}</span>
+                  </p>
+                </div>
+              </div>
+              <p className="text-muted-foreground border-border border-t pt-3 text-xs">
+                <span className="text-foreground font-semibold tabular-nums">
+                  {selectedClient.credits}
+                </span>{' '}
+                credits available. Credits are debited when every video in the batch is complete.
+              </p>
+            </div>
           )}
           <label className="block space-y-1.5">
             <span className="text-muted-foreground text-xs font-medium">
-              Folder name
+              Batch name
             </span>
             <input
               value={title}
@@ -148,7 +167,7 @@ export function CreateBatchFolderModal({
                 setTitle(ev.target.value)
               }}
               className="border-border bg-background focus:ring-primary/25 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2"
-              placeholder="e.g. Q3 launch clips"
+              placeholder="e.g. September clipped videos"
               autoFocus={Boolean(defaultClientId)}
             />
           </label>
@@ -165,23 +184,14 @@ export function CreateBatchFolderModal({
               className="border-border bg-background focus:ring-primary/25 w-full rounded-lg border px-3 py-2 text-sm tabular-nums outline-none focus:ring-2"
             />
           </label>
-          <label className="block space-y-1.5">
-            <span className="text-muted-foreground text-xs font-medium">
-              Raw footage URL (optional)
-            </span>
-            <input
-              value={footageUrl}
-              onChange={(ev) => {
-                setFootageUrl(ev.target.value)
-              }}
-              className="border-border bg-background focus:ring-primary/25 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2"
-              placeholder="https://drive.google.com/..."
-            />
-            <span className="text-muted-foreground block text-[11px] leading-snug">
-              Internal reference only — the client still submits their podcast or clips
-              link from their dashboard to kick off the batch.
-            </span>
-          </label>
+          <div className="rounded-xl border border-blue-200 bg-blue-50/70 px-3 py-2.5">
+            <p className="text-xs font-semibold text-blue-950">What happens next</p>
+            <p className="mt-1 text-[11px] leading-relaxed text-blue-800">
+              The batch appears in the client workspace. The client uploads their clipped raw
+              videos directly to Studio, and every uploaded video becomes one production item
+              for the assigned editor.
+            </p>
+          </div>
           {error && (
             <p className="text-destructive text-xs font-medium">{error}</p>
           )}
@@ -189,18 +199,20 @@ export function CreateBatchFolderModal({
             <button
               type="button"
               onClick={onClose}
+              disabled={submitting}
               className="border-border text-foreground hover:bg-muted/40 rounded-xl border px-4 py-2 text-sm font-medium"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="text-primary-foreground rounded-xl px-4 py-2 text-sm font-semibold"
+              disabled={submitting}
+              className="text-primary-foreground rounded-xl px-4 py-2 text-sm font-semibold disabled:opacity-60"
               style={{
                 background: `linear-gradient(135deg, ${theme.colors.primary}, ${theme.colors.secondary})`,
               }}
             >
-              Create folder
+              {submitting ? 'Creating…' : 'Create batch'}
             </button>
           </div>
         </form>

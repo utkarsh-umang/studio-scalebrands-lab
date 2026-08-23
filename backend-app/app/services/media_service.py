@@ -13,7 +13,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import CurrentUser
 from app.core.config import config
 from app.db.base import utc_now
-from app.models.enums import MediaAssetKind, MediaAssetStatus, UserRole
+from app.models.enums import (
+    EmployeeKind,
+    MediaAssetKind,
+    MediaAssetStatus,
+    UserRole,
+    VideoPipelineOwner,
+)
 from app.models.media_asset import MediaAsset
 from app.models.video_ticket import VideoTicket
 from app.schemas.media import (
@@ -29,7 +35,8 @@ from app.services.object_storage_service import ObjectStorageError
 from app.services.workspace_access import assert_batch_access, assert_video_access
 
 _VIDEO_TYPES = {"video/mp4", "video/quicktime", "video/webm", "video/x-m4v"}
-_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
+_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+_QA_ATTACHMENT_MAX_BYTES = 50 * 1024 * 1024
 _SAFE_FILENAME = re.compile(r"[^A-Za-z0-9._-]+")
 
 
@@ -70,9 +77,19 @@ def _validated_content_type(kind: MediaAssetKind, filename: str, raw: str) -> st
     content_type = raw.strip().lower()
     if not content_type or content_type == "application/octet-stream":
         content_type = (mimetypes.guess_type(filename)[0] or "").lower()
-    allowed = _IMAGE_TYPES if kind == MediaAssetKind.thumbnail else _VIDEO_TYPES
+    if kind == MediaAssetKind.thumbnail:
+        allowed = _IMAGE_TYPES - {"image/gif"}
+    elif kind == MediaAssetKind.qa_attachment:
+        allowed = _IMAGE_TYPES | _VIDEO_TYPES
+    else:
+        allowed = _VIDEO_TYPES
     if content_type not in allowed:
-        expected = "an image (JPEG, PNG, or WebP)" if kind == MediaAssetKind.thumbnail else "a video (MP4, MOV, WebM, or M4V)"
+        if kind == MediaAssetKind.thumbnail:
+            expected = "an image (JPEG, PNG, or WebP)"
+        elif kind == MediaAssetKind.qa_attachment:
+            expected = "an image, GIF, or short video"
+        else:
+            expected = "a video (MP4, MOV, WebM, or M4V)"
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail={
@@ -88,7 +105,11 @@ def _assert_upload_role(user: CurrentUser, kind: MediaAssetKind) -> None:
         return
     if user.role == UserRole.employee:
         return
-    if user.role == UserRole.client and kind == MediaAssetKind.thumbnail:
+    if user.role == UserRole.client and kind in (
+        MediaAssetKind.thumbnail,
+        MediaAssetKind.source_clip,
+        MediaAssetKind.qa_attachment,
+    ):
         return
     raise HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,
@@ -104,12 +125,50 @@ async def initiate_upload(
 ) -> InitiateMediaUploadResponse:
     ticket = await assert_video_access(session, user, video_ticket_id)
     _assert_upload_role(user, payload.kind)
-    if payload.kind == MediaAssetKind.source_clip:
+    if (
+        user.role == UserRole.employee
+        and user.employee_kind == EmployeeKind.editor
+        and payload.kind in (MediaAssetKind.video, MediaAssetKind.thumbnail)
+        and ticket.pipeline_owner != VideoPipelineOwner.editor
+    ):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_409_CONFLICT,
             detail={
-                "error_code": "VALIDATION_ERROR",
-                "message": "Source clips enter Studio through the client import flow.",
+                "error_code": "CONFLICT",
+                "message": "This video is no longer with the editor.",
+            },
+        )
+    if payload.kind == MediaAssetKind.qa_attachment:
+        valid_qa_upload = (
+            user.role == UserRole.admin
+            or (
+                user.role == UserRole.employee
+                and user.employee_kind == EmployeeKind.smm
+                and ticket.pipeline_stage.value == "smm_qa"
+            )
+            or (
+                user.role == UserRole.client
+                and ticket.pipeline_stage.value == "client_qa"
+            )
+        )
+        if not valid_qa_upload:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "error_code": "CONFLICT",
+                    "message": "Review attachments can only be uploaded during an active QA review.",
+                },
+            )
+    if (
+        user.role == UserRole.client
+        and payload.kind == MediaAssetKind.source_clip
+        and ticket.pipeline_stage.value != "intake_pending"
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "error_code": "CONFLICT",
+                "message": "Source clips can only be uploaded during batch kickoff.",
             },
         )
     if ticket.deliverable_index is None or ticket.deliverable_index < 1:
@@ -129,6 +188,17 @@ async def initiate_upload(
                 "message": f"File must be larger than 0 bytes and no larger than {limit_gib:g} GiB.",
             },
         )
+    if (
+        payload.kind == MediaAssetKind.qa_attachment
+        and payload.size_bytes > _QA_ATTACHMENT_MAX_BYTES
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "error_code": "UPLOAD_SIZE_INVALID",
+                "message": "Review attachments must be 50 MB or smaller.",
+            },
+        )
 
     filename = _clean_filename(payload.filename)
     content_type = _validated_content_type(payload.kind, filename, payload.content_type)
@@ -138,7 +208,18 @@ async def initiate_upload(
             MediaAsset.kind == payload.kind,
         )
     )
-    version = int(version_result.scalar_one_or_none() or 0) + 1
+    stored_version = int(version_result.scalar_one_or_none() or 0)
+    ticket_version = 0
+    if payload.kind != MediaAssetKind.qa_attachment and isinstance(
+        ticket.asset_versions, dict
+    ):
+        raw_ticket_version = ticket.asset_versions.get(payload.kind.value)
+        if isinstance(raw_ticket_version, int) and raw_ticket_version > 0:
+            ticket_version = raw_ticket_version
+    # A ticket may already have a legacy Drive-backed version without a matching
+    # MediaAsset row. Start above both counters so its first Studio replacement
+    # is still a genuine new version.
+    version = max(stored_version, ticket_version) + 1
     asset = MediaAsset(
         batch_id=ticket.batch_id,
         video_ticket_id=ticket.id,
@@ -152,7 +233,12 @@ async def initiate_upload(
         content_type=content_type,
         expected_size_bytes=payload.size_bytes,
     )
-    segment = "videos" if payload.kind == MediaAssetKind.video else "thumbnails"
+    segment = {
+        MediaAssetKind.source_clip: "source-clips",
+        MediaAssetKind.video: "videos",
+        MediaAssetKind.thumbnail: "thumbnails",
+        MediaAssetKind.qa_attachment: "qa-attachments",
+    }[payload.kind]
     asset.object_key = (
         f"clients/{ticket.client_id}/batches/{ticket.batch_id}/{segment}/"
         f"{ticket.deliverable_index}/v{version}/{asset.id}-{filename}"
@@ -235,7 +321,7 @@ async def complete_upload(
     asset.error_message = None
     session.add(asset)
 
-    if asset.video_ticket_id is not None:
+    if asset.video_ticket_id is not None and asset.kind != MediaAssetKind.qa_attachment:
         ticket = await session.get(VideoTicket, asset.video_ticket_id, with_for_update=True)
         if ticket is not None:
             kind = asset.kind.value

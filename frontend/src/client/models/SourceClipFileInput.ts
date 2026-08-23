@@ -2,8 +2,9 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type CreateBatchRequest = {
-    title: string;
-    creditCost: number;
+export type SourceClipFileInput = {
+    filename: string;
+    contentType: string;
+    sizeBytes: number;
 };
 

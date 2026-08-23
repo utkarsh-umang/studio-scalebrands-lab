@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import CurrentUser
 from app.models.batch import Batch
 from app.models.client_profile import ClientProfile
-from app.models.enums import BatchStatus, ClientAccountStatus, EmployeeKind, UserRole
+from app.models.enums import ClientAccountStatus, EmployeeKind, UserRole
 from app.models.user import User
 from app.models.video_ticket import VideoTicket
 from app.schemas.workspace import (
@@ -22,7 +22,6 @@ from app.schemas.workspace import (
 from app.services.admin_helpers import (
     active_batch_number,
     credits_debited_total,
-    get_client_login_email,
     reserved_credits_for_client,
 )
 from app.services.workspace_access import (
@@ -175,6 +174,12 @@ async def get_client_workspace(
         session,
         [video.id for video in videos],
     )
+    # Internal SMM/editor review stays private. Client-authored comments remain
+    # visible to the client and continue to flow through to employees.
+    comments_by_ticket = {
+        ticket_id: [comment for comment in comments if comment.author_role == "client"]
+        for ticket_id, comments in comments_by_ticket.items()
+    }
     return ClientWorkspaceResponse(
         client=profiles_dto[0],
         batches=[batch_to_dto(b) for b in batches],
@@ -259,6 +264,11 @@ async def get_batch_detail(
         session,
         [video.id for video in videos],
     )
+    if user.role == UserRole.client:
+        comments_by_ticket = {
+            ticket_id: [comment for comment in comments if comment.author_role == "client"]
+            for ticket_id, comments in comments_by_ticket.items()
+        }
     return BatchDetailResponse(
         batch=batch_to_dto(batch),
         videos=_videos_to_dtos(videos, comments_by_ticket),

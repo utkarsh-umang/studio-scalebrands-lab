@@ -119,6 +119,8 @@ export function ClientBoard() {
         card?.owner === 'editor')
     ) {
       navigate(`/client/batches/${selectedBatch.id}/clips`)
+    } else if (card?.reviewKind === 'final') {
+      navigate(`/client/review/${videoId}`)
     } else {
       setOpenVideoId(videoId)
     }
@@ -160,6 +162,8 @@ export function ClientBoard() {
             const card = batch ? toClientVideoCard(video, batch) : null
             if (card?.reviewKind === 'clip') {
               navigate(`/client/batches/${video.batchId}/clips`)
+            } else if (card?.reviewKind === 'final') {
+              navigate(`/client/review/${videoId}`)
             } else {
               setOpenVideoId(videoId)
             }
@@ -228,17 +232,16 @@ export function ClientBoard() {
                     <Sparkles className="size-4.5" aria-hidden />
                   </span>
                   <h3 className="mt-5 text-base font-semibold">
-                    What happens after kickoff?
+                    What happens after upload?
                   </h3>
                   <p className="mt-2 text-xs leading-relaxed text-slate-400">
-                    Share what you already have. We&apos;ll guide the rest of the
-                    production process from here.
+                    Your clips stay private and move through one clear review flow.
                   </p>
                   <ol className="mt-6 space-y-4">
                     {[
-                      'We review your source and prepare the clips.',
-                      'Your editor produces each final video.',
-                      'You review the complete package before publishing.',
+                      'Each raw clip becomes its own editor work item.',
+                      'Your editor uploads a finished cut for internal QA.',
+                      'After QA passes, you review and comment on the video.',
                     ].map((item, index) => (
                       <li key={item} className="flex gap-3">
                         <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-[10px] font-bold text-blue-300">
@@ -252,7 +255,7 @@ export function ClientBoard() {
                   </ol>
                   <div className="mt-6 flex items-center gap-2 border-t border-white/10 pt-5 text-[10px] font-semibold uppercase tracking-[0.12em] text-blue-300">
                     <CheckCircle2 className="size-3.5" aria-hidden />
-                    No file uploads required
+                    Uploaded directly to private S3 storage
                   </div>
                 </aside>
               </div>

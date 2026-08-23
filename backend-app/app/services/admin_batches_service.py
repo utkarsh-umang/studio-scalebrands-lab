@@ -98,8 +98,6 @@ async def create_batch(
         ),
     )
     next_number = int(result.scalar_one()) + 1
-    footage = body.footage_url.strip() if body.footage_url else None
-
     batch = Batch(
         client_id=client_id,
         batch_number=next_number,
@@ -107,9 +105,14 @@ async def create_batch(
         status=BatchStatus.active,
         pipeline_stage=PipelineStage.intake_pending,
         video_count=0,
-        source_media_url=footage,
         credit_cost=body.credit_cost,
         credits_debited=False,
+        # First-client workflow defaults: the client supplies already-clipped
+        # raw videos, while Studio's SMM owns the copy and thumbnail package.
+        # Admins can still override any assignment per batch.
+        clip_owner_kind="client",
+        thumbnail_owner_kind="smm",
+        title_owner_kind="smm",
     )
     session.add(batch)
     await session.flush()

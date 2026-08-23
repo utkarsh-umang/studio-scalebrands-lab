@@ -4,5 +4,7 @@
 /* eslint-disable */
 export type AppendQaCommentRequest = {
     body: string;
+    atSeconds?: (number | null);
+    attachmentAssetIds?: Array<string>;
 };
 

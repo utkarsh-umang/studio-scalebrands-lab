@@ -25,7 +25,7 @@ export const CLIENT_BOARD_COLUMNS: {
   {
     id: 'yet_to_start',
     label: 'Yet to start',
-    hint: 'Share source or clips folder',
+    hint: 'Upload clipped raw videos',
   },
   {
     id: 'in_progress',

@@ -246,7 +246,7 @@ export function AdminClientDetail() {
                   background: `linear-gradient(135deg, ${primary}, ${secondary})`,
                 }}
               >
-                New batch folder
+                Create batch
               </button>
               <button
                 type="button"
@@ -640,17 +640,12 @@ export function AdminClientDetail() {
         onClose={() => {
           setCreateOpen(false)
         }}
-        onCreate={(input) => {
-          void createBatchMutation
-            .mutateAsync({
-              title: input.title,
-              creditCost: input.creditCost,
-              footageUrl: input.footageUrl,
-            })
-            .then((folder) => {
-              setSearchParams({ batch: folder.id })
-              setCreateOpen(false)
-            })
+        onCreate={async (input) => {
+          const folder = await createBatchMutation.mutateAsync({
+            title: input.title,
+            creditCost: input.creditCost,
+          })
+          setSearchParams({ batch: folder.id })
         }}
       />
       <BatchActivityModal

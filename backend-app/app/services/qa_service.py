@@ -1,10 +1,9 @@
 """SMM internal QA, editor resubmit (B7), and client final QA (B8)."""
 
-from typing import Any
 from uuid import UUID
 
 from fastapi import HTTPException, status
-from sqlalchemy import update
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import CurrentUser
@@ -13,12 +12,15 @@ from app.models.batch import Batch
 from app.models.enums import (
     EditorWorkflowPhase,
     EmployeeKind,
+    MediaAssetKind,
+    MediaAssetStatus,
     PipelineStage,
     QaCommentKind,
     QaMediaSlot,
     UserRole,
     VideoPipelineOwner,
 )
+from app.models.media_asset import MediaAsset
 from app.models.qa_comment import QaComment
 from app.models.video_ticket import VideoTicket
 from app.schemas.production import DeliverableReadinessDto
@@ -58,10 +60,14 @@ def _video_asset_version(ticket: VideoTicket) -> int:
 async def _qa_ticket_response(
     session: AsyncSession,
     ticket: VideoTicket,
+    user: CurrentUser,
 ) -> QaTicketResponse:
     comments = await load_qa_comments_by_ticket_ids(session, [ticket.id])
+    visible = comments.get(ticket.id, [])
+    if user.role == UserRole.client:
+        visible = [comment for comment in visible if comment.author_role == "client"]
     return QaTicketResponse(
-        ticket=video_to_dto(ticket, qa_comments=comments.get(ticket.id, [])),
+        ticket=video_to_dto(ticket, qa_comments=visible),
     )
 
 
@@ -344,14 +350,50 @@ async def append_qa_comment(
             },
         )
 
+    attachments: list[dict[str, str]] = []
+    if payload.attachment_asset_ids:
+        result = await session.execute(
+            select(MediaAsset).where(MediaAsset.id.in_(payload.attachment_asset_ids))
+        )
+        assets = {asset.id: asset for asset in result.scalars().all()}
+        for asset_id in payload.attachment_asset_ids:
+            asset = assets.get(asset_id)
+            if (
+                asset is None
+                or asset.video_ticket_id != ticket.id
+                or asset.kind != MediaAssetKind.qa_attachment
+                or asset.status != MediaAssetStatus.ready
+                or asset.uploaded_by_user_id != user.id
+            ):
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail={
+                        "error_code": "VALIDATION_ERROR",
+                        "message": "Every attachment must be a completed upload for this review.",
+                    },
+                )
+            attachments.append(
+                {
+                    "assetId": str(asset.id),
+                    "fileName": asset.original_filename,
+                    "contentType": asset.content_type,
+                }
+            )
+
     comment = QaComment(
         video_ticket_id=ticket.id,
         slot=QaMediaSlot.video,
         asset_version=_video_asset_version(ticket),
-        kind=QaCommentKind.general,
+        kind=(
+            QaCommentKind.timestamp
+            if payload.at_seconds is not None
+            else QaCommentKind.general
+        ),
         author_role=author_role,
         author_user_id=user.id,
+        at_seconds=payload.at_seconds,
         body=trimmed,
+        attachments=attachments,
         deprecated=False,
     )
     session.add(comment)
@@ -365,8 +407,11 @@ async def append_qa_comment(
     await session.refresh(comment)
 
     comments = await load_qa_comments_by_ticket_ids(session, [ticket.id])
+    visible = comments.get(ticket.id, [])
+    if user.role == UserRole.client:
+        visible = [row for row in visible if row.author_role == "client"]
     return AppendQaCommentResponse(
-        ticket=video_to_dto(ticket, qa_comments=comments.get(ticket.id, [])),
+        ticket=video_to_dto(ticket, qa_comments=visible),
         comment=qa_comment_to_dto(comment),
     )
 
@@ -396,16 +441,30 @@ async def submit_smm_qa_review(
     timestamp_flags = payload.timestamp_flags or []
 
     if payload.action == "send_back":
-        if not _has_send_back_feedback(
+        has_payload_feedback = _has_send_back_feedback(
             comment_body=comment_body,
             timestamp_flags=timestamp_flags,
             general_note=general_note,
-        ):
+        )
+        existing_comment = None
+        if not has_payload_feedback:
+            existing_comment = await session.scalar(
+                select(QaComment.id)
+                .where(
+                    QaComment.video_ticket_id == ticket.id,
+                    QaComment.slot == QaMediaSlot.video,
+                    QaComment.asset_version == _video_asset_version(ticket),
+                    QaComment.author_role == "smm",
+                    QaComment.deprecated.is_(False),
+                )
+                .limit(1)
+            )
+        if not has_payload_feedback and existing_comment is None:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail={
                     "error_code": "VALIDATION_ERROR",
-                    "message": "Send back requires commentBody, timestampFlags, or generalNote",
+                    "message": "Add at least one review comment before sending this video back.",
                 },
             )
         _apply_smm_qa_send_back(
@@ -445,6 +504,20 @@ async def submit_smm_qa_review(
                 },
             )
         _apply_smm_qa_approve(ticket)
+        # Notes left during an approved internal pass remain available to the
+        # team as history, but must not look like unresolved editor feedback if
+        # the client later requests a separate revision on this version.
+        await session.execute(
+            update(QaComment)
+            .where(
+                QaComment.video_ticket_id == ticket.id,
+                QaComment.slot == QaMediaSlot.video,
+                QaComment.asset_version == _video_asset_version(ticket),
+                QaComment.author_role == "smm",
+                QaComment.deprecated.is_(False),
+            )
+            .values(deprecated=True)
+        )
     else:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -483,7 +556,7 @@ async def submit_smm_qa_review(
 
     await session.flush()
     await session.refresh(ticket)
-    return await _qa_ticket_response(session, ticket)
+    return await _qa_ticket_response(session, ticket, user)
 
 
 async def resubmit_editor_video(
@@ -496,19 +569,49 @@ async def resubmit_editor_video(
     ticket, batch = await _get_ticket_and_batch(session, user, video_ticket_id)
     _assert_in_editor_fix(ticket)
 
-    if payload.bump_video_version:
-        versions: dict[str, Any] = dict(ticket.asset_versions or {})
-        next_version = _video_asset_version(ticket) + 1
-        versions["video"] = next_version
-        ticket.asset_versions = versions
-
-        await session.execute(
-            update(QaComment)
-            .where(QaComment.video_ticket_id == ticket.id)
-            .where(QaComment.slot == QaMediaSlot.video)
-            .where(QaComment.deprecated.is_(False))
-            .values(deprecated=True),
+    current_version = _video_asset_version(ticket)
+    feedback_version = await session.scalar(
+        select(QaComment.asset_version)
+        .where(
+            QaComment.video_ticket_id == ticket.id,
+            QaComment.slot == QaMediaSlot.video,
+            QaComment.deprecated.is_(False),
         )
+        .order_by(QaComment.asset_version.desc())
+        .limit(1)
+    )
+    replacement_asset = await session.scalar(
+        select(MediaAsset.id)
+        .where(
+            MediaAsset.video_ticket_id == ticket.id,
+            MediaAsset.kind == MediaAssetKind.video,
+            MediaAsset.status == MediaAssetStatus.ready,
+            MediaAsset.is_current.is_(True),
+            MediaAsset.version == current_version,
+        )
+        .limit(1)
+    )
+    if (
+        feedback_version is None
+        or current_version <= feedback_version
+        or replacement_asset is None
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "error_code": "VALIDATION_ERROR",
+                "message": "Upload a completed replacement video before resubmitting to SMM QA.",
+            },
+        )
+
+    await session.execute(
+        update(QaComment)
+        .where(QaComment.video_ticket_id == ticket.id)
+        .where(QaComment.slot == QaMediaSlot.video)
+        .where(QaComment.asset_version < current_version)
+        .where(QaComment.deprecated.is_(False))
+        .values(deprecated=True),
+    )
 
     apply_video_transition(
         ticket,
@@ -527,14 +630,17 @@ async def resubmit_editor_video(
         batch_id=batch.id,
         actor=user,
         action="editor_resubmitted",
-        summary=f"Editor resubmitted video #{ticket.deliverable_index} for SMM QA",
+        summary=(
+            f"Editor uploaded video v{current_version} and resubmitted "
+            f"video #{ticket.deliverable_index} for SMM QA"
+        ),
         video_ticket_id=ticket.id,
         deliverable_index=ticket.deliverable_index,
     )
 
     await session.flush()
     await session.refresh(ticket)
-    return await _qa_ticket_response(session, ticket)
+    return await _qa_ticket_response(session, ticket, user)
 
 
 async def submit_client_qa(
@@ -552,16 +658,30 @@ async def submit_client_qa(
     timestamp_flags = payload.timestamp_flags or []
 
     if payload.action == "reject":
-        if not _has_send_back_feedback(
+        has_payload_feedback = _has_send_back_feedback(
             comment_body=comment_body,
             timestamp_flags=timestamp_flags,
             general_note=general_note,
-        ):
+        )
+        existing_comment = None
+        if not has_payload_feedback:
+            existing_comment = await session.scalar(
+                select(QaComment.id)
+                .where(
+                    QaComment.video_ticket_id == ticket.id,
+                    QaComment.slot == QaMediaSlot.video,
+                    QaComment.asset_version == _video_asset_version(ticket),
+                    QaComment.author_role == "client",
+                    QaComment.deprecated.is_(False),
+                )
+                .limit(1)
+            )
+        if not has_payload_feedback and existing_comment is None:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail={
                     "error_code": "VALIDATION_ERROR",
-                    "message": "Reject requires commentBody, timestampFlags, or generalNote",
+                    "message": "Add at least one review comment before requesting changes.",
                 },
             )
         apply_video_transition(
@@ -646,7 +766,7 @@ async def submit_client_qa(
 
     await session.flush()
     await session.refresh(ticket)
-    return await _qa_ticket_response(session, ticket)
+    return await _qa_ticket_response(session, ticket, user)
 
 
 async def triage_client_revision(
@@ -665,7 +785,9 @@ async def triage_client_revision(
             PipelineStage.editor_fix,
             released_to_client_final_review=False,
         )
-        ticket.last_revision_requested_by = "smm"
+        # Preserve the source so the editor workspace can state loudly whether
+        # the request came from the client or internal QA.
+        ticket.last_revision_requested_by = "client"
         ticket.editor_workflow_phase = None
     elif payload.route == "smm_assets":
         apply_video_transition(
@@ -692,4 +814,4 @@ async def triage_client_revision(
 
     await session.flush()
     await session.refresh(ticket)
-    return await _qa_ticket_response(session, ticket)
+    return await _qa_ticket_response(session, ticket, user)

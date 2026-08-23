@@ -74,8 +74,8 @@ export function EditorProductionHandoff({
               Source access
             </span>
           </div>
-          <p className="mt-3 text-sm font-bold text-slate-950">Clips folder linked</p>
-          <p className="mt-1 text-[11px] text-slate-500">Available in the production workspace</p>
+          <p className="mt-3 text-sm font-bold text-slate-950">Stored in Studio</p>
+          <p className="mt-1 text-[11px] text-slate-500">Private source previews are ready</p>
         </div>
         <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 shadow-sm">
           <div className="flex items-center gap-2 text-amber-700">

@@ -147,7 +147,7 @@ export function ClientCardDetailModal({
           )
         }}
         onAddComment={(videoId, body) => {
-          appendClientQaComment.mutate({ videoTicketId: videoId, body })
+          appendClientQaComment.mutate({ videoTicketId: videoId, body: { body } })
         }}
       />
     )

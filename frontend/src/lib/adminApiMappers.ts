@@ -141,6 +141,11 @@ export function mapVideoTicket(api: AdminVideoTicketResponse): AdminVideoTicket 
         authorRole: c.authorRole as QaComment['authorRole'],
         atSeconds: c.atSeconds ?? undefined,
         body: c.body,
+        attachments: c.attachments?.map((attachment) => ({
+          assetId: attachment.assetId,
+          fileName: attachment.fileName,
+          contentType: attachment.contentType,
+        })),
         createdAt: c.createdAt,
         deprecated: c.deprecated ?? false,
       }),

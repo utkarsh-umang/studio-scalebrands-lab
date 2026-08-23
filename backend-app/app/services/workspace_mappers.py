@@ -115,6 +115,7 @@ def qa_comment_to_dto(comment: QaComment) -> QaCommentDto:
         author_role=comment.author_role,
         at_seconds=comment.at_seconds,
         body=comment.body,
+        attachments=comment.attachments,
         created_at=_iso_datetime(comment.created_at) or "",
         deprecated=comment.deprecated,
     )
