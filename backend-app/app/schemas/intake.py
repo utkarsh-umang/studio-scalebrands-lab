@@ -25,6 +25,7 @@ class SourceClipFileInput(CamelModel):
 
 class PrepareSourceClipsRequest(CamelModel):
     files: list[SourceClipFileInput]
+    append: bool = False
 
 
 class PreparedSourceClipUpload(CamelModel):

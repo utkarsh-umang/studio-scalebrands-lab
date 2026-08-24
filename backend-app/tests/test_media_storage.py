@@ -73,7 +73,9 @@ async def test_editor_upload_is_verified_and_becomes_current(
     body = initiated.json()
     asset_id = body["asset"]["id"]
     assert body["asset"]["status"] == "pending"
-    assert body["asset"]["version"] == 1
+    # The split ticket starts with a legacy Drive-backed v1, so its first
+    # Studio-owned replacement must advance rather than overwrite that version.
+    assert body["asset"]["version"] == 2
     assert body["uploadMethod"] == "PUT"
     assert body["uploadUrl"] == "https://storage.example.test/upload"
     assert body["uploadHeaders"]["Content-Type"] == "video/mp4"

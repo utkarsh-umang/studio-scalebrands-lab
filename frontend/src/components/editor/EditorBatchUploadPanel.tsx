@@ -1,14 +1,17 @@
-import { ArrowRight, CheckCircle2, FileVideo2, Image, LoaderCircle, UploadCloud } from 'lucide-react'
+import { ArrowRight, CheckCircle2, FileVideo2, Image, LoaderCircle, UploadCloud, Wrench } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import type { AdminBatchFolder, AdminVideoTicket } from '@/types/pathB'
 import { useMediaUploadMutation } from '@/hooks/api/media/useMediaUploadMutation'
 import { apiErrorMessage } from '@/lib/apiError'
 import { studioMediaSlot } from '@/lib/studioMedia'
 import { useSubmitToSmmQaMutation } from '@/hooks/api/pathB/useProductionMutations'
+import { videoEditorQaReturn } from '@/lib/editorBoard'
 
 type RowProps = {
   batch: AdminBatchFolder
   ticket: AdminVideoTicket
   includeThumbnail: boolean
+  onOpenRevision: (ticketId: string) => void
 }
 
 function UploadButton({
@@ -69,7 +72,15 @@ function UploadButton({
   )
 }
 
-function UploadRow({ batch, ticket, includeThumbnail }: RowProps) {
+function ticketStatus(ticket: AdminVideoTicket): string {
+  if (ticket.owner === 'smm') return 'With SMM QA'
+  if (ticket.owner === 'client') return 'With client'
+  if (ticket.owner === 'scheduling') return 'Scheduling'
+  if (ticket.owner === 'done') return 'Complete'
+  return ticket.stageLabel
+}
+
+function UploadRow({ batch, ticket, includeThumbnail, onOpenRevision }: RowProps) {
   const video = studioMediaSlot(ticket, 'video')
   const thumbnail = studioMediaSlot(ticket, 'thumbnail')
   const submitToSmmQa = useSubmitToSmmQaMutation(ticket.id)
@@ -81,25 +92,37 @@ function UploadRow({ batch, ticket, includeThumbnail }: RowProps) {
       : null,
   ].filter(Boolean)
   const stillWithEditor = ticket.owner === 'editor'
+  const needsRevision = videoEditorQaReturn(ticket)
   const canSendToQa = stillWithEditor && missingEditorAssets.length === 0
   return (
-    <div className="grid gap-3 border-b border-slate-100 px-4 py-4 last:border-b-0 md:grid-cols-[68px_minmax(0,1fr)_auto] md:items-center md:px-5">
-      <span className="text-[11px] font-bold tabular-nums text-slate-400">
-        #{String(ticket.deliverableIndex ?? '—').padStart(2, '0')}
-      </span>
-      <div className="min-w-0">
-        <p className="truncate text-xs font-semibold text-slate-900">{ticket.title}</p>
-        <p className="mt-1 text-[10px] text-slate-500">
-          {video ? `Video v${video.version ?? 1} stored in Studio` : 'Finished video required'}
-          {includeThumbnail
-            ? thumbnail
-              ? ` · Thumbnail v${thumbnail.version ?? 1} stored`
-              : ' · Thumbnail required'
-            : ''}
-        </p>
+    <div className="space-y-3 border-b border-slate-100 px-4 py-4 last:border-b-0 md:px-5">
+      <div className="flex min-w-0 items-start gap-3">
+        <span className="mt-0.5 shrink-0 text-[11px] font-bold tabular-nums text-slate-400">
+          #{String(ticket.deliverableIndex ?? '—').padStart(2, '0')}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-xs font-semibold text-slate-900">{ticket.title}</p>
+          <p className="mt-1 text-[10px] text-slate-500">
+            {video ? `Video v${video.version ?? 1} stored` : 'Finished video required'}
+            {includeThumbnail
+              ? thumbnail
+                ? ` · Thumbnail v${thumbnail.version ?? 1} stored`
+                : ' · Thumbnail required'
+              : ''}
+          </p>
+        </div>
       </div>
-      <div className="flex flex-wrap items-start gap-2 md:justify-end">
-        {stillWithEditor ? (
+      <div className="flex flex-wrap items-start gap-2">
+        {needsRevision ? (
+          <button
+            type="button"
+            onClick={() => onOpenRevision(ticket.id)}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 px-3 py-2 text-[11px] font-semibold text-white transition-colors hover:bg-amber-600"
+          >
+            <Wrench className="size-3.5" aria-hidden />
+            Open QA fix
+          </button>
+        ) : stillWithEditor ? (
           <>
             <UploadButton ticket={ticket} kind="video" ready={Boolean(video)} />
             {includeThumbnail ? (
@@ -125,14 +148,14 @@ function UploadRow({ batch, ticket, includeThumbnail }: RowProps) {
             </button>
           </>
         ) : (
-          <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 py-2 text-[11px] font-semibold text-emerald-700">
+          <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-2 text-[11px] font-semibold text-slate-700">
             <CheckCircle2 className="size-3.5" aria-hidden />
-            With SMM QA
+            {ticketStatus(ticket)}
           </span>
         )}
       </div>
       {submitToSmmQa.isError ? (
-        <p className="text-xs text-red-600 md:col-start-2 md:col-end-4 md:text-right" role="alert">
+        <p className="text-xs text-red-600" role="alert">
           {apiErrorMessage(submitToSmmQa.error, 'Could not send this video to SMM QA.')}
         </p>
       ) : null}
@@ -146,54 +169,44 @@ type Props = {
 }
 
 export function EditorBatchUploadPanel({ batch, tickets }: Props) {
+  const navigate = useNavigate()
   const deliverables = tickets
     .filter((ticket) => ticket.deliverableIndex != null && ticket.deliverableIndex > 0)
     .sort((a, b) => (a.deliverableIndex ?? 0) - (b.deliverableIndex ?? 0))
   const includeThumbnail = batch.thumbnailOwnerKind === 'editor'
-  const uploadedCount = deliverables.filter((ticket) => studioMediaSlot(ticket, 'video')).length
-  const withQaCount = deliverables.filter(
-    (ticket) => ticket.owner === 'smm' && ticket.stageLabel.toLowerCase().includes('qa'),
+  const editorCount = deliverables.filter(
+    (ticket) => ticket.owner === 'editor' && !videoEditorQaReturn(ticket),
   ).length
-  const allWithQa = deliverables.length > 0 && withQaCount === deliverables.length
+  const revisionCount = deliverables.filter(videoEditorQaReturn).length
+  const reviewCount = deliverables.filter(
+    (ticket) => ticket.owner === 'smm' || ticket.owner === 'client',
+  ).length
+  const completeCount = deliverables.filter(
+    (ticket) => ticket.owner === 'scheduling' || ticket.owner === 'done',
+  ).length
 
   return (
     <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <header className="flex flex-col gap-4 border-b border-slate-100 px-5 py-5 md:flex-row md:items-center md:justify-between">
-        <div className="flex min-w-0 items-start gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
-            {allWithQa ? (
-              <CheckCircle2 className="size-4.5" aria-hidden />
-            ) : (
-              <UploadCloud className="size-4.5" aria-hidden />
-            )}
+      <header className="border-b border-slate-100 px-5 py-4">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
+            <UploadCloud className="size-4" aria-hidden />
           </span>
-          <div>
-            <h2 className="text-sm font-bold text-slate-950">
-              {allWithQa
-                ? 'Finished files are with SMM QA'
-                : 'Upload finished production files'}
-            </h2>
-            <p className="mt-1 max-w-2xl text-xs leading-relaxed text-slate-500">
-              {allWithQa
-                ? 'Every finished video has been handed off. You will be notified here if QA requests changes.'
-                : 'Upload one finished video for every source clip. Files go directly into private Studio storage; no shared Drive folder is needed.'}
-            </p>
-          </div>
+          <h2 className="text-sm font-bold text-slate-950">Production workspace</h2>
         </div>
-        <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-slate-600">
-          {allWithQa
-            ? `${withQaCount} of ${deliverables.length} in QA`
-            : `${uploadedCount} of ${deliverables.length} videos stored`}
-        </span>
+        <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500">
+          {revisionCount ? `${revisionCount} fixes · ` : ''}{editorCount} editing · {reviewCount} review · {completeCount} approved
+        </p>
       </header>
       {deliverables.length > 0 ? (
-        <div>
+        <div className="max-h-[34rem] overflow-y-auto overscroll-contain">
           {deliverables.map((ticket) => (
             <UploadRow
               key={ticket.id}
               batch={batch}
               ticket={ticket}
               includeThumbnail={includeThumbnail}
+              onOpenRevision={(ticketId) => navigate(`/editor/revisions/${ticketId}`)}
             />
           ))}
         </div>

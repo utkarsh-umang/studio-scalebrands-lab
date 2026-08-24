@@ -18,6 +18,7 @@ import { ClientTitleField } from '@/components/client/ClientTitleField'
 import { QaReviewAttachment } from '@/components/qa/QaReviewAttachment'
 import { SmmQaTitleField } from '@/components/smm/SmmQaTitleField'
 import { useQaAttachmentUploadMutation } from '@/hooks/api/media/useQaAttachmentUploadMutation'
+import { useMediaUploadMutation } from '@/hooks/api/media/useMediaUploadMutation'
 import { useMediaPlaybackQuery } from '@/hooks/api/media/useMediaPlaybackQuery'
 import {
   useAppendQaCommentMutation,
@@ -138,10 +139,11 @@ export function SmmQaReviewPage({ mode = 'smm' }: Props) {
   const { user } = useAuth()
   const { videoTicketId } = useParams<{ videoTicketId: string }>()
   const navigate = useNavigate()
-  const { clients, batches, videos, isWorkspaceLoading } = useRoleWorkspace()
+  const { batches, videos, isWorkspaceLoading } = useRoleWorkspace()
   const videoRef = useRef<HTMLVideoElement>(null)
   const videoStageRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const thumbnailInputRef = useRef<HTMLInputElement>(null)
   const [draft, setDraft] = useState('')
   const [pinToPlayhead, setPinToPlayhead] = useState(true)
   const [playhead, setPlayhead] = useState(0)
@@ -151,7 +153,6 @@ export function SmmQaReviewPage({ mode = 'smm' }: Props) {
 
   const ticket = videos.find((video) => video.id === videoTicketId)
   const batch = batches.find((item) => item.id === ticket?.batchId)
-  const client = clients.find((item) => item.id === ticket?.clientId)
   const studioVideo = studioMediaSlot(ticket, 'video')
   const playback = useMediaPlaybackQuery(studioVideo?.assetId)
   const comments = useMemo(() => {
@@ -172,6 +173,7 @@ export function SmmQaReviewPage({ mode = 'smm' }: Props) {
   const submitQa = useSubmitSmmQaMutation(videoTicketId ?? '')
   const submitClientQa = useClientQaDecisionMutation()
   const updateProduction = useUpdateProductionMutation(videoTicketId ?? '')
+  const thumbnailUpload = useMediaUploadMutation(videoTicketId ?? '')
   const canAct = Boolean(
     ticket &&
       (mode === 'smm'
@@ -262,6 +264,8 @@ export function SmmQaReviewPage({ mode = 'smm' }: Props) {
     ? apiErrorMessage(commentError, 'Could not post this comment.')
     : uploadAttachment.isError
       ? apiErrorMessage(uploadAttachment.error, 'Could not upload the attachment.')
+      : thumbnailUpload.isError
+        ? apiErrorMessage(thumbnailUpload.error, 'Could not upload the thumbnail.')
       : decisionError
         ? apiErrorMessage(decisionError, 'Could not submit this review decision.')
         : null
@@ -302,8 +306,8 @@ export function SmmQaReviewPage({ mode = 'smm' }: Props) {
   }
 
   return (
-    <div className="-mx-1 -my-2 lg:-mx-3">
-      <header className="mb-5 flex flex-wrap items-start justify-between gap-4">
+    <div className="-mx-1 -my-2 lg:-mx-3 lg:flex lg:h-[calc(100dvh-6rem)] lg:flex-col lg:overflow-hidden">
+      <header className="mb-3 flex shrink-0 flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
           <Link
             to={backHref}
@@ -328,15 +332,9 @@ export function SmmQaReviewPage({ mode = 'smm' }: Props) {
                 Video #{ticket.deliverableIndex ?? 1} of {batch.videoCount} · v{studioVideo?.version ?? ticket.assetVersions?.video ?? 1}
               </span>
             </div>
-            <h1 className="mt-2 truncate font-[family-name:var(--heading)] text-2xl font-bold tracking-tight text-slate-950 md:text-3xl">
+            <h1 className="mt-1.5 truncate font-[family-name:var(--heading)] text-xl font-bold tracking-tight text-slate-950 md:text-2xl">
               {ticket.editorPublishTitle?.trim() || ticket.title}
             </h1>
-            <p className="mt-1 text-sm text-slate-500">
-              {client?.displayName ?? 'Client'} · {batch.title} ·{' '}
-              {mode === 'smm'
-                ? 'Pause anywhere and leave a precise note.'
-                : 'Approve the video or pause anywhere to request a change.'}
-            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -361,6 +359,19 @@ export function SmmQaReviewPage({ mode = 'smm' }: Props) {
         </div>
       </header>
 
+      <div className="mb-3 shrink-0">
+        {mode === 'smm' &&
+        (batch.titleOwnerKind === 'smm' || !ticket.editorPublishTitle?.trim()) ? (
+          <SmmQaTitleField
+            ticket={ticket}
+            pending={updateProduction.isPending}
+            error={updateProduction.isError ? apiErrorMessage(updateProduction.error, 'Could not save the title.') : null}
+            onSave={(title) => updateProduction.mutate({ editorPublishTitle: title })}
+          />
+        ) : null}
+        {mode === 'client' ? <ClientTitleField ticket={ticket} /> : null}
+      </div>
+
       {!canAct ? (
         <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           {mode === 'smm'
@@ -376,10 +387,10 @@ export function SmmQaReviewPage({ mode = 'smm' }: Props) {
         </p>
       ) : null}
 
-      <div className="grid min-h-0 gap-5 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_420px]">
-        <main className="min-w-0 space-y-4">
+      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_400px]">
+        <main className="min-w-0 space-y-3 lg:flex lg:min-h-0 lg:flex-col">
           <div ref={videoStageRef} className="overflow-hidden rounded-2xl bg-[#080b12] shadow-xl ring-1 ring-black/10">
-            <div className="relative flex aspect-video max-h-[68vh] min-h-[360px] items-center justify-center bg-black">
+            <div className="relative flex aspect-video min-h-[260px] items-center justify-center bg-black lg:max-h-[46vh]">
               {playback.isPending ? (
                 <LoaderCircle className="size-6 animate-spin text-white" aria-label="Loading video" />
               ) : playback.data?.url ? (
@@ -407,13 +418,10 @@ export function SmmQaReviewPage({ mode = 'smm' }: Props) {
             </div>
           </div>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+          <section className="shrink-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-slate-900">Leave feedback</p>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  Click into the comment box to pause the video. The note will be pinned to the current frame.
-                </p>
               </div>
               <span className="shrink-0 rounded-lg bg-slate-900 px-2.5 py-1.5 font-mono text-xs font-semibold text-white">
                 {formatTime(playhead)} / {formatTime(duration)}
@@ -425,7 +433,7 @@ export function SmmQaReviewPage({ mode = 'smm' }: Props) {
               onFocus={() => videoRef.current?.pause()}
               onChange={(event) => setDraft(event.target.value)}
               disabled={!canAct}
-              rows={3}
+              rows={2}
               placeholder="What should change at this moment?"
               className="mt-4 w-full resize-y rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-50 disabled:opacity-60"
             />
@@ -481,6 +489,30 @@ export function SmmQaReviewPage({ mode = 'smm' }: Props) {
                   Add image, GIF or video
                 </button>
                 <span className="text-[10px] text-slate-400">Up to 4 files · 50 MB each</span>
+                {mode === 'smm' && batch.thumbnailOwnerKind === 'smm' ? (
+                  <>
+                    <input
+                      ref={thumbnailInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0]
+                        event.target.value = ''
+                        if (file) thumbnailUpload.mutate({ file, kind: 'thumbnail' })
+                      }}
+                    />
+                    <button
+                      type="button"
+                      disabled={thumbnailUpload.isPending}
+                      onClick={() => thumbnailInputRef.current?.click()}
+                      className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                    >
+                      {thumbnailUpload.isPending ? <LoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <ImagePlus className="size-3.5" aria-hidden />}
+                      {studioMediaSlot(ticket, 'thumbnail') ? 'Replace thumbnail' : 'Add thumbnail'}
+                    </button>
+                  </>
+                ) : null}
               </div>
               <button
                 type="button"
@@ -494,21 +526,9 @@ export function SmmQaReviewPage({ mode = 'smm' }: Props) {
             </div>
           </section>
 
-          {mode === 'smm' &&
-          (batch.titleOwnerKind === 'smm' || !ticket.editorPublishTitle?.trim()) ? (
-            <SmmQaTitleField
-              ticket={ticket}
-              pending={updateProduction.isPending}
-              error={updateProduction.isError ? apiErrorMessage(updateProduction.error, 'Could not save the title.') : null}
-              onSave={(title) => updateProduction.mutate({ editorPublishTitle: title })}
-            />
-          ) : null}
-          {mode === 'client' && batch.titleOwnerKind === 'client' ? (
-            <ClientTitleField ticket={ticket} />
-          ) : null}
         </main>
 
-        <aside className="flex min-h-[520px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm lg:sticky lg:top-0 lg:h-[calc(100dvh-4rem)] lg:max-h-[900px]">
+        <aside className="flex min-h-[420px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm lg:h-full">
           <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-4 py-4">
             <div className="flex items-center gap-2">
               <MessageSquareText className="size-4 text-slate-500" aria-hidden />

@@ -4,12 +4,14 @@ from pathlib import Path
 from uuid import UUID
 
 from fastapi import HTTPException, status
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import CurrentUser
+from app.db.base import utc_now
 from app.models.batch import Batch
 from app.models.enums import (
+    BatchClipReviewPhase,
     BatchIntakePath,
     BatchStatus,
     MediaAssetKind,
@@ -164,11 +166,26 @@ async def prepare_source_clip_uploads(
     user: CurrentUser,
     batch_id: UUID,
     files: list[SourceClipFileInput],
+    *,
+    append: bool = False,
 ) -> PrepareSourceClipsResponse:
     """Create one draft production ticket and presigned S3 upload per client clip."""
     await assert_client_role(user)
     batch = await _get_owned_active_batch(session, user, batch_id)
-    _assert_direct_upload_open(batch)
+    if append:
+        if (
+            batch.intake_path != BatchIntakePath.clips_ready
+            or batch.clip_review_phase != BatchClipReviewPhase.approved
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "error_code": "CONFLICT",
+                    "message": "More videos can be added after the first clip upload is complete.",
+                },
+            )
+    else:
+        _assert_direct_upload_open(batch)
 
     if not files or len(files) > MAX_SOURCE_CLIPS:
         raise HTTPException(
@@ -186,7 +203,9 @@ async def prepare_source_clip_uploads(
             )
         ).scalars().all()
     )
-    if any(asset.kind != MediaAssetKind.source_clip for asset in existing_assets):
+    if not append and any(
+        asset.kind != MediaAssetKind.source_clip for asset in existing_assets
+    ):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail={
@@ -197,17 +216,45 @@ async def prepare_source_clip_uploads(
 
     # A refreshed browser cannot retain local File handles. Starting again while
     # intake is still open safely replaces the previous draft upload manifest.
-    await session.execute(
-        delete(MediaAsset).where(
-            MediaAsset.batch_id == batch.id,
-            MediaAsset.kind == MediaAssetKind.source_clip,
+    if append:
+        pending_ticket_ids = select(VideoTicket.id).where(
+            VideoTicket.batch_id == batch.id,
+            VideoTicket.pipeline_stage == PipelineStage.intake_pending,
         )
-    )
-    await session.execute(delete(VideoTicket).where(VideoTicket.batch_id == batch.id))
-    await session.flush()
+        await session.execute(
+            delete(MediaAsset).where(
+                MediaAsset.video_ticket_id.in_(pending_ticket_ids),
+                MediaAsset.kind == MediaAssetKind.source_clip,
+            )
+        )
+        await session.execute(
+            delete(VideoTicket).where(
+                VideoTicket.batch_id == batch.id,
+                VideoTicket.pipeline_stage == PipelineStage.intake_pending,
+            )
+        )
+        await session.flush()
+    else:
+        await session.execute(
+            delete(MediaAsset).where(
+                MediaAsset.batch_id == batch.id,
+                MediaAsset.kind == MediaAssetKind.source_clip,
+            )
+        )
+        await session.execute(delete(VideoTicket).where(VideoTicket.batch_id == batch.id))
+        await session.flush()
+
+    next_index = 1
+    if append:
+        current_max = await session.scalar(
+            select(func.max(VideoTicket.deliverable_index)).where(
+                VideoTicket.batch_id == batch.id
+            )
+        )
+        next_index = int(current_max or 0) + 1
 
     tickets: list[VideoTicket] = []
-    for index, source_file in enumerate(files, start=1):
+    for index, source_file in enumerate(files, start=next_index):
         title = Path(source_file.filename.strip()).stem.strip()[:512]
         ticket = VideoTicket(
             batch_id=batch.id,
@@ -254,7 +301,21 @@ async def finalize_source_clip_uploads(
     """Publish the uploaded clip manifest to the editor only when every object is ready."""
     await assert_client_role(user)
     batch = await _get_owned_active_batch(session, user, batch_id)
-    _assert_direct_upload_open(batch)
+    initial_upload = (
+        batch.pipeline_stage == PipelineStage.intake_pending
+        and batch.clip_review_phase is None
+    )
+    if not initial_upload and (
+        batch.intake_path != BatchIntakePath.clips_ready
+        or batch.clip_review_phase != BatchClipReviewPhase.approved
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "error_code": "CONFLICT",
+                "message": "This batch is not accepting additional videos.",
+            },
+        )
 
     tickets = list(
         (
@@ -299,18 +360,27 @@ async def finalize_source_clip_uploads(
             },
         )
 
-    apply_uploaded_clips_intake(batch, len(tickets))
+    if initial_upload:
+        apply_uploaded_clips_intake(batch, len(tickets))
+    else:
+        batch.video_count = len(tickets)
+        batch.updated_at = utc_now()
     session.add(batch)
     for ticket in tickets:
-        apply_video_transition(ticket, PipelineStage.production)
-        session.add(ticket)
+        if ticket.pipeline_stage == PipelineStage.intake_pending:
+            apply_video_transition(ticket, PipelineStage.production)
+            session.add(ticket)
 
     record_activity(
         session,
         batch_id=batch.id,
         actor=user,
-        action="source_clips_uploaded",
-        summary=f"Client uploaded {len(tickets)} source clips for “{batch.title}”",
+        action="source_clips_added" if not initial_upload else "source_clips_uploaded",
+        summary=(
+            f"Client added source clips to “{batch.title}”"
+            if not initial_upload
+            else f"Client uploaded {len(tickets)} source clips for “{batch.title}”"
+        ),
     )
     await session.flush()
     await session.refresh(batch)

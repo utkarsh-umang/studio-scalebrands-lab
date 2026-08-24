@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import CurrentUser
 from app.core.config import config
 from app.db.base import utc_now
+from app.models.batch import Batch
 from app.models.enums import (
     EmployeeKind,
     MediaAssetKind,
@@ -171,6 +172,16 @@ async def initiate_upload(
                 "message": "Source clips can only be uploaded during batch kickoff.",
             },
         )
+    if user.role == UserRole.client and payload.kind == MediaAssetKind.thumbnail:
+        batch = await session.get(Batch, ticket.batch_id)
+        if batch is None or batch.thumbnail_owner_kind != "client":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "error_code": "FORBIDDEN",
+                    "message": "The thumbnail for this batch is owned by the Studio team.",
+                },
+            )
     if ticket.deliverable_index is None or ticket.deliverable_index < 1:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

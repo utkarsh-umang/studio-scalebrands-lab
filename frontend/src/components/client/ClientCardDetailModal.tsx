@@ -168,8 +168,8 @@ export function ClientCardDetailModal({
     >
       <p className="text-muted-foreground text-sm leading-relaxed">
         {card.clientColumn === 'in_review'
-          ? 'This item is not ready for your review yet. Check back when our team releases it to you.'
-          : 'Scale Brands is working on this step. You will see it in Needs your attention when action is required.'}
+          ? 'This item is not ready for review yet.'
+          : 'Scale Brands is working on this step.'}
       </p>
       <p className="text-muted-foreground mt-2 text-xs">
         Status: {card.stageLabel}

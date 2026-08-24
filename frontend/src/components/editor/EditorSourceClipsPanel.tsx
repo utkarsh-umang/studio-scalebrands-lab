@@ -41,13 +41,9 @@ export function EditorSourceClipsPanel({ tickets }: Props) {
 
   return (
     <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <header className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 px-5 py-4">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-3.5">
         <div>
           <h2 className="text-sm font-bold text-slate-950">Source clips</h2>
-          <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
-            Select a clip, review the client&apos;s original, then upload the matching
-            finished cut below.
-          </p>
         </div>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-emerald-700">
           <ShieldCheck className="size-3.5" aria-hidden />

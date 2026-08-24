@@ -5,5 +5,5 @@
 import type { SourceClipFileInput } from './SourceClipFileInput';
 export type PrepareSourceClipsRequest = {
     files: Array<SourceClipFileInput>;
+    append?: boolean;
 };
-

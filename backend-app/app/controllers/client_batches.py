@@ -40,6 +40,7 @@ async def prepare_source_clip_uploads(
         current_user,
         batch_id,
         body.files,
+        append=body.append,
     )
 
 

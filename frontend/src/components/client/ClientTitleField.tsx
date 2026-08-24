@@ -8,7 +8,8 @@ type Props = {
 }
 
 /**
- * Per-clip publish title, for batches where the title step is client-owned.
+ * Per-video publish title. The client can set it when they own title creation,
+ * and can make a final adjustment while the video is in client QA.
  * Writes the same field the editor would (editorPublishTitle) — ownership is
  * about who is expected to fill it in, not a separate piece of data.
  */
@@ -17,7 +18,7 @@ export function ClientTitleField({ ticket }: Props) {
   const saved = ticket.editorPublishTitle ?? ''
   const [draft, setDraft] = useState(saved)
 
-  // Re-sync when switching between clips inside the modal, or after a save.
+  // Re-sync when switching between videos, or after a save.
   const [prevSaved, setPrevSaved] = useState(saved)
   const [prevTicketId, setPrevTicketId] = useState(ticket.id)
   if (saved !== prevSaved || ticket.id !== prevTicketId) {

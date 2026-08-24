@@ -3,9 +3,8 @@ import { ClientService } from '@/client'
 import { workspaceQueryKeys } from '@/hooks/api/workspace/workspaceQueryKeys'
 
 /**
- * Write paths for clients who supply their own assets. Both are rejected by the
- * backend unless the admin marked that step client-owned on the batch, so the
- * caller should only render these when the ownership says so.
+ * Write paths for client-supplied assets. Thumbnail ownership is enforced by
+ * the backend; titles are also editable during the client's final QA pass.
  */
 export function useClientThumbnailsFolderMutation(batchId: string) {
   const queryClient = useQueryClient()

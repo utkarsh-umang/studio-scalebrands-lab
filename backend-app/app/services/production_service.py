@@ -311,8 +311,8 @@ async def set_client_title(
 ) -> ProductionTicketResponse:
     """Client writes the publish title for one deliverable.
 
-    Only allowed when the admin marked the batch's title step as client-owned;
-    otherwise the title belongs to the team and the client must not overwrite it.
+    A client-owned title can be written throughout production. During final
+    client QA, the client may also correct a team-authored publish title.
     """
     if user.role != UserRole.client:
         raise HTTPException(
@@ -320,7 +320,10 @@ async def set_client_title(
             detail={"error_code": "FORBIDDEN", "message": "Client role required"},
         )
     ticket, batch = await _get_ticket_and_batch(session, user, video_ticket_id)
-    if (batch.title_owner_kind or "") != "client":
+    if (
+        (batch.title_owner_kind or "") != "client"
+        and ticket.pipeline_stage != PipelineStage.client_qa
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={

@@ -24,6 +24,7 @@ import {
 import { useRoleWorkspace } from '@/hooks/api/workspace/useRoleWorkspace'
 import { useDriveManifestSync } from '@/hooks/useDriveManifestSync'
 import { toClientVideoCard } from '@/lib/clientBoard'
+import { videoEditorQaReturn } from '@/lib/editorBoard'
 import { studioMediaSlot } from '@/lib/studioMedia'
 import type { AdminBatchFolder, AdminVideoTicket } from '@/types/pathB'
 
@@ -47,23 +48,17 @@ function workspaceCopy(role: WorkspaceRole, canClientReview: boolean) {
     return {
       eyebrow: 'Approval required',
       title: 'Review the selected clips',
-      description:
-        'Watch the full set, then approve it for production or mark only the clips that need a different cut.',
     }
   }
   if (role === 'editor') {
     return {
       eyebrow: 'Production handoff',
       title: 'Review clips and submit deliverables',
-      description:
-        'Use the approved source clips as your edit reference, then upload each finished production file directly to Studio.',
     }
   }
   return {
     eyebrow: 'Source clips',
     title: 'Review the numbered clip set',
-    description:
-      'Use this workspace to check the exact source clips attached to this batch.',
   }
 }
 
@@ -129,6 +124,16 @@ function stageBannerFor(
     (ticket) =>
       ticket.owner === 'smm' && ticket.stageLabel.toLowerCase().includes('qa'),
   ).length
+  const revisionCount = indexedTickets.filter(videoEditorQaReturn).length
+
+  if (role === 'editor' && revisionCount > 0) {
+    return {
+      label: 'Changes requested',
+      title: `${revisionCount} ${revisionCount === 1 ? 'video needs' : 'videos need'} a QA fix`,
+      description: 'Open each flagged video below, address the comments, and resubmit it to SMM QA.',
+      kind: 'action',
+    }
+  }
 
   if (role === 'editor' && qaCount > 0) {
     if (editorCount === 0) {
@@ -238,7 +243,7 @@ function ClipsWorkspaceContent({
           : CheckCircle2
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3">
       <button
         type="button"
         onClick={() => {
@@ -252,9 +257,9 @@ function ClipsWorkspaceContent({
         Back to workflow
       </button>
 
-      <section className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-[0_22px_60px_rgba(15,23,42,0.08)]">
-        <header className="border-b border-slate-100 px-5 py-5 md:px-7 md:py-6">
-          <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+      <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_18px_45px_rgba(15,23,42,0.07)]">
+        <header className="border-b border-slate-100 px-5 py-4 md:px-6">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.14em] text-blue-700">
@@ -264,13 +269,10 @@ function ClipsWorkspaceContent({
                   {knownVideoCount} {knownVideoCount === 1 ? 'clip' : 'clips'}
                 </span>
               </div>
-              <h1 className="mt-3 text-2xl font-bold tracking-[-0.03em] text-slate-950 md:text-3xl">
+              <h1 className="mt-2 text-xl font-bold tracking-[-0.03em] text-slate-950 md:text-2xl">
                 {copy.title}
               </h1>
-              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-500">
-                {copy.description}
-              </p>
-              <p className="mt-3 flex flex-wrap items-center gap-2 text-xs font-medium text-slate-500">
+              <p className="mt-1.5 flex flex-wrap items-center gap-2 text-xs font-medium text-slate-500">
                 <span className="text-slate-900">{batch.title}</span>
                 <span aria-hidden>·</span>
                 <span>{clientName}</span>
@@ -313,10 +315,10 @@ function ClipsWorkspaceContent({
           ) : null}
         </header>
 
-        <div className="space-y-4 bg-slate-50/65 p-4 md:p-6">
+        <div className="space-y-3 bg-slate-50/65 p-3 md:p-4">
           <section
             className={[
-              'relative overflow-hidden rounded-2xl px-5 py-5 text-white shadow-sm md:px-6',
+              'relative overflow-hidden rounded-xl px-4 py-3.5 text-white shadow-sm md:px-5',
               stageBanner.kind === 'action' ? 'bg-blue-600' : 'bg-[#0a1222]',
             ].join(' ')}
           >
@@ -328,20 +330,17 @@ function ClipsWorkspaceContent({
               }}
               aria-hidden
             />
-            <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center">
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/15">
+            <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/15">
                 <StageIcon className="size-5" aria-hidden />
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-blue-200">
                   {stageBanner.label}
                 </p>
-                <h2 className="mt-1.5 text-lg font-bold tracking-[-0.02em] md:text-xl">
+                <h2 className="mt-1 text-base font-bold tracking-[-0.02em] md:text-lg">
                   {stageBanner.title}
                 </h2>
-                <p className="mt-1 max-w-3xl text-xs leading-relaxed text-slate-300">
-                  {stageBanner.description}
-                </p>
               </div>
               {knownVideoCount > 0 ? (
                 <span className="relative shrink-0 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white">
@@ -351,7 +350,12 @@ function ClipsWorkspaceContent({
             </div>
           </section>
 
-          {hasStudioSource ? (
+          {hasStudioSource && role === 'editor' ? (
+            <div className="grid items-start gap-3 xl:grid-cols-[minmax(0,1.2fr)_minmax(390px,0.8fr)]">
+              <EditorSourceClipsPanel tickets={tickets} />
+              <EditorBatchUploadPanel batch={batch} tickets={tickets} />
+            </div>
+          ) : hasStudioSource ? (
             <EditorSourceClipsPanel tickets={tickets} />
           ) : (
             <>
@@ -407,7 +411,7 @@ function ClipsWorkspaceContent({
             </>
           )}
 
-          {role === 'editor' ? (
+          {role === 'editor' && !hasStudioSource ? (
             <EditorBatchUploadPanel batch={batch} tickets={tickets} />
           ) : null}
         </div>

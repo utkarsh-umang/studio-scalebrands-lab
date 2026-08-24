@@ -1,11 +1,9 @@
 import { useMemo, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/auth'
-import { EditorAttentionStrip } from '@/components/editor/EditorAttentionStrip'
 import { EditorBatchFolderRow } from '@/components/editor/EditorBatchFolderRow'
 import { BatchOwnershipControls } from '@/components/path-b/BatchOwnershipControls'
 import { EditorPathBVideoKanban } from '@/components/editor/EditorPathBVideoKanban'
-import { EditorProductionModal } from '@/components/editor/EditorProductionModal'
 import { EditorProductionHandoff } from '@/components/editor/EditorProductionHandoff'
 import { FindClipsModal } from '@/components/path-b'
 import {
@@ -13,7 +11,6 @@ import {
   batchNeedsEditorFindClips,
   batchReadyForEditorWork,
   filterVideosForEditorKanban,
-  listEditorAttention,
   toEditorPathBVideoCard,
   videoEditorQaReturn,
   editorNeedsProductionWork,
@@ -59,7 +56,6 @@ export function EditorBoard() {
 
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null)
   const [findClipsOpen, setFindClipsOpen] = useState(false)
-  const [activeVideoId, setActiveVideoId] = useState<string | null>(null)
 
   const effectiveBatchId = selectedBatchId ?? editorBatches[0]?.id ?? null
   const selectedBatch =
@@ -85,16 +81,6 @@ export function EditorBoard() {
   }, [selectedBatch, selectedBatchTickets])
   const hasEditorProductionWork = preDeliverablesVideos.some(
     editorNeedsProductionWork,
-  )
-
-  const attention = useMemo(
-    () => listEditorAttention(editorBatches, videos, clientNameById),
-    [editorBatches, videos, clientNameById],
-  )
-
-  const activeCard = useMemo(
-    () => batchVideos.find((v) => v.id === activeVideoId) ?? null,
-    [batchVideos, activeVideoId],
   )
 
   if (!user || user.role !== 'employee' || user.employeeKind !== 'editor') {
@@ -128,26 +114,6 @@ export function EditorBoard() {
           {assignedClients.length === 1 ? '' : 's'} · Path B deliverables
         </p>
       </div>
-
-      <EditorAttentionStrip
-        items={attention}
-        onOpen={(item) => {
-          setSelectedBatchId(item.batchId)
-          if (item.kind === 'find_clips') {
-            setFindClipsOpen(true)
-          } else if (item.kind === 'pre_split_gate' || item.kind === 'submit_deliverables') {
-            navigate(`/editor/batches/${item.batchId}/clips`)
-          } else if (item.kind === 'qa_fix' && item.videoId) {
-            navigate(`/editor/revisions/${item.videoId}`)
-          } else if (item.kind === 'production') {
-            const batch = editorBatches.find((b) => b.id === item.batchId)
-            if (!batch) return
-            const work = filterVideosForEditorKanban(batch, videos.filter((v) => v.batchId === batch.id))
-            const first = work.find(editorNeedsProductionWork)
-            if (first) setActiveVideoId(first.id)
-          }
-        }}
-      />
 
       <EditorBatchFolderRow
         batches={editorBatches}
@@ -200,7 +166,7 @@ export function EditorBoard() {
                   navigate(`/editor/revisions/${videoId}`)
                   return
                 }
-                setActiveVideoId(videoId)
+                navigate(`/editor/batches/${selectedBatch.id}/clips`)
               }}
             />
           ) : batchAwaitingClips(selectedBatch) ? (
@@ -228,20 +194,6 @@ export function EditorBoard() {
         />
       ) : null}
 
-      {activeCard &&
-      selectedBatch &&
-      editorNeedsProductionWork(activeCard) &&
-      !videoEditorQaReturn(activeCard) ? (
-        <EditorProductionModal
-          batch={selectedBatch}
-          clientName={clientName}
-          ticket={activeCard}
-          open={activeVideoId === activeCard.id}
-          onClose={() => {
-            setActiveVideoId(null)
-          }}
-        />
-      ) : null}
     </>
   )
 }

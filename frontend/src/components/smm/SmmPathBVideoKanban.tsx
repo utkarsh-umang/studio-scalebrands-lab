@@ -1,17 +1,14 @@
-import { CalendarClock, Film, MessageSquareWarning, Scissors } from 'lucide-react'
+import { ArrowRight, CalendarClock, FolderOpen, Scissors } from 'lucide-react'
 import { DeadlineChip } from '@/components/path-b/DeadlineChip'
 import type { AdminBatchFolder } from '@/types/pathB'
 import {
-  SMM_PATH_B_COLUMNS,
   batchNeedsSmmFindClips,
   smmBatchKanbanPhase,
   smmCardActionable,
-  smmCanEditEditorDeliverable,
-  videoNeedsSmmClientRevision,
+  videoNeedsSmmQa,
   videoNeedsSmmSchedule,
   type SmmPathBVideoCard,
 } from '@/lib/smmBoard'
-import { useTheme } from '@/theme'
 
 type Props = {
   batch: AdminBatchFolder
@@ -21,161 +18,63 @@ type Props = {
   onOpenVideo: (videoId: string) => void
 }
 
-export function SmmPathBVideoKanban({
-  batch,
-  videos,
-  onFindClips,
-  onViewClips,
-  onOpenVideo,
-}: Props) {
-  const { theme } = useTheme()
-  const primary = theme.colors.primary
+function rowStatus(video: SmmPathBVideoCard) {
+  if (video.owner === 'done') return { label: 'Completed', tone: 'bg-emerald-50 text-emerald-700' }
+  if (videoNeedsSmmSchedule(video)) return { label: 'Scheduling', tone: 'bg-cyan-50 text-cyan-700' }
+  if (videoNeedsSmmQa(video)) return { label: 'Internal QA', tone: 'bg-amber-50 text-amber-700' }
+  if (video.owner === 'client') return { label: 'Client review', tone: 'bg-blue-50 text-blue-700' }
+  if (video.owner === 'editor') return { label: 'With editor', tone: 'bg-violet-50 text-violet-700' }
+  return { label: video.stageLabel, tone: 'bg-slate-100 text-slate-600' }
+}
+
+export function SmmPathBVideoKanban({ batch, videos, onFindClips, onViewClips, onOpenVideo }: Props) {
   const phase = smmBatchKanbanPhase(batch)
   const showFindClips = batchNeedsSmmFindClips(batch)
   const showViewClips = phase === 'pre_split' && Boolean(batch.clipsFolderUrl?.trim())
-  function cardsInColumn(colId: (typeof SMM_PATH_B_COLUMNS)[number]['id']) {
-    return videos.filter((c) => c.pathBColumn === colId)
-  }
 
   return (
-    <div className="flex min-h-[420px] gap-3 overflow-x-auto pb-2">
-      {SMM_PATH_B_COLUMNS.map((col) => {
-        const columnCards = cardsInColumn(col.id)
-        let count = columnCards.length
-        if (col.id === 'identify' && showFindClips) count += 1
-        if (col.id === 'identify' && showViewClips) count += 1
-        return (
-          <div
-            key={col.id}
-            className="bg-muted/20 border-border flex w-[min(100%,260px)] shrink-0 flex-col rounded-xl border"
-          >
-            <div className="border-border border-b px-3 py-2.5">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-foreground text-xs font-semibold">{col.label}</span>
-                <span className="text-muted-foreground text-[10px] tabular-nums">{count}</span>
+    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 md:px-5">
+        <div className="flex items-center gap-2">
+          <h2 className="text-sm font-bold text-slate-950">Videos</h2>
+          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">{videos.length}</span>
+        </div>
+        {showFindClips || showViewClips ? (
+          <button type="button" onClick={showFindClips ? onFindClips : onViewClips} className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700">
+            {showFindClips ? <Scissors className="size-3.5" aria-hidden /> : <FolderOpen className="size-3.5" aria-hidden />}
+            {showFindClips ? 'Find clips' : 'View clips'}
+          </button>
+        ) : null}
+      </header>
+      <div className="grid grid-cols-[64px_minmax(0,1fr)_150px_120px_90px] border-b border-slate-100 bg-slate-50/80 px-5 py-2 text-[9px] font-bold uppercase tracking-[0.13em] text-slate-400">
+        <span>Video</span><span>Title</span><span>Stage</span><span>Deadline</span><span className="text-right">Action</span>
+      </div>
+      <div className="max-h-[min(62vh,620px)] overflow-y-auto">
+        {videos.length ? videos.map((video) => {
+          const status = rowStatus(video)
+          const actionable = smmCardActionable(video, batch)
+          const schedule = videoNeedsSmmSchedule(video)
+          return (
+            <div key={video.id} className="grid grid-cols-[64px_minmax(0,1fr)_150px_120px_90px] items-center gap-3 border-b border-slate-100 px-5 py-3 last:border-0">
+              <span className="text-[11px] font-bold tabular-nums text-slate-400">#{String(video.deliverableIndex ?? '—').padStart(2, '0')}</span>
+              <p className="truncate text-xs font-semibold text-slate-900">{video.editorPublishTitle?.trim() || video.title}</p>
+              <span><span className={`inline-flex rounded-full px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.08em] ${status.tone}`}>{status.label}</span></span>
+              <span>{video.deadlineAt ? <DeadlineChip deadlineAt={video.deadlineAt} /> : <span className="text-[10px] text-slate-400">—</span>}</span>
+              <div className="flex justify-end">
+                {actionable ? (
+                  <button type="button" onClick={() => onOpenVideo(video.id)} className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-blue-700 hover:bg-blue-50">
+                    {schedule ? <CalendarClock className="size-3.5" aria-hidden /> : null}
+                    {schedule ? 'Schedule' : 'Open'}
+                    {!schedule ? <ArrowRight className="size-3" aria-hidden /> : null}
+                  </button>
+                ) : <span className="text-[10px] text-slate-400">Waiting</span>}
               </div>
-              <p className="text-muted-foreground mt-0.5 text-[10px] leading-snug">{col.hint}</p>
             </div>
-            <ul className="flex min-h-[200px] flex-1 flex-col gap-2 p-2">
-              {col.id === 'identify' && showFindClips ? (
-                <li>
-                  <button
-                    type="button"
-                    onClick={onFindClips}
-                    className="border-border bg-background hover:border-primary/35 group w-full rounded-lg border p-3 text-left shadow-sm transition-colors"
-                  >
-                    <div className="flex items-start gap-2">
-                      <Scissors
-                        className="size-3.5 shrink-0"
-                        style={{ color: primary }}
-                        aria-hidden
-                      />
-                      <div>
-                        <p className="text-foreground text-xs font-medium leading-snug">
-                          Submit clips folder
-                        </p>
-                        <p className="text-muted-foreground mt-1 text-[10px]">
-                          Paste Drive link with numbered clips for client review
-                        </p>
-                        <span
-                          className="mt-1.5 inline-block rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide"
-                          style={{ background: `${primary}14`, color: primary }}
-                        >
-                          Open
-                        </span>
-                      </div>
-                    </div>
-                  </button>
-                </li>
-              ) : null}
-              {col.id === 'identify' && showViewClips ? (
-                <li>
-                  <button
-                    type="button"
-                    onClick={onViewClips}
-                    className="border-border bg-background hover:border-primary/35 w-full rounded-lg border p-3 text-left shadow-sm transition-colors"
-                  >
-                    <p className="text-foreground text-xs font-medium leading-snug">
-                      View clips folder
-                    </p>
-                    <p className="text-muted-foreground mt-1 text-[10px]">
-                      Sync manifest · {batch.clipReviewPhase === 'awaiting_client' ? 'client reviewing' : 'pre-split'}
-                    </p>
-                  </button>
-                </li>
-              ) : null}
-              {columnCards.length === 0 &&
-              !(col.id === 'identify' && (showFindClips || showViewClips)) ? (
-                <li className="text-muted-foreground px-2 py-6 text-center text-[11px]">—</li>
-              ) : null}
-              {columnCards.map((card) => {
-                const actionable = smmCardActionable(card, batch)
-                const needsSchedule = videoNeedsSmmSchedule(card)
-                const needsEditorAssist = smmCanEditEditorDeliverable(card, batch)
-                const Icon = videoNeedsSmmClientRevision(card)
-                  ? MessageSquareWarning
-                  : needsSchedule
-                    ? CalendarClock
-                    : Film
-                return (
-                  <li key={card.id}>
-                    <button
-                      type="button"
-                      disabled={!actionable}
-                      onClick={() => {
-                        if (actionable) onOpenVideo(card.id)
-                      }}
-                      className={[
-                        'border-border bg-background w-full rounded-lg border p-3 text-left shadow-sm',
-                        actionable
-                          ? 'hover:border-primary/35 cursor-pointer transition-colors'
-                          : 'opacity-80',
-                      ].join(' ')}
-                    >
-                      <div className="flex items-start gap-2">
-                        <Icon
-                          className="text-muted-foreground mt-0.5 size-3.5 shrink-0"
-                          style={actionable ? { color: primary } : undefined}
-                          aria-hidden
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-foreground text-xs font-medium leading-snug">
-                            #{card.deliverableIndex} · {card.title}
-                          </p>
-                          <p className="text-muted-foreground mt-1 text-[10px]">
-                            {card.videoSchedule
-                              ? `${card.videoSchedule.platform} · ${new Date(card.videoSchedule.goLiveAt).toLocaleDateString()}`
-                              : card.stageLabel}
-                          </p>
-                          {card.deadlineAt ? (
-                            <DeadlineChip deadlineAt={card.deadlineAt} className="mt-1.5" />
-                          ) : null}
-                          {actionable ? (
-                            <span
-                              className="mt-1.5 inline-block rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide"
-                              style={{ background: `${primary}14`, color: primary }}
-                            >
-                              {needsSchedule
-                                ? 'Set go-live'
-                                : needsEditorAssist
-                                  ? 'Edit title / thumb'
-                                  : 'Open'}
-                            </span>
-                          ) : card.owner === 'done' ? (
-                            <span className="text-muted-foreground mt-1.5 inline-block text-[9px] font-semibold uppercase tracking-wide">
-                              Scheduled
-                            </span>
-                          ) : null}
-                        </div>
-                      </div>
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
-          </div>
-        )
-      })}
-    </div>
+          )
+        }) : (
+          <p className="px-5 py-10 text-center text-sm text-slate-500">No videos in this batch yet.</p>
+        )}
+      </div>
+    </section>
   )
 }

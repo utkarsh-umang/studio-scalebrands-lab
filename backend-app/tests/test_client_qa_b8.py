@@ -130,7 +130,7 @@ async def test_client_approve_moves_to_scheduling(client: AsyncClient) -> None:
 
 
 @pytest.mark.anyio
-async def test_client_reject_routes_to_smm_not_editor(client: AsyncClient) -> None:
+async def test_client_reject_routes_directly_to_editor(client: AsyncClient) -> None:
     _, ticket_id, client_headers, _ = await _ticket_in_client_qa(client)
 
     response = await client.post(
@@ -143,10 +143,9 @@ async def test_client_reject_routes_to_smm_not_editor(client: AsyncClient) -> No
     )
     assert response.status_code == 200, response.text
     body = response.json()["ticket"]
-    assert body["owner"] == "smm"
-    assert body["pipelineStage"] == "revision_via_smm"
+    assert body["owner"] == "editor"
+    assert body["pipelineStage"] == "editor_fix"
     assert body["lastRevisionRequestedBy"] == "client"
-    assert body["owner"] != "editor"
     comments = body["qaCommentHistory"]
     assert len(comments) == 1
     assert comments[0]["authorRole"] == "client"
@@ -199,11 +198,11 @@ async def test_client_can_request_changes_from_existing_timed_comment(
         json={"action": "reject"},
     )
     assert response.status_code == 200, response.text
-    assert response.json()["ticket"]["pipelineStage"] == "revision_via_smm"
+    assert response.json()["ticket"]["pipelineStage"] == "editor_fix"
 
 
 @pytest.mark.anyio
-async def test_smm_triage_editor_and_smm_assets(client: AsyncClient) -> None:
+async def test_client_revision_skips_smm_triage(client: AsyncClient) -> None:
     _, ticket_id, client_headers, smm_headers = await _ticket_in_client_qa(client)
 
     reject = await client.post(
@@ -218,33 +217,17 @@ async def test_smm_triage_editor_and_smm_assets(client: AsyncClient) -> None:
         headers=smm_headers,
         json={"route": "editor"},
     )
-    assert to_editor.status_code == 200, to_editor.text
-    editor_body = to_editor.json()["ticket"]
-    assert editor_body["owner"] == "editor"
-    assert editor_body["pipelineStage"] == "editor_fix"
-    assert editor_body["lastRevisionRequestedBy"] == "client"
+    assert to_editor.status_code == 422, to_editor.text
 
-    reject2 = await client.post(
-        f"{config.API_V1_STR}/client/videos/{ticket_id}/client-qa",
+
+@pytest.mark.anyio
+async def test_client_can_edit_title_during_final_review(client: AsyncClient) -> None:
+    _, ticket_id, client_headers, _ = await _ticket_in_client_qa(client)
+
+    response = await client.post(
+        f"{config.API_V1_STR}/client/videos/{ticket_id}/title",
         headers=client_headers,
-        json={"action": "reject", "commentBody": "Title update only"},
+        json={"title": "Client-approved final title"},
     )
-    assert reject2.status_code == 422
-
-    _, ticket_id2, client_headers2, smm_headers2 = await _ticket_in_client_qa(client)
-    await client.post(
-        f"{config.API_V1_STR}/client/videos/{ticket_id2}/client-qa",
-        headers=client_headers2,
-        json={"action": "reject", "commentBody": "Warmer thumbnail"},
-    )
-
-    to_smm = await client.post(
-        f"{config.API_V1_STR}/videos/{ticket_id2}/client-revision-triage",
-        headers=smm_headers2,
-        json={"route": "smm_assets"},
-    )
-    assert to_smm.status_code == 200, to_smm.text
-    smm_body = to_smm.json()["ticket"]
-    assert smm_body["owner"] == "smm"
-    assert smm_body["pipelineStage"] == "production"
-    assert smm_body["lastRevisionRequestedBy"] == "client"
+    assert response.status_code == 200, response.text
+    assert response.json()["ticket"]["editorPublishTitle"] == "Client-approved final title"

@@ -11,7 +11,10 @@ export type SourceClipUploadProgress = {
   status: 'waiting' | 'uploading' | 'complete'
 }
 
-export function useSourceClipsUploadMutation(batchId: string) {
+export function useSourceClipsUploadMutation(
+  batchId: string,
+  options: { append?: boolean } = {},
+) {
   const queryClient = useQueryClient()
   const [progress, setProgress] = useState<SourceClipUploadProgress[]>([])
 
@@ -29,6 +32,7 @@ export function useSourceClipsUploadMutation(batchId: string) {
               contentType: file.type || 'application/octet-stream',
               sizeBytes: file.size,
             })),
+            append: options.append ?? false,
           },
         )
 

@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useAuth } from '@/auth'
-import { ClientAttentionStrip } from '@/components/client/ClientAttentionStrip'
-import { ArrowRight, CheckCircle2, History, Sparkles } from 'lucide-react'
+import { ArrowRight, History } from 'lucide-react'
 import { BatchActivityModal } from '@/components/BatchActivityModal'
 import { ClientBatchFolderRow } from '@/components/client/ClientBatchFolderRow'
 import { ClientBatchProgress } from '@/components/client/ClientBatchProgress'
@@ -9,14 +8,14 @@ import { ClientIdeaPanel } from '@/components/client/ClientIdeaPanel'
 import { ClientCardDetailModal } from '@/components/client/ClientCardDetailModal'
 import { ClientPageTitleRow } from '@/components/client/ClientPageTitleRow'
 import { ClientBatchIntakeCard } from '@/components/client/ClientBatchIntakeCard'
-import { ClientThumbnailsFolderCard } from '@/components/client/ClientThumbnailsFolderCard'
 import { ClientProductionOverview } from '@/components/client/ClientProductionOverview'
+import { ClientAddVideosModal } from '@/components/client/ClientAddVideosModal'
+import { ClientThumbnailUploadModal } from '@/components/client/ClientThumbnailUploadModal'
 import { ClientVideoKanban } from '@/components/client/ClientVideoKanban'
 import {
   batchNeedsClientIntake,
   clientReservedCredits,
   filterVideosForClientKanban,
-  listClientAttention,
   toClientVideoCard,
 } from '@/lib/clientBoard'
 import { resolveClientProfileId } from '@/lib/clientSession'
@@ -50,6 +49,8 @@ export function ClientBoard() {
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null)
   const [openVideoId, setOpenVideoId] = useState<string | null>(null)
   const [activityOpen, setActivityOpen] = useState(false)
+  const [addVideosOpen, setAddVideosOpen] = useState(false)
+  const [thumbnailVideoId, setThumbnailVideoId] = useState<string | null>(null)
 
   const requestedVideo = useMemo(() => {
     const requestedVideoId = searchParams.get('openVideo')
@@ -82,16 +83,6 @@ export function ClientBoard() {
     () => clientReservedCredits(clientBatches),
     [clientBatches],
   )
-
-  const attention = useMemo(() => {
-    if (!clientProfileId) return []
-    const clientBatchIds = new Set(
-      batches.filter((b) => b.clientId === clientProfileId).map((b) => b.id),
-    )
-    const clientVideos = videos.filter((v) => clientBatchIds.has(v.batchId))
-    const clientBatchList = batches.filter((b) => b.clientId === clientProfileId)
-    return listClientAttention(clientBatchList, clientVideos)
-  }, [clientProfileId, batches, videos])
 
   const openCard = useMemo(
     () =>
@@ -147,28 +138,8 @@ export function ClientBoard() {
       <ClientPageTitleRow
         eyebrow="Client workspace"
         title={`Welcome back, ${user.name}`}
-        subtitle="Everything in production, every approval, and every published video—together in one place."
         credits={client.credits}
         reservedCredits={reservedCredits}
-      />
-
-      <ClientAttentionStrip
-        items={attention}
-        onOpen={(videoId) => {
-          const video = videos.find((v) => v.id === videoId)
-          if (video) {
-            setSelectedBatchId(video.batchId)
-            const batch = batches.find((item) => item.id === video.batchId)
-            const card = batch ? toClientVideoCard(video, batch) : null
-            if (card?.reviewKind === 'clip') {
-              navigate(`/client/batches/${video.batchId}/clips`)
-            } else if (card?.reviewKind === 'final') {
-              navigate(`/client/review/${videoId}`)
-            } else {
-              setOpenVideoId(videoId)
-            }
-          }
-        }}
       />
 
       <ClientBatchFolderRow
@@ -179,7 +150,7 @@ export function ClientBoard() {
 
       {selectedBatch ? (
         <section className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.06)]">
-          <header className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-100 px-5 py-5 md:px-6">
+          <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-3 md:px-6">
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-600">
@@ -199,12 +170,9 @@ export function ClientBoard() {
                   {selectedBatchNeedsIntake ? 'Kickoff needed' : 'In progress'}
                 </span>
               </div>
-              <h2 className="mt-2 text-xl font-bold tracking-[-0.02em] text-slate-950 md:text-2xl">
+              <h2 className="mt-1 text-lg font-bold tracking-[-0.02em] text-slate-950 md:text-xl">
                 {selectedBatch.title}
               </h2>
-              <p className="mt-1 text-xs text-slate-500">
-                Follow the batch from kickoff through final publishing.
-              </p>
             </div>
             <button
               type="button"
@@ -218,57 +186,15 @@ export function ClientBoard() {
             </button>
           </header>
 
-          <div className="border-b border-slate-100 bg-slate-50/60 px-5 py-5 md:px-6">
+          <div className="border-b border-slate-100 bg-slate-50/60 px-5 py-3 md:px-6">
             <ClientBatchProgress batch={selectedBatch} />
           </div>
 
-          <div className="space-y-6 p-5 md:p-6">
+          <div className="space-y-4 p-4 md:p-5">
             {selectedBatchNeedsIntake ? (
-              <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.45fr)_minmax(260px,0.55fr)]">
-                <ClientBatchIntakeCard batch={selectedBatch} />
-
-                <aside className="rounded-3xl bg-[#0a1222] p-5 text-white md:p-6">
-                  <span className="flex size-10 items-center justify-center rounded-xl bg-blue-500/15 text-blue-300">
-                    <Sparkles className="size-4.5" aria-hidden />
-                  </span>
-                  <h3 className="mt-5 text-base font-semibold">
-                    What happens after upload?
-                  </h3>
-                  <p className="mt-2 text-xs leading-relaxed text-slate-400">
-                    Your clips stay private and move through one clear review flow.
-                  </p>
-                  <ol className="mt-6 space-y-4">
-                    {[
-                      'Each raw clip becomes its own editor work item.',
-                      'Your editor uploads a finished cut for internal QA.',
-                      'After QA passes, you review and comment on the video.',
-                    ].map((item, index) => (
-                      <li key={item} className="flex gap-3">
-                        <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-[10px] font-bold text-blue-300">
-                          {index + 1}
-                        </span>
-                        <span className="pt-0.5 text-xs leading-relaxed text-slate-300">
-                          {item}
-                        </span>
-                      </li>
-                    ))}
-                  </ol>
-                  <div className="mt-6 flex items-center gap-2 border-t border-white/10 pt-5 text-[10px] font-semibold uppercase tracking-[0.12em] text-blue-300">
-                    <CheckCircle2 className="size-3.5" aria-hidden />
-                    Uploaded directly to private S3 storage
-                  </div>
-                </aside>
-              </div>
+              <ClientBatchIntakeCard batch={selectedBatch} />
             ) : (
               <>
-                {selectedBatch.thumbnailOwnerKind === 'client' && (
-                  <div className="space-y-2">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
-                      Thumbnails — yours to send
-                    </p>
-                    <ClientThumbnailsFolderCard batch={selectedBatch} />
-                  </div>
-                )}
                 {['idea_research', 'idea_review', 'idea_footage_pending'].includes(
                   selectedBatch.pipelineStage ?? '',
                 ) ? (
@@ -280,12 +206,12 @@ export function ClientBoard() {
                     videos={indexedBatchVideos}
                     onOpenVideo={handleOpenVideo}
                     onOpenClips={
-                      selectedBatch.clipsFolderUrl?.trim()
-                        ? () => {
-                            navigate(`/client/batches/${selectedBatch.id}/clips`)
-                          }
-                        : undefined
+                      () => {
+                        navigate(`/client/batches/${selectedBatch.id}/clips`)
+                      }
                     }
+                    onAddVideos={() => setAddVideosOpen(true)}
+                    onAddThumbnail={setThumbnailVideoId}
                   />
                 ) : (
                   <div className="space-y-3">
@@ -344,6 +270,19 @@ export function ClientBoard() {
         onClose={() => {
           setActivityOpen(false)
         }}
+      />
+
+      {selectedBatch ? (
+        <ClientAddVideosModal
+          batch={selectedBatch}
+          open={addVideosOpen}
+          onClose={() => setAddVideosOpen(false)}
+        />
+      ) : null}
+
+      <ClientThumbnailUploadModal
+        ticket={videos.find((video) => video.id === thumbnailVideoId) ?? null}
+        onClose={() => setThumbnailVideoId(null)}
       />
     </>
   )

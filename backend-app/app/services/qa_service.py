@@ -686,7 +686,7 @@ async def submit_client_qa(
             )
         apply_video_transition(
             ticket,
-            PipelineStage.revision_via_smm,
+            PipelineStage.editor_fix,
             released_to_client_final_review=False,
         )
         ticket.last_revision_requested_by = "client"
